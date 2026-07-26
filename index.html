@@ -1737,7 +1737,7 @@ body.studio-lite.video-mode #vxControls{
     <input type="file" id="folder" accept="image/*" webkitdirectory directory multiple hidden>
   </main>
 </div>
-<div class="foot">NEX ESTATE Media Studio by Эдик Великий</div>
+<div class="foot">NEX ESTATE Media Studio by Эдик Великий · Fix 1.3</div>
 <script>
 
 const THEME_STORAGE_BG='nexestate-bg-theme';
@@ -1967,11 +1967,29 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 <script>
 const MARKS={"A_dark":"./assets/marks/A_dark.svg","A_light":"./assets/marks/A_light.svg","B_dark":"./assets/marks/B_dark.svg","B_light":"./assets/marks/B_light.svg","C_dark":"./assets/marks/C_dark.svg","C_light":"./assets/marks/C_light.svg","D_dark":"./assets/marks/D_dark.svg","D_light":"./assets/marks/D_light.svg","E_dark":"./assets/marks/E_dark.png","E_light":"./assets/marks/E_light.png","F_dark":"./assets/marks/F_dark.svg","F_light":"./assets/marks/F_light.svg"}, SPECS={"A_dark":{"w":745,"h":510},"A_light":{"w":745,"h":510},"B_dark":{"w":657,"h":318},"B_light":{"w":657,"h":318},"C_dark":{"w":380,"h":380},"C_light":{"w":380,"h":380},"D_dark":{"w":618,"h":619},"D_light":{"w":618,"h":619},"E_dark":{"w":1100,"h":842},"E_light":{"w":1100,"h":842},"F_dark":{"w":745,"h":285},"F_light":{"w":745,"h":285}};
-const state={variant:'A',theme:'light',pos:'mc',tile:false,size:42,op:18,mg:4,shadow:false,lightBoost:false,fmt:'jpeg',qualityMode:'original',markMode:false,markColor:'#35b84b',markThickness:Number(localStorage.getItem('nexestate-mark-thickness'))||3,infoBarPos:localStorage.getItem('nexestate-info-bar-position')||'bottom',photoEnhance:false,photoEnhanceMode:'off'};
+const state={variant:'A',theme:'light',pos:'mc',tile:false,size:42,op:18,mg:4,shadow:false,lightBoost:false,greenLogo:false,fmt:'jpeg',qualityMode:'original',markMode:false,markColor:'#35b84b',markThickness:Number(localStorage.getItem('nexestate-mark-thickness'))||3,infoBarPos:localStorage.getItem('nexestate-info-bar-position')||'bottom',photoEnhance:false,photoEnhanceMode:'off'};
 let lightBoostBackup=null;
 const imgs=[]; let cur=-1;
 const markCache={};
-function loadMark(k){return new Promise(r=>{if(markCache[k])return r(markCache[k]);const im=new Image();let done=false;const finish=(value)=>{if(done)return;done=true;if(value)markCache[k]=value;r(value||null);};im.onload=()=>finish(im);im.onerror=()=>finish(null);im.src=MARKS[k];setTimeout(()=>finish(null),4000);});}
+const greenMarkCache={};
+function loadBaseMark(k){return new Promise(r=>{if(markCache[k])return r(markCache[k]);const im=new Image();let done=false;const finish=(value)=>{if(done)return;done=true;if(value)markCache[k]=value;r(value||null);};im.onload=()=>finish(im);im.onerror=()=>finish(null);im.src=MARKS[k];setTimeout(()=>finish(null),4000);});}
+async function loadMark(k){
+  const base=await loadBaseMark(k);
+  if(!base||!state.greenLogo)return base;
+  const cacheKey=k+'_brandGreen';
+  if(greenMarkCache[cacheKey])return greenMarkCache[cacheKey];
+  const w=base.naturalWidth||base.width||SPECS[k]?.w||1000;
+  const h=base.naturalHeight||base.height||SPECS[k]?.h||300;
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d');
+  g.drawImage(base,0,0,w,h);
+  g.globalCompositeOperation='source-in';
+  g.fillStyle='#1E4A3A';
+  g.fillRect(0,0,w,h);
+  g.globalCompositeOperation='source-over';
+  greenMarkCache[cacheKey]=c;
+  return c;
+}
 // Web safe mode: do not decode every embedded SVG logo at startup.
 // Logos are decoded lazily only when the selected variant is actually needed.
 const ready=Promise.resolve();
@@ -2042,6 +2060,17 @@ function setUI(){$('#size').value=state.size;$('#sizeV').textContent=state.size;
   document.querySelectorAll('#theme button').forEach(x=>x.classList.toggle('on',x.dataset.t===state.theme));
   document.querySelectorAll('#qualityMode .quality-option').forEach(x=>x.classList.toggle('on',x.dataset.q===state.qualityMode));document.querySelectorAll('#pos button').forEach(x=>x.classList.toggle('on',x.dataset.pos===state.pos&&!state.tile));
   $('#tileBtn').classList.toggle('on',state.tile);}
+const greenLogoControl=$('#greenLogo');
+if(greenLogoControl){
+  greenLogoControl.checked=state.greenLogo;
+  greenLogoControl.addEventListener('change',()=>{
+    state.greenLogo=greenLogoControl.checked;
+    liveMark=null;liveMarkKey='';
+    photoLogoRequest++;
+    if(imgs.length&&cur>=0)buildStage();
+    drawLiveOverlay();
+  });
+}
 $('#presetCenter').onclick=()=>{lightBoostBackup=null;Object.assign(state,{pos:'mc',tile:false,size:42,op:18,shadow:false,lightBoost:false});$('#presetCenter').classList.add('on');$('#presetCorner').classList.remove('on');setUI();if(imgs.length&&cur>=0)buildStage();};
 $('#presetCorner').onclick=()=>{lightBoostBackup=null;Object.assign(state,{pos:'br',tile:false,size:22,op:85,shadow:true,lightBoost:false});$('#presetCorner').classList.add('on');$('#presetCenter').classList.remove('on');setUI();if(imgs.length&&cur>=0)buildStage();};
 drop.onclick=e=>{if(e.target.closest('label'))return;fileI.click();};
@@ -2730,7 +2759,17 @@ function fitCrop(sw,sh,dw,dh,zoom=1){
   const s=Math.max(dw/sw,dh/sh)*zoom,w=dw/s,h=dh/s;
   return [(sw-w)/2,(sh-h)/2,w,h];
 }
-function activeSubObj(t){return subtitles.find(x=>t>=x.start&&t<=x.end)||null;}
+function activeSubObj(t){
+  const active=subtitles.filter(x=>t>=x.start&&t<=x.end&&x?.text?.trim());
+  if(!active.length)return null;
+  if(active.length===1)return active[0];
+  const unique=[];
+  for(const item of active){
+    const text=item.text.trim();
+    if(text&&!unique.includes(text))unique.push(text);
+  }
+  return {start:Math.min(...active.map(x=>x.start)),end:Math.max(...active.map(x=>x.end)),text:unique.join(' · ')};
+}
 function activeSub(t){return activeSubObj(t)?.text||'';}
 function wrap(ctx,text,max){
   const words=text.split(/\s+/),lines=[];let line='';
@@ -4135,6 +4174,15 @@ function whisperTextLooksBroken(text){
   if(!s)return true;
   const letters=(s.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;
   const punctuation=(s.match(/[—–_\-]/g)||[]).length;
+  const words=s.toLowerCase().match(/[a-zа-яё]+/g)||[];
+  if(words.length>=6){
+    const counts={};
+    for(const word of words)counts[word]=(counts[word]||0)+1;
+    const maxRepeat=Math.max(...Object.values(counts));
+    const uniqueCount=Object.keys(counts).length;
+    if(maxRepeat/words.length>=0.72&&uniqueCount<=3)return true;
+  }
+  if(/^(?:[аa][\s,.;:!?-]*){6,}$/i.test(s))return true;
   return letters<3 || punctuation>Math.max(8,letters*1.5);
 }
 async function runWhisperRecognition(samples,quality,status){
