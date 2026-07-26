@@ -1,0 +1,3 @@
+NEX ESTATE Media Studio Web Edition 1.2 True Web Build
+Загружать ZIP целиком в Netlify Production deploys.
+Крупные встроенные логотипы вынесены в отдельные файлы, чтобы браузер не зависал при разборе одного огромного HTML.
