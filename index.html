@@ -5,7 +5,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NEX Media">
-<title>NEX ESTATE Media Studio — Web Edition 1.0</title>
+<title>NEX ESTATE Media Studio</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
 <style>
 :root{--green:#1E4A3A;--green-d:#163a2d;--gold:#C6A15C;--cream:#F3F1EC;--ink:#20242a;--line:#e3ddd2;--muted:#8a8378}
 *{box-sizing:border-box}html,body{margin:0;height:100%}
@@ -1737,7 +1740,7 @@ body.studio-lite.video-mode #vxControls{
     <input type="file" id="folder" accept="image/*" webkitdirectory directory multiple hidden>
   </main>
 </div>
-<div class="foot">NEX ESTATE Media Studio by Эдик Великий · Fix 1.3</div>
+<div class="foot">NEX ESTATE Media Studio by Эдик Великий · Version 1.5 Corporate PWA</div>
 <script>
 
 const THEME_STORAGE_BG='nexestate-bg-theme';
@@ -6289,5 +6292,15 @@ body.voice-recording #vxMediaToolbar #vxVoiceStatus{
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', finish, {once:true});
   else finish();
 })();
+</script>
+
+<script id="pwaRegistration">
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(error => {
+      console.error('PWA service worker registration failed:', error);
+    });
+  });
+}
 </script>
 </body></html>
