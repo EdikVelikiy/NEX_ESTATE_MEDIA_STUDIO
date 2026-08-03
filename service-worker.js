@@ -1,10 +1,11 @@
-const CACHE_NAME = 'nex-estate-media-studio-v2-2-duration-karaoke-fix';
+const CACHE_NAME = 'nex-estate-media-studio-v2-3-pwa-tools-fix';
 const APP_SHELL = [
   './',
   './index.html',
   './studio-upgrade.css',
   './studio-upgrade.js',
   './photo-engine.js',
+  './photo-tools.js',
   './vendor/webm-duration.js',
   './vendor/webm-duration-LICENSE.txt',
   './manifest.webmanifest',
@@ -27,8 +28,9 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(
+    APP_SHELL.map(url => new Request(url, { cache: 'reload' }))
+  )));
 });
 
 self.addEventListener('activate', event => {
@@ -38,23 +40,15 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request).catch(() => new Response(JSON.stringify({
-      ok: false,
-      offline: true,
-      error: 'Локальный медиакодировщик недоступен без соединения с сервером приложения.'
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
-    })));
-    return;
-  }
 
   if (request.mode === 'navigate') {
     event.respondWith(

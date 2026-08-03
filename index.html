@@ -1615,9 +1615,9 @@ body.studio-lite.video-mode #vxControls{
   <div class="pro-publication-only" id="vxOutputGroup">
     <h4 style="margin-top:14px">Формат выгрузки</h4>
     <select class="v-select output-select" id="vxOutputFormat">
-      <option value="auto" selected>Автоматически — совместимый MP4</option>
-      <option value="mp4">MP4 — H.264/AAC</option>
-      <option value="source">Как исходный контейнер</option>
+      <option value="auto" selected>Автоматически — MP4, иначе WebM</option>
+      <option value="mp4">MP4 — H.264/AAC, если поддерживается</option>
+      <option value="source">Как исходный контейнер, если доступно</option>
       <option value="webm">WebM</option>
     </select>
     <small class="codec-status" id="vxCodecStatus">Проверка возможностей браузера…</small>
@@ -2205,7 +2205,7 @@ async function fileFingerprint(file){
   return `${file.size}:${(h1>>>0).toString(16)}${(h2>>>0).toString(16)}`;
 }
 function loadImageFile(f,fingerprint){return new Promise(resolve=>{const im=new Image();const objectUrl=URL.createObjectURL(f);
-  im.onload=()=>{imgs.push({id:globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${++photoRecordSequence}`,fingerprint,img:im,objectUrl,name:f.name.replace(/\.[^.]+$/,''),rects:[],redoRects:[],sourceSize:f.size||0,sourceType:f.type||guessImageMime(f.name),sourceName:f.name,sourceWidth:im.naturalWidth||im.width,sourceHeight:im.naturalHeight||im.height});if(cur<0)cur=0;buildStage();resolve(true);};
+  im.onload=()=>{imgs.push({id:globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${++photoRecordSequence}`,fingerprint,img:im,objectUrl,name:f.name.replace(/\.[^.]+$/,''),rects:[],redoRects:[],photoTools:[],sourceSize:f.size||0,sourceType:f.type||guessImageMime(f.name),sourceName:f.name,sourceWidth:im.naturalWidth||im.width,sourceHeight:im.naturalHeight||im.height});if(cur<0)cur=0;buildStage();resolve(true);};
   im.onerror=()=>{URL.revokeObjectURL(objectUrl);resolve(false);};im.src=objectUrl;});}
 window.addEventListener('pagehide',()=>{
   imgs.forEach(record=>{if(record?.objectUrl)URL.revokeObjectURL(record.objectUrl);});
@@ -2287,9 +2287,8 @@ function photoOutputPlan(rec){
   const scale=Math.min(1,limit/Math.max(sourceW,sourceH));
   const width=Math.max(1,Math.round(sourceW*scale)),height=Math.max(1,Math.round(sourceH*scale));
   let format=state.fmt||'jpeg';
-  if(format==='auto')format=window.NEXPhotoEngine?.supportsWebP?.()?'webp':'jpeg';
   if(format==='webp'&&!window.NEXPhotoEngine?.supportsWebP?.())format='jpeg';
-  const type=format==='png'?'image/png':format==='webp'?'image/webp':'image/jpeg';
+  const type=format==='png'?'image/png':format==='webp'?'image/webp':format==='auto'?'image/jpeg': 'image/jpeg';
   const extension=format==='png'?'png':format==='webp'?'webp':'jpg';
   const quality=state.qualityMode==='original'?(format==='webp'?0.96:0.98):state.qualityMode==='high'?(format==='webp'?0.89:0.92):(format==='webp'?0.78:0.82);
   return {width,height,format,type,extension,quality,sourceW,sourceH};
@@ -2329,16 +2328,17 @@ async function compositeTo(canvas,rec,forExport=false){
   if(state.tile){const mw=state.size/100*W*0.62,mh=mw*ar;const mk=await loadMark(state.variant+'_light');
     g.save();g.globalAlpha=state.op/100*0.6;g.translate(W/2,H/2);g.rotate(-Math.PI/6);g.translate(-W/2,-H/2);
     const sx=mw*1.7,sy=mh*2.4;for(let y=-H;y<H*2;y+=sy)for(let x=-W;x<W*2;x+=sx)g.drawImage(mk,x,y,mw,mh);
-    g.restore();drawPhotoInfoBar(g,W,H);return;}
+    g.restore();drawPhotoInfoBar(g,W,H);window.NEXPhotoTools?.draw?.(g,W,H,rec.photoTools);return;}
   const mw=state.size/100*W,mh=mw*ar;const p=state.pos;
   let x=p[1]==='l'?mg:p[1]==='r'?W-mw-mg:(W-mw)/2;
   let y=p[0]==='t'?mg:p[0]==='b'?H-mh-mg:(H-mh)/2;
   const key=chooseKey(canvas,x,y,mw,mh);const mk=await loadMark(key);
   g.save();g.globalAlpha=state.op/100;
   if(state.shadow){const white=key.endsWith('_light');g.shadowColor=white?'rgba(0,0,0,.45)':'rgba(255,255,255,.4)';g.shadowBlur=mw*0.05;g.shadowOffsetY=mw*0.008;}
-  g.drawImage(mk,x,y,mw,mh);g.restore();drawPhotoInfoBar(g,W,H);}
-let stageCanvas=null,renderTok=0,photoLogoRequest=0;
+  g.drawImage(mk,x,y,mw,mh);g.restore();drawPhotoInfoBar(g,W,H);window.NEXPhotoTools?.draw?.(g,W,H,rec.photoTools);}
+let stageCanvas=null,photoToolsController=null,renderTok=0,photoLogoRequest=0;
 function resetPhotoContext(){
+  photoToolsController?.destroy?.();photoToolsController=null;
   stage.querySelectorAll('.canvas-holder').forEach(e=>e.remove());
   stageCanvas=null;cur=-1;
   $('#photoQualityGroup')?.classList.add('context-hidden');
@@ -2368,10 +2368,11 @@ function removePhotoAt(index){
   buildStage();
 }
 async function buildStage(){
+  photoToolsController?.destroy?.();photoToolsController=null;
   stage.querySelectorAll('.canvas-holder').forEach(e=>e.remove());
   if(cur<0||!imgs.length){resetPhotoContext();return;}
   const rec=imgs[cur];
-  rec.rects=rec.rects||[];rec.redoRects=rec.redoRects||[];
+  rec.rects=rec.rects||[];rec.redoRects=rec.redoRects||[];rec.photoTools=rec.photoTools||[];
   const stack=$('#mediaDropStack');
   if(stack)stack.classList.add('context-hidden');
   $('#photoQualityGroup')?.classList.remove('context-hidden');
@@ -2380,7 +2381,15 @@ async function buildStage(){
 
   const holder=document.createElement('div');holder.className='canvas-holder';
 
-  const markTools=document.createElement('div');markTools.className='photo-mark-tools';
+  const toolsPanel=document.createElement('details');toolsPanel.className='photo-tools-panel';
+  const toolsSummary=document.createElement('summary');toolsSummary.className='photo-tools-summary';
+  const toolsSummaryText=document.createElement('span');toolsSummaryText.textContent='Инструменты';
+  const toolsCount=document.createElement('b');toolsCount.className='photo-tools-count';toolsCount.setAttribute('aria-label','Количество добавленных элементов');
+  toolsSummary.append(toolsSummaryText,toolsCount);
+  const toolsBody=document.createElement('div');toolsBody.className='photo-tools-body';
+  const toolChooser=document.createElement('div');toolChooser.className='photo-tool-chooser';toolChooser.setAttribute('aria-label','Инструменты фотографии');
+  const markTools=document.createElement('div');markTools.className='photo-mark-tools photo-selection-controls';
+  const toolControls=document.createElement('div');toolControls.className='photo-tool-controls context-hidden';
   const quickMarkBtn=document.createElement('button');quickMarkBtn.type='button';quickMarkBtn.className='photo-action';quickMarkBtn.dataset.selectionTool='quick';quickMarkBtn.textContent='Быстрое выделение';
   const flexibleMarkBtn=document.createElement('button');flexibleMarkBtn.type='button';flexibleMarkBtn.className='photo-action';flexibleMarkBtn.dataset.selectionTool='flexible';flexibleMarkBtn.textContent='Редактируемое выделение';
   const markColor=document.createElement('select');markColor.className='mark-color-select';markColor.setAttribute('aria-label','Цвет выделения');
@@ -2403,7 +2412,9 @@ async function buildStage(){
   const editMark=document.createElement('button');editMark.type='button';editMark.className='photo-action mark-history-hidden';editMark.textContent='Изменить последнее';
   const clearMarks=document.createElement('button');clearMarks.type='button';clearMarks.className='photo-action danger mark-history-hidden';clearMarks.textContent='Сбросить';
   const zoom=makeRange('Масштаб',50,200,100,'Масштаб рабочей области');zoom.output.textContent='100%';zoom.wrap.classList.add('mark-zoom-range');
-  markTools.append(quickMarkBtn,flexibleMarkBtn,markColor,thickness.wrap,opacity.wrap,applyMark,cancelMark,undoMark,redoMark,editMark,clearMarks,zoom.wrap);holder.appendChild(markTools);
+  toolChooser.append(quickMarkBtn,flexibleMarkBtn);
+  markTools.append(markColor,thickness.wrap,opacity.wrap,applyMark,cancelMark,undoMark,redoMark,editMark,clearMarks,zoom.wrap);
+  toolsBody.append(toolChooser,markTools,toolControls);toolsPanel.append(toolsSummary,toolsBody);holder.appendChild(toolsPanel);
 
   const previewWrap=document.createElement('div');previewWrap.className='photo-preview-wrap';
   const surface=document.createElement('div');surface.className='photo-canvas-surface';
@@ -2414,7 +2425,7 @@ async function buildStage(){
   const polygon=document.createElementNS('http://www.w3.org/2000/svg','polygon');polygon.classList.add('selection-polygon');polygon.setAttribute('vector-effect','non-scaling-stroke');
   selectionSvg.append(rotationLine,polygon);selectionLayer.appendChild(selectionSvg);surface.appendChild(selectionLayer);
 
-  let activeSelection=null,creationStart=null,dragState=null,editingOriginal=null,selectionTool='flexible';
+  let activeSelection=null,creationStart=null,dragState=null,editingOriginal=null,selectionTool='flexible',selectionControlsOpen=false;
   const activeUndo=[],activeRedo=[];
   const cloneSelection=value=>value?JSON.parse(JSON.stringify(value)):null;
   const clampPoint=point=>({x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))});
@@ -2437,6 +2448,7 @@ async function buildStage(){
   const syncMarkHistory=()=>{
     const active=!!activeSelection;
     markTools.classList.toggle('has-active-selection',active);
+    markTools.classList.toggle('selection-mode',selectionControlsOpen);
     selectionLayer.classList.toggle('show',active);
     selectionLayer.classList.toggle('quick-selection',active&&selectionTool==='quick');
     quickMarkBtn.classList.toggle('active-mark',state.markMode&&selectionTool==='quick');
@@ -2490,6 +2502,8 @@ async function buildStage(){
   const selectionSize=selection=>{const xs=selection.points.map(p=>p.x),ys=selection.points.map(p=>p.y);return {w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};};
 
   const activateSelectionTool=tool=>{
+    photoToolsController?.cancelActive?.();photoToolsController?.setSuspended?.(true);
+    selectionControlsOpen=true;
     selectionTool=tool;state.markMode=true;creationStart=null;syncMarkHistory();
     window.NEXStudio?.toast?.(tool==='quick'?'Нажмите на объект или протяните рамку. Затем примените или отмените выделение.':'Нажмите на объект или протяните рамку. Форму можно менять точками, сторонами и поворотом.','info');
   };
@@ -2500,8 +2514,8 @@ async function buildStage(){
   thickness.input.onchange=()=>{if(activeSelection)activeUndo.push({...cloneSelection(activeSelection),thickness:Number(thickness.input.defaultValue)||3});};
   opacity.input.oninput=()=>{state.markOpacity=Math.max(20,Math.min(100,Number(opacity.input.value)||100));opacity.output.textContent=`${state.markOpacity}%`;localStorage.setItem('nexestate-mark-opacity',String(state.markOpacity));if(activeSelection){activeSelection.opacity=state.markOpacity;renderSelection();}};
   zoom.input.oninput=()=>{const value=Math.max(50,Math.min(200,Number(zoom.input.value)||100));zoom.output.textContent=`${value}%`;surface.style.width=`${value}%`;};
-  applyMark.onclick=()=>{if(!activeSelection)return;rec.rects.push(cloneSelection(activeSelection));rec.redoRects=[];activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;renderSelection();render();};
-  cancelMark.onclick=()=>{if(editingOriginal)rec.rects.push(editingOriginal);activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;renderSelection();render();};
+  applyMark.onclick=()=>{if(!activeSelection)return;rec.rects.push(cloneSelection(activeSelection));rec.redoRects=[];activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;photoToolsController?.setSuspended?.(false);renderSelection();render();};
+  cancelMark.onclick=()=>{if(editingOriginal)rec.rects.push(editingOriginal);activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;photoToolsController?.setSuspended?.(false);renderSelection();render();};
   undoMark.onclick=()=>{if(activeSelection&&activeUndo.length){activeRedo.push(cloneSelection(activeSelection));activeSelection=activeUndo.pop();renderSelection();return;}const value=rec.rects.pop();if(value)rec.redoRects.push(value);syncMarkHistory();render();};
   redoMark.onclick=()=>{if(activeSelection&&activeRedo.length){activeUndo.push(cloneSelection(activeSelection));activeSelection=activeRedo.pop();renderSelection();return;}const value=rec.redoRects.pop();if(value)rec.rects.push(value);syncMarkHistory();render();};
   editMark.onclick=()=>{if(activeSelection||!rec.rects.length)return;editingOriginal=cloneSelection(rec.rects.pop());activeSelection=cloneSelection(editingOriginal);selectionTool='flexible';activeSelection.selectionType='flexible';state.markMode=true;activeUndo.length=0;activeRedo.length=0;markColor.value=activeSelection.color||state.markColor;thickness.input.value=String(activeSelection.thickness||3);opacity.input.value=String(activeSelection.opacity||100);renderSelection();render();};
@@ -2560,6 +2574,21 @@ async function buildStage(){
   };
   surface.addEventListener('pointerup',finishPointer);surface.addEventListener('pointercancel',()=>{creationStart=null;dragState=null;renderSelection();});
   renderSelection();
+  photoToolsController=window.NEXPhotoTools?.mount?.({
+    chooser:toolChooser,
+    controls:toolControls,
+    surface,
+    previewSource:cv,
+    record:rec,
+    details:toolsPanel,
+    countLabel:toolsCount,
+    onActivate:()=>{
+      if(activeSelection)cancelMark.click();
+      state.markMode=false;selectionControlsOpen=false;
+      markTools.classList.remove('selection-mode');
+      renderSelection();
+    }
+  })||null;
   const close=document.createElement('button');close.type='button';close.className='photo-close';close.setAttribute('aria-label','Удалить фотографию');close.title='Удалить фотографию';close.textContent='×';close.onclick=()=>removePhotoAt(cur);
   previewWrap.appendChild(close);holder.appendChild(previewWrap);
 
@@ -2591,6 +2620,7 @@ window.NEXPhotoState={
   ids:()=>imgs.map(record=>record.id),
   current:()=>cur,
   marks:()=>imgs[cur]?.rects?.map(mark=>JSON.parse(JSON.stringify(mark)))||[],
+  tools:()=>imgs[cur]?.photoTools?.map(item=>JSON.parse(JSON.stringify(item)))||[],
   rebuild:()=>{if(imgs.length&&cur>=0)return buildStage();},
   exportOne:index=>createPhotoExport(index),
   exportAll:()=>downloadAll(),
@@ -2679,6 +2709,7 @@ async function render(){
   const visible=stageCanvas.getContext('2d');
   visible.clearRect(0,0,W,H);
   visible.drawImage(off,0,0);
+  photoToolsController?.redraw?.();
 }
 let photoExportBusy=false;
 function formatFileSize(bytes){
@@ -2696,7 +2727,10 @@ function updatePhotoMetrics(rec,plan,blob){
   if(!target)return;
   const sourceSize=Number(rec.sourceSize)||0;
   const reduction=sourceSize?Math.round((1-blob.size/sourceSize)*100):null;
-  target.innerHTML=`<b>Последний результат</b><span>${plan.sourceW}×${plan.sourceH} → ${plan.width}×${plan.height}</span><span>${formatFileSize(sourceSize)} → ${formatFileSize(blob.size)}${reduction===null?'':` · ${reduction>=0?'−':'+'}${Math.abs(reduction)}%`}</span><span>${plan.format.toUpperCase()}</span>`;
+  const qualityNote=plan.format==='png'
+    ?'PNG · без потери пиксельных данных'
+    :`${plan.format.toUpperCase()} · ${plan.qualityAssessment==='visually-lossless'?'без визуально заметной потери качества':'максимально безопасное качество для выбранного режима'}${plan.quality?` · качество ${Math.round(plan.quality*100)}%`:''}`;
+  target.innerHTML=`<b>Последний результат</b><span>${plan.sourceW}×${plan.sourceH} → ${plan.width}×${plan.height}</span><span>${formatFileSize(sourceSize)} → ${formatFileSize(blob.size)}${reduction===null?'':` · ${reduction>=0?'−':'+'}${Math.abs(reduction)}%`}</span><span>${qualityNote}</span>`;
   target.classList.add('show');
 }
 async function createPhotoExport(index){
@@ -2707,14 +2741,18 @@ async function createPhotoExport(index){
   try{
     await compositeTo(canvas,rec,true);
     canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,1,1);
-    const blob=window.NEXPhotoEngine
-      ? await window.NEXPhotoEngine.toBlob(canvas,plan.type,plan.format==='png'?undefined:plan.quality)
-      : await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Не удалось подготовить изображение.')),plan.type,plan.quality));
+    const encoded=window.NEXPhotoEngine?.smartEncode
+      ? await window.NEXPhotoEngine.smartEncode(canvas,{format:plan.format,mode:state.qualityMode,sourceSize:rec.sourceSize,onProgress:value=>updatePhotoProcessingStatus(`Интеллектуальное сжатие: ${Math.round(value)}%`,value)})
+      : {blob:window.NEXPhotoEngine
+        ? await window.NEXPhotoEngine.toBlob(canvas,plan.type,plan.format==='png'?undefined:plan.quality)
+        : await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Не удалось подготовить изображение.')),plan.type,plan.quality)),format:plan.format,extension:plan.extension,type:plan.type,quality:plan.quality};
+    const blob=encoded.blob;
+    Object.assign(plan,{format:encoded.format,extension:encoded.extension,type:encoded.type,quality:encoded.quality,qualityMetrics:encoded.metrics,qualityAssessment:encoded.assessment});
     if(!blob.size)throw new Error('Получен пустой файл изображения.');
     updatePhotoMetrics(rec,plan,blob);
     return {blob,plan,name:`${safePhotoBase(rec,index)}_NEX_ESTATE.${plan.extension}`};
   }catch(error){
-    if(error?.name==='SecurityError')throw new Error('Экспорт заблокирован защитой canvas. Перезагрузите локальное приложение через START_WINDOWS.cmd: логотипы должны загружаться как локальные Blob-ресурсы.');
+    if(error?.name==='SecurityError')throw new Error('Экспорт заблокирован защитой canvas. Обновите страницу сайта или PWA и повторно загрузите фотографию.');
     throw error;
   }finally{
     canvas.width=0;canvas.height=0;
@@ -3001,47 +3039,54 @@ function showPhotoContext(){
   if(proOpts)proOpts.style.display=document.body.classList.contains('studio-pro')?'block':'none';
   window.setEditorMode?.('photo');
 }
-function recorderMime(){
-  const formats=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
-  return formats.find(value=>window.MediaRecorder&&MediaRecorder.isTypeSupported(value))||'';
+const BROWSER_VIDEO_FORMATS=[
+  {container:'mp4',mime:'video/mp4;codecs=avc1.42E01E,mp4a.40.2',extension:'mp4',videoCodec:'h264',audioCodec:'aac'},
+  {container:'mp4',mime:'video/mp4;codecs=avc1.42001E,mp4a.40.2',extension:'mp4',videoCodec:'h264',audioCodec:'aac'},
+  {container:'mp4',mime:'video/mp4',extension:'mp4',videoCodec:'h264',audioCodec:'aac'},
+  {container:'webm',mime:'video/webm;codecs=vp9,opus',extension:'webm',videoCodec:'vp9',audioCodec:'opus'},
+  {container:'webm',mime:'video/webm;codecs=vp8,opus',extension:'webm',videoCodec:'vp8',audioCodec:'opus'},
+  {container:'webm',mime:'video/webm',extension:'webm',videoCodec:null,audioCodec:null}
+];
+let codecStatusRequest=0;
+function browserRecordingFormats(){
+  if(!window.MediaRecorder)return [];
+  return BROWSER_VIDEO_FORMATS.filter(format=>MediaRecorder.isTypeSupported(format.mime));
 }
-let encoderHealthCache=null,encoderHealthCheckedAt=0,codecStatusRequest=0;
-async function checkLocalEncoder(force=false){
-  if(!force&&encoderHealthCache&&Date.now()-encoderHealthCheckedAt<4000)return encoderHealthCache;
-  try{
-    const response=await fetch('/api/health',{cache:'no-store'});
-    const payload=await response.json().catch(()=>({}));
-    encoderHealthCache={...payload,ok:response.ok&&payload.ok===true&&payload.mp4===true};
-  }catch(error){
-    encoderHealthCache={ok:false,error:error?.message||String(error)};
-  }
-  encoderHealthCheckedAt=Date.now();
-  return encoderHealthCache;
+function browserEncoderCapabilities(){
+  const supported=browserRecordingFormats();
+  return {ok:supported.length>0,browserOnly:true,mp4:supported.some(format=>format.container==='mp4'),webm:supported.some(format=>format.container==='webm'),formats:supported.map(format=>format.mime)};
 }
 function sourceUsesMp4Container(){
   return /\b(?:mp4|m4v|quicktime)\b/i.test(srcFile?.type||'')||/\.(?:mp4|m4v|mov)$/i.test(srcFile?.name||'');
 }
 async function resolveOutputPlan(){
-  const recordMime=recorderMime();
-  if(!recordMime)throw new Error('Браузер не поддерживает промежуточную запись WebM. Используйте актуальную версию Chrome или Edge.');
+  const formats=browserRecordingFormats();
+  if(!formats.length)throw new Error('Этот браузер не поддерживает запись обработанного видео через MediaRecorder. Обновите браузер; локальный сервер для обхода ограничения не используется.');
   const requested=q('#vxOutputFormat')?.value||'auto';
-  if(requested==='webm'||(requested==='source'&&!sourceUsesMp4Container()))return {requested,container:'webm',mime:'video/webm',recordMime,extension:'webm',localEncoder:false};
-  const health=await checkLocalEncoder();
-  if(health.ok)return {requested,container:'mp4',mime:'video/mp4',recordMime,extension:'mp4',localEncoder:true,health};
-  if(requested==='mp4'||requested==='source')throw new Error('MP4 H.264/AAC недоступен: запустите приложение через START_WINDOWS.cmd, чтобы включить встроенный локальный кодировщик FFmpeg.');
-  return {requested,container:'webm',mime:'video/webm',recordMime,extension:'webm',localEncoder:false,fallbackReason:'Локальный MP4-кодировщик недоступен; выбран честный WebM без переименования.'};
+  const mp4=formats.find(format=>format.container==='mp4');
+  const webm=formats.find(format=>format.container==='webm');
+  let selected=null;
+  if(requested==='mp4')selected=mp4;
+  else if(requested==='webm')selected=webm;
+  else if(requested==='source')selected=sourceUsesMp4Container()?mp4:webm;
+  else selected=mp4||webm;
+  if(!selected){
+    const label=requested==='mp4'||(requested==='source'&&sourceUsesMp4Container())?'MP4 H.264/AAC':'WebM';
+    throw new Error(`${label} нельзя надёжно создать средствами этого браузера. Выберите доступный контейнер; файл не будет переименован в неверное расширение.`);
+  }
+  return {...selected,requested,recordMime:selected.mime,mime:selected.container==='mp4'?'video/mp4':'video/webm',browserOnly:true,fallbackReason:requested==='auto'&&selected.container==='webm'?'Браузер не объявил нативную запись MP4; будет создан и проверен настоящий WebM.':null};
 }
 async function updateCodecStatus(){
   if(!codecEl)return;
   const request=++codecStatusRequest;
   if(!window.MediaRecorder){codecEl.textContent='Этот браузер не поддерживает обработку видео. Используйте последнюю версию Chrome или Edge.';return;}
-  codecEl.textContent='Проверка локального видеокодировщика…';
+  codecEl.textContent='Проверка видеовозможностей браузера…';
   try{
     const plan=await resolveOutputPlan();if(request!==codecStatusRequest)return;
     codecEl.dataset.container=plan.container;
     codecEl.textContent=plan.container==='mp4'
-      ?`Будет создан настоящий MP4: H.264/AAC через локальный ${plan.health?.ffmpeg||'FFmpeg'}, затем контейнер и дорожки будут проверены.`
-      :plan.fallbackReason||'Будет создан настоящий WebM; расширение соответствует контейнеру, файл и дорожки будут проверены.';
+      ?'Будет создан настоящий MP4 H.264/AAC непосредственно в браузере; контейнер, дорожки и кадр будут проверены перед скачиванием.'
+      :plan.fallbackReason||'Будет создан настоящий WebM непосредственно в браузере; расширение, дорожки и кадр будут проверены.';
   }catch(error){
     if(request!==codecStatusRequest)return;
     codecEl.dataset.container='unavailable';codecEl.textContent=error?.message||String(error);
@@ -5054,31 +5099,40 @@ q('#vxWhisperDownload').onclick=()=>{
 };
 
 async function detectVideoContainer(blob){
-  const bytes=new Uint8Array(await blob.slice(0,16).arrayBuffer());
-  if(bytes.length>=8&&String.fromCharCode(...bytes.slice(4,8))==='ftyp')return 'mp4';
+  const bytes=new Uint8Array(await blob.slice(0,64).arrayBuffer());
+  for(let offset=0;offset+8<=bytes.length;offset++){
+    if(String.fromCharCode(...bytes.slice(offset+4,offset+8))==='ftyp')return 'mp4';
+  }
   if(bytes.length>=4&&bytes[0]===0x1a&&bytes[1]===0x45&&bytes[2]===0xdf&&bytes[3]===0xa3)return 'webm';
   return 'unknown';
 }
-async function probeVideoBlob(blob){
-  const response=await fetch('/api/probe',{method:'POST',headers:{'Content-Type':blob.type||'application/octet-stream'},body:blob,cache:'no-store'});
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok||payload.ok!==true){
-    console.error('Локальная проверка медиа не пройдена',payload);
-    throw new Error(payload.error||payload.detail||`Локальная проверка видео завершилась с кодом ${response.status}.`);
-  }
-  return payload;
+async function readMediaInspectionText(blob){
+  const headSize=Math.min(blob.size,8*1024*1024),parts=[blob.slice(0,headSize)];
+  if(blob.size>headSize)parts.push(blob.slice(Math.max(headSize,blob.size-4*1024*1024)));
+  const decoder=new TextDecoder('latin1');
+  return (await Promise.all(parts.map(async part=>decoder.decode(await part.arrayBuffer())))).join('\n');
 }
-async function transcodeToMp4(blob,videoBitrate,audioBitrate){
-  const query=new URLSearchParams({quality:videoQualityMode,videoBitrate:String(videoBitrate),audioBitrate:String(audioBitrate)});
-  const response=await fetch(`/api/transcode/mp4?${query}`,{method:'POST',headers:{'Content-Type':blob.type||'video/webm'},body:blob,cache:'no-store'});
-  if(!response.ok){
-    const payload=await response.json().catch(()=>({}));
-    console.error('Локальное кодирование MP4 не пройдено',payload);
-    throw new Error(payload.error||payload.detail||`Локальное кодирование MP4 завершилось с кодом ${response.status}.`);
+async function probeVideoBlob(blob){
+  if(!blob?.size)throw new Error('Проверяемый видеофайл пуст.');
+  const container=await detectVideoContainer(blob),text=await readMediaInspectionText(blob);
+  let videoCodec=null,audioCodec=null;
+  if(container==='mp4'){
+    videoCodec=/avc1|avc3/i.test(text)?'h264':/hvc1|hev1/i.test(text)?'hevc':/vp09/i.test(text)?'vp9':/av01/i.test(text)?'av1':null;
+    audioCodec=/mp4a/i.test(text)?'aac':/Opus/i.test(text)?'opus':null;
+  }else if(container==='webm'){
+    videoCodec=/V_VP9/i.test(text)?'vp9':/V_VP8/i.test(text)?'vp8':/V_AV1/i.test(text)?'av1':null;
+    audioCodec=/A_OPUS/i.test(text)?'opus':/A_VORBIS/i.test(text)?'vorbis':null;
   }
-  const result=await response.blob();
-  if(!result.size)throw new Error('Локальный кодировщик вернул пустой MP4.');
-  return new Blob([result],{type:'video/mp4'});
+  return {
+    ok:true,
+    inspectedInBrowser:true,
+    container,
+    videoCodec,
+    audioCodec,
+    videoTrack:Boolean(videoCodec||/\bvide\b/i.test(text)),
+    audioTrack:Boolean(audioCodec||/\bsoun\b/i.test(text)),
+    size:blob.size
+  };
 }
 async function readVideoBlobMetadata(blob,serverMetadata=null){
   const url=URL.createObjectURL(blob),probe=document.createElement('video');probe.preload='auto';probe.muted=true;probe.playsInline=true;
@@ -5106,7 +5160,8 @@ async function readVideoBlobMetadata(blob,serverMetadata=null){
     if(!opaque)throw new Error('Видеодорожка открылась, но браузер не смог декодировать ни одного кадра.');
     const frameMean=sum/Math.max(1,count),frameVariance=Math.max(0,sumSq/Math.max(1,count)-frameMean*frameMean);
     canvas.width=0;canvas.height=0;
-    return {...inspected,duration:inspected.duration??duration,width:inspected.width||probe.videoWidth,height:inspected.height||probe.videoHeight,videoTrack:true,frameDecoded:true,frameMean,frameVariance};
+    const browserAudio=Boolean(probe.audioTracks?.length||probe.mozHasAudio||probe.webkitAudioDecodedByteCount>0);
+    return {...inspected,duration:inspected.duration??duration,width:inspected.width||probe.videoWidth,height:inspected.height||probe.videoHeight,videoTrack:true,audioTrack:Boolean(inspected.audioTrack||browserAudio),frameDecoded:true,frameMean,frameVariance};
   }finally{probe.removeAttribute('src');try{probe.load()}catch{}URL.revokeObjectURL(url);}
 }
 function updateVideoOutputMetrics(blob,metadata,mime,fps,bitrate){
@@ -5145,9 +5200,9 @@ q('#vxExport').onclick=async()=>{
   exportBtn.disabled=true;stopRecognition(false);
   let exportCanvas=null,suspendedAudioForPreparation=false,cleanupPlaybackStart=null;
   try{
-    setProgress('Проверка исходного файла и локального кодировщика…',1);
+    setProgress('Проверка исходного файла и возможностей браузера…',1);
     await waitMetadata();
-    const [outputPlan,sourceProbe]=await Promise.all([resolveOutputPlan(),probeVideoBlob(srcFile)]);
+    const [outputPlan,sourceProbe]=await Promise.all([resolveOutputPlan(),readVideoBlobMetadata(srcFile)]);
     if(!sourceProbe.videoTrack)throw new Error('Исходный файл не содержит читаемую видеодорожку.');
     setProgress(`Подготовка звука, эффектов и субтитров${q('#vxStabilize')?.checked?', включая стабилизацию':''}…`,4);
     const narration=(voiceBlob&&voiceAccepted)?await decodeVoice():null;
@@ -5312,34 +5367,24 @@ q('#vxExport').onclick=async()=>{
     await playbackFinished;
     if(exportCancelled)throw new Error('__EXPORT_CANCELLED__');
     stopRenderLoop();try{narrationSource?.stop()}catch{}
-    setProgress('Финализация промежуточных дорожек…',95);
+    setProgress(`Финализация браузерного контейнера ${outputPlan.container.toUpperCase()}…`,95);
     if(recorder.state==='recording'||recorder.state==='paused')recorder.stop();
     await Promise.race([stoppedRecording,new Promise((_,reject)=>setTimeout(()=>reject(new Error('MediaRecorder не завершил запись за 8 секунд.')),8000))]);
     if(recorderFailure)throw recorderFailure;
     if(!chunks.length)throw new Error(`MediaRecorder завершился без данных (тип ${outputPlan.recordMime}, состояние ${recorder.state}).`);
 
-    let intermediate=new Blob(chunks,{type:outputPlan.recordMime});
-    if(window.NEXRepairWebmDuration)intermediate=await window.NEXRepairWebmDuration(intermediate,Math.max(1,Math.round((video.duration||0)*1000)),{logger:false,force:true});
-    if(!intermediate.size)throw new Error('Промежуточный видеофайл пуст.');
-    if(await detectVideoContainer(intermediate)!=='webm')throw new Error('Промежуточный файл не является настоящим контейнером WebM.');
-    setProgress('Проверка промежуточных видео- и аудиодорожек…',96);
-    const intermediateProbe=await probeVideoBlob(intermediate);
-    if(!intermediateProbe.videoTrack)throw new Error('Промежуточный WebM не содержит видеодорожку.');
-    if(expectedAudio&&!intermediateProbe.audioTrack)throw new Error('Промежуточный WebM потерял звуковую дорожку.');
-
-    let blob=intermediate,actualMime='video/webm';
-    if(outputPlan.container==='mp4'){
-      setProgress('Локальное кодирование настоящего MP4 H.264/AAC…',null);
-      blob=await transcodeToMp4(intermediate,outputVideoBitrate,outputAudioBitrate);
-      actualMime='video/mp4';
-    }
-    setProgress('Проверка контейнера, кодеков, дорожек и контрольного кадра…',99);
+    let blob=new Blob(chunks,{type:outputPlan.recordMime});
+    if(outputPlan.container==='webm'&&window.NEXRepairWebmDuration)blob=await window.NEXRepairWebmDuration(blob,Math.max(1,Math.round((video.duration||0)*1000)),{logger:false,force:true});
+    if(!blob.size)throw new Error('Итоговый видеофайл пуст.');
+    const actualMime=outputPlan.mime;
+    setProgress('Браузерная проверка контейнера, кодеков, дорожек и контрольного кадра…',99);
     const detectedContainer=await detectVideoContainer(blob);
     if(detectedContainer!==outputPlan.container)throw new Error(`Контейнер результата ${detectedContainer}, ожидался ${outputPlan.container}. Файл не будет сохранён с неверным расширением.`);
-    const serverMetadata=await probeVideoBlob(blob);
-    if(outputPlan.container==='mp4'&&(serverMetadata.videoCodec!=='h264'||(expectedAudio&&serverMetadata.audioCodec!=='aac')))throw new Error(`MP4 не прошёл проверку кодеков: видео ${serverMetadata.videoCodec||'нет'}, аудио ${serverMetadata.audioCodec||'нет'}.`);
-    if(expectedAudio&&!serverMetadata.audioTrack)throw new Error('Итоговый файл не содержит ожидаемую звуковую дорожку.');
-    const metadata=await readVideoBlobMetadata(blob,serverMetadata);
+    const browserProbe=await probeVideoBlob(blob);
+    if(outputPlan.container==='mp4'&&browserProbe.videoCodec&&browserProbe.videoCodec!=='h264')throw new Error(`MP4 не прошёл проверку видеокодека: получен ${browserProbe.videoCodec}, ожидался H.264.`);
+    if(outputPlan.container==='mp4'&&expectedAudio&&browserProbe.audioCodec&&browserProbe.audioCodec!=='aac')throw new Error(`MP4 не прошёл проверку аудиокодека: получен ${browserProbe.audioCodec}, ожидался AAC.`);
+    const metadata=await readVideoBlobMetadata(blob,browserProbe);
+    if(expectedAudio&&!metadata.audioTrack)throw new Error('Итоговый файл не содержит ожидаемую звуковую дорожку.');
     const sourceDuration=Number(sourceProbe?.duration)||Number(video.duration)||0;
     const durationTolerance=Math.max(.08,1.5/Math.max(1,outputFps));
     if(metadata?.duration&&sourceDuration&&Math.abs(metadata.duration-sourceDuration)>durationTolerance)throw new Error(`Длительность результата ${metadata.duration.toFixed(2)} с отличается от исходных ${sourceDuration.toFixed(2)} с.`);
@@ -5349,7 +5394,7 @@ q('#vxExport').onclick=async()=>{
     a.href=url;a.download=`${sourceBase}_NEX_ESTATE.${ext}`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
-    lastVideoExport={blob,metadata,mime:actualMime,container:detectedContainer,fps:outputFps,bitrate:outputVideoBitrate,sourceProbe,intermediateProbe,processingStages:processingStageHistory.slice()};
+    lastVideoExport={blob,metadata,mime:actualMime,container:detectedContainer,fps:outputFps,bitrate:outputVideoBitrate,sourceProbe,browserProbe,processingStages:processingStageHistory.slice()};
     updateVideoOutputMetrics(blob,metadata,actualMime,outputFps,outputVideoBitrate);
     const codecSummary=[metadata.videoCodec,metadata.audioTrack?metadata.audioCodec:null].filter(Boolean).join('/').toUpperCase();
     setProgress(`Готово: ${detectedContainer.toUpperCase()} проверен, ${codecSummary}, контрольный кадр декодирован и файл передан на скачивание.`,100);
@@ -5398,7 +5443,7 @@ window.NEXVideoRuntime={
   framePlan,
   frameResults:()=>frameResults.map(({name,time,width,height,format,blob})=>({name,time,width,height,format,size:blob.size})),
   processingStages:()=>processingStageHistory.slice(),
-  encoderHealth:()=>checkLocalEncoder(true),
+  encoderHealth:()=>browserEncoderCapabilities(),
   cancelWhisper:()=>{whisperRunId++;q('#vxRecognizeStatus').textContent='Отмена распознавания…';},
   setQuality:value=>{videoQualityMode=value;localStorage.setItem('nexestate-video-quality',value);refreshVideoQualityButtons();},
   quality:()=>videoQualityMode,
@@ -7170,6 +7215,7 @@ body.voice-recording #vxMediaToolbar #vxVoiceStatus{
 
 <link rel="stylesheet" href="./studio-upgrade.css" data-final-styles="true">
 <script src="./vendor/webm-duration.js"></script>
+<script src="./photo-tools.js"></script>
 <script src="./photo-engine.js"></script>
 <script src="./studio-upgrade.js"></script>
 <script id="webEditionBootstrap">
@@ -7186,7 +7232,31 @@ body.voice-recording #vxMediaToolbar #vxVoiceStatus{
 <script id="pwaRegistration">
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(error => {
+    let reloadAfterUpdate=false,reloadingForUpdate=false;
+    const offerUpdate=worker=>{
+      if(!worker||document.getElementById('pwaUpdateNotice'))return;
+      const notice=document.createElement('div');notice.id='pwaUpdateNotice';notice.className='pwa-update-notice';notice.setAttribute('role','status');
+      const text=document.createElement('span');text.textContent='Доступна новая версия NexEstate Media Studio.';
+      const update=document.createElement('button');update.type='button';update.textContent='Обновить';
+      const later=document.createElement('button');later.type='button';later.className='pwa-update-later';later.textContent='Позже';
+      update.onclick=()=>{reloadAfterUpdate=true;update.disabled=true;update.textContent='Обновление…';worker.postMessage({type:'SKIP_WAITING'});};
+      later.onclick=()=>notice.remove();
+      notice.append(text,update,later);document.body.appendChild(notice);
+    };
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!reloadAfterUpdate||reloadingForUpdate)return;reloadingForUpdate=true;location.reload();
+    });
+    navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).then(registration=>{
+      if(!registration)return;
+      if(registration.waiting&&navigator.serviceWorker.controller)offerUpdate(registration.waiting);
+      registration.addEventListener('updatefound',()=>{
+        const worker=registration.installing;
+        worker?.addEventListener('statechange',()=>{
+          if(worker.state==='installed'&&navigator.serviceWorker.controller)offerUpdate(worker);
+        });
+      });
+      registration.update().catch(()=>{});
+    }).catch(error => {
       console.error('PWA service worker registration failed:', error);
     });
   });

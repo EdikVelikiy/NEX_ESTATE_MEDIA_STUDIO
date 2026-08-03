@@ -279,12 +279,151 @@
     ));
   }
 
+  function comparisonReference(canvas, maxDimension = 640) {
+    const scale = Math.min(1, maxDimension / Math.max(canvas.width, canvas.height));
+    const sample = document.createElement('canvas');
+    sample.width = Math.max(1, Math.round(canvas.width * scale));
+    sample.height = Math.max(1, Math.round(canvas.height * scale));
+    const context = sample.getContext('2d', { alpha: false, willReadFrequently: true });
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(canvas, 0, 0, sample.width, sample.height);
+    return { canvas: sample, pixels: context.getImageData(0, 0, sample.width, sample.height).data };
+  }
+
+  async function decodedBlob(blob) {
+    if (typeof createImageBitmap === 'function') {
+      try {
+        const bitmap = await createImageBitmap(blob);
+        return { source: bitmap, close: () => bitmap.close?.() };
+      } catch (_) {}
+    }
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    try {
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = () => reject(new Error('Не удалось проверить закодированное изображение.'));
+        image.src = url;
+      });
+      return { source: image, close: () => URL.revokeObjectURL(url) };
+    } catch (error) {
+      URL.revokeObjectURL(url);
+      throw error;
+    }
+  }
+
+  async function scoreEncodedImage(blob, reference) {
+    const decoded = await decodedBlob(blob);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = reference.canvas.width;
+      canvas.height = reference.canvas.height;
+      const context = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(decoded.source, 0, 0, canvas.width, canvas.height);
+      const candidate = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const original = reference.pixels;
+      let squared = 0, absolute = 0, samples = 0, edgeError = 0, edgeSamples = 0;
+      const stride = Math.max(1, Math.floor(Math.max(canvas.width, canvas.height) / 480));
+      const luma = (pixels, index) => .2126 * pixels[index] + .7152 * pixels[index + 1] + .0722 * pixels[index + 2];
+      for (let y = 0; y < canvas.height; y += stride) {
+        for (let x = 0; x < canvas.width; x += stride) {
+          const index = (y * canvas.width + x) * 4;
+          for (let channel = 0; channel < 3; channel++) {
+            const delta = original[index + channel] - candidate[index + channel];
+            squared += delta * delta;
+            absolute += Math.abs(delta);
+            samples++;
+          }
+          if (x >= stride && y >= stride) {
+            const left = index - stride * 4, up = index - stride * canvas.width * 4;
+            const originalEdge = Math.abs(luma(original, index) - luma(original, left)) + Math.abs(luma(original, index) - luma(original, up));
+            const candidateEdge = Math.abs(luma(candidate, index) - luma(candidate, left)) + Math.abs(luma(candidate, index) - luma(candidate, up));
+            edgeError += Math.abs(originalEdge - candidateEdge) * .5;
+            edgeSamples++;
+          }
+        }
+      }
+      canvas.width = 0; canvas.height = 0;
+      const mse = squared / Math.max(1, samples);
+      return {
+        psnr: mse === 0 ? 99 : 10 * Math.log10(65025 / mse),
+        meanError: absolute / Math.max(1, samples),
+        edgeError: edgeError / Math.max(1, edgeSamples)
+      };
+    } finally {
+      decoded.close();
+    }
+  }
+
+  async function smartEncode(canvas, options = {}) {
+    const requested = options.format || 'auto';
+    if (requested === 'png') {
+      const blob = await toBlob(canvas, 'image/png');
+      return { blob, format: 'png', extension: 'png', type: 'image/png', quality: null, assessment: 'lossless-png', metrics: null };
+    }
+
+    const mode = ['original', 'high', 'small'].includes(options.mode) ? options.mode : 'high';
+    const thresholds = {
+      original: { psnr: 40.5, meanError: 2.8, edgeError: 5.2, qualities: [.90, .94, .97, .985] },
+      high: { psnr: 38.5, meanError: 3.8, edgeError: 7.0, qualities: [.84, .88, .92, .95] },
+      small: { psnr: 36.0, meanError: 5.2, edgeError: 9.5, qualities: [.74, .79, .84, .89] }
+    };
+    const target = thresholds[mode];
+    const formats = requested === 'auto'
+      ? (supportsWebP() ? ['webp', 'jpeg', 'png'] : ['jpeg', 'png'])
+      : [requested === 'webp' && supportsWebP() ? 'webp' : 'jpeg'];
+    const reference = comparisonReference(canvas);
+    const results = [];
+    let completed = 0;
+    try {
+      for (const format of formats) {
+        if (format === 'png') {
+          const blob = await toBlob(canvas, 'image/png');
+          const metrics = await scoreEncodedImage(blob, reference);
+          results.push({ blob, format: 'png', extension: 'png', type: 'image/png', quality: null, metrics, assessment: 'lossless-png', passes: true });
+          completed += target.qualities.length;
+          options.onProgress?.(Math.min(96, Math.round(completed / (formats.length * target.qualities.length) * 96)));
+          await yieldToUI();
+          continue;
+        }
+        let fallback = null, accepted = null;
+        for (const quality of target.qualities) {
+          abortIfNeeded(options.signal);
+          const type = format === 'webp' ? 'image/webp' : 'image/jpeg';
+          const blob = await toBlob(canvas, type, quality);
+          const metrics = await scoreEncodedImage(blob, reference);
+          const passes = metrics.psnr >= target.psnr && metrics.meanError <= target.meanError && metrics.edgeError <= target.edgeError;
+          fallback = { blob, format, extension: format === 'jpeg' ? 'jpg' : 'webp', type, quality, metrics, assessment: passes ? 'visually-lossless' : 'best-available', passes };
+          completed++;
+          options.onProgress?.(Math.min(96, Math.round(completed / (formats.length * target.qualities.length) * 96)));
+          if (passes) { accepted = fallback; break; }
+          await yieldToUI();
+        }
+        results.push(accepted || fallback);
+      }
+      const passing = results.filter(result => result?.passes);
+      const selected = passing.length
+        ? passing.sort((a, b) => a.blob.size - b.blob.size)[0]
+        : results.filter(Boolean).sort((a, b) => b.metrics.psnr - a.metrics.psnr || a.blob.size - b.blob.size)[0];
+      if (!selected) throw new Error('Не удалось подобрать безопасный режим сжатия изображения.');
+      options.onProgress?.(100);
+      return selected;
+    } finally {
+      reference.canvas.width = 0;
+      reference.canvas.height = 0;
+    }
+  }
+
   window.NEXPhotoEngine = Object.freeze({
     profiles: Object.keys(PROFILES),
     analyse,
     getEnhancedCanvas,
     clear,
     supportsWebP,
-    toBlob
+    toBlob,
+    smartEncode
   });
 })();
