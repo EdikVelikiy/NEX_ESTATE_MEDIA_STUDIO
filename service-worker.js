@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nex-estate-media-studio-v2-3-pwa-tools-fix';
+const CACHE_NAME = 'nex-estate-media-studio-v2-4-photo-tools-brush-fix';
 const APP_SHELL = [
   './',
   './index.html',
