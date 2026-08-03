@@ -1,7 +1,12 @@
-const CACHE_NAME = 'nex-estate-media-studio-v1-5-corporate';
+const CACHE_NAME = 'nex-estate-media-studio-v2-2-duration-karaoke-fix';
 const APP_SHELL = [
   './',
   './index.html',
+  './studio-upgrade.css',
+  './studio-upgrade.js',
+  './photo-engine.js',
+  './vendor/webm-duration.js',
+  './vendor/webm-duration-LICENSE.txt',
   './manifest.webmanifest',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
@@ -38,6 +43,18 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request).catch(() => new Response(JSON.stringify({
+      ok: false,
+      offline: true,
+      error: 'Локальный медиакодировщик недоступен без соединения с сервером приложения.'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
+    })));
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(

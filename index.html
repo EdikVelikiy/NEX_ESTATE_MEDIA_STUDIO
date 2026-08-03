@@ -241,7 +241,6 @@ body.voice-recording #vxCaptureFrame{display:inline-flex!important}
 body.voice-recording .voice-primary-slot{display:flex!important}
 .whisper-box{width:100%;padding:12px;border:1px solid rgba(198,161,92,.25);border-radius:10px;background:#1b1b1d}
 .whisper-head{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:12px;color:#eee8df;margin-bottom:9px}
-.beta-pill{font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:3px 6px;border:1px solid rgba(198,161,92,.45);border-radius:999px;color:#d4b879}
 .whisper-actions{display:flex;gap:8px;flex-wrap:wrap}
 .whisper-progress{font-size:10.5px;color:#a9a197;line-height:1.45;margin-top:8px}
 #vxWhisperText{width:100%;min-height:160px;margin-top:10px;resize:vertical;border:1px solid #393532;background:#121214;color:#f1ede7;border-radius:8px;padding:10px;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
@@ -1391,6 +1390,7 @@ body.studio-lite.video-mode #vxControls{
   padding-bottom:0!important;
 }
 </style>
+<link rel="stylesheet" href="./studio-upgrade.css">
 </head>
 <body>
 <header>
@@ -1403,7 +1403,7 @@ body.studio-lite.video-mode #vxControls{
     </span>
 
     <span class="edition-switch" aria-label="Режим функций">
-      <button type="button" class="edition-btn on" id="editionLiteBtn">Lite</button>
+      <button type="button" class="edition-btn on" id="editionLiteBtn">Light</button>
       <button type="button" class="edition-btn" id="editionProBtn">Pro</button>
     </span>
 
@@ -1417,16 +1417,31 @@ body.studio-lite.video-mode #vxControls{
         <button type="button" class="header-theme-btn mobile-layout-icon-btn" id="mobileLayoutIconBtn" title="Режим экрана: Авто" aria-label="Режим экрана: Авто">A</button>
 
         <span class="theme-popover context-hidden" id="bgThemeMenu">
-          <button type="button" data-bg-theme="classic">Classic</button>
-          <button type="button" data-bg-theme="dark">Dark</button>
-          <button type="button" data-bg-theme="calm-blue">Calm Blue</button>
+          <small class="theme-menu-label">Светлые и нейтральные</small>
+          <button type="button" data-bg-theme="classic">Тёплый светлый</button>
+          <button type="button" data-bg-theme="paper">Студийный светлый</button>
+          <button type="button" data-bg-theme="mist">Мягкий нейтральный</button>
+          <small class="theme-menu-label">Тёмные и премиальные</small>
+          <button type="button" data-bg-theme="dark">Графит</button>
+          <button type="button" data-bg-theme="calm-blue">Спокойный синий</button>
+          <button type="button" data-bg-theme="midnight">Премиальный тёмный</button>
+          <button type="button" data-bg-theme="dusk">Мягкий градиент</button>
+          <button type="button" data-bg-theme="contrast">Контрастный монтажный</button>
         </span>
 
         <span class="theme-popover context-hidden" id="uiThemeMenu">
-          <button type="button" data-ui-theme="gold">Gold</button>
-          <button type="button" data-ui-theme="green">Green</button>
-          <button type="button" data-ui-theme="blue">Blue</button>
-          <button type="button" data-ui-theme="outline">Outline</button>
+          <small class="theme-menu-label">Компактные</small>
+          <button type="button" data-ui-theme="graphite">Компактный графит</button>
+          <button type="button" data-ui-theme="outline">Точный контур</button>
+          <small class="theme-menu-label">Яркие</small>
+          <button type="button" data-ui-theme="blue">Кобальт</button>
+          <button type="button" data-ui-theme="green">Изумруд</button>
+          <small class="theme-menu-label">Премиальные</small>
+          <button type="button" data-ui-theme="gold">Тёплое золото</button>
+          <button type="button" data-ui-theme="noir">Noir</button>
+          <button type="button" data-ui-theme="pearl">Pearl</button>
+          <button type="button" data-ui-theme="glass">Полупрозрачный</button>
+          <button type="button" data-ui-theme="studio">Профессиональная студия</button>
         </span>
       </span>
     </span>
@@ -1494,11 +1509,25 @@ body.studio-lite.video-mode #vxControls{
   <div id="photoEnhancePanel" class="context-hidden enhance-panel" hidden>
     <select id="photoEnhanceMode" class="mark-color-select" title="Улучшение фото">
       <option value="off" selected>Без улучшения</option>
-      <option value="classic">Улучшить: свет, цвет, контраст, резкость</option>
-      <option value="bright">Ярко и светло</option>
-      <option value="vivid">Насыщенно</option>
-      <option value="sharp">Чётко и резко</option>
-      <option value="premium">Профессиональная камера — Beta</option>
+      <option value="auto">Авто — анализ снимка</option>
+      <option value="natural">Естественно</option>
+      <option value="bright">Светло и воздушно</option>
+      <option value="professional">Профессионально</option>
+      <option value="interior">Интерьер</option>
+      <option value="exterior">Экстерьер</option>
+      <option value="soft">Мягкая подача</option>
+      <option value="detail">Максимум деталей</option>
+      <option value="vivid">Насыщенные цвета</option>
+      <option value="contrast">Выразительный контраст</option>
+      <option value="crisp">Чёткий кадр</option>
+      <option value="commercial">Коммерческая подача</option>
+      <option value="listing">Для объявления</option>
+      <option value="interior-bright">Светлый интерьер</option>
+      <option value="exterior-bright">Яркий экстерьер</option>
+      <option value="premium-boost">Премиальное усиление</option>
+      <option value="sharp-plus">Усиленная резкость</option>
+      <option value="bright-selling">Светлая продающая</option>
+      <option value="saturated-selling">Насыщенная продающая</option>
     </select>
     <small class="hint">Выбранный эффект применяется сразу в режиме реального времени.</small>
   </div>
@@ -1512,11 +1541,22 @@ body.studio-lite.video-mode #vxControls{
         <div id="vxEnhancePanel" class="context-hidden enhance-panel" hidden>
           <select id="vxEnhanceMode" class="mark-color-select" title="Улучшение видео">
             <option value="off" selected>Без улучшения</option>
-            <option value="classic">Улучшить: свет, цвет, контраст, резкость</option>
-                  <option value="bright">Ярко и светло</option>
-            <option value="vivid">Насыщенно</option>
-            <option value="sharp">Чётко и резко</option>
-            <option value="premium">Профессиональная камера — Beta</option>
+            <option value="auto">Авто — сбалансированно</option>
+            <option value="natural">Естественно</option>
+            <option value="bright">Светлее</option>
+            <option value="professional">Профессионально</option>
+            <option value="interior">Интерьер</option>
+            <option value="exterior">Экстерьер</option>
+            <option value="evening">Вечерний свет</option>
+            <option value="detail">Максимум деталей</option>
+            <option value="social">Социальные сети</option>
+            <option value="light">Светлый кадр</option>
+            <option value="warm">Тёплая подача</option>
+            <option value="contrast">Выразительный контраст</option>
+            <option value="vivid">Насыщенные цвета</option>
+            <option value="premium">Премиальная подача</option>
+            <option value="soft">Мягкий свет</option>
+            <option value="selling">Продающий профиль</option>
           </select>
           <small class="hint">Выбранный эффект применяется сразу в режиме реального времени.</small>
         </div>
@@ -1530,14 +1570,14 @@ body.studio-lite.video-mode #vxControls{
     <div class="group context-hidden" id="photoQualityGroup"><h4>Размер и качество файла</h4>
       <div class="quality-options" id="qualityMode">
         <button type="button" class="quality-option on" data-q="original">
-          <b>Оригинальное качество</b>
-          <span>Без сжатия — добавляется только водяной знак.</span>
-          <small>Лучший вариант для сохранения фотографии максимально близко к оригиналу.</small>
+          <b>Максимальное качество</b>
+          <span>Исходное разрешение и минимальные визуальные потери.</span>
+          <small>Разрешение не увеличивается искусственно; кодирование настроено на сохранение деталей.</small>
         </button>
         <button type="button" class="quality-option" data-q="high">
-          <b>Максимальное качество</b>
-          <span>Лёгкая оптимизация без заметной потери качества.</span>
-          <small>Уменьшает вес файла, при этом визуально фотография остаётся практически неизменной.</small>
+          <b>Оптимальный баланс</b>
+          <span>Высокое визуальное качество при заметно меньшем файле.</span>
+          <small>Разумно ограничивает очень большие снимки и автоматически подбирает компрессию.</small>
         </button>
         <button type="button" class="quality-option" data-q="small">
           <b>Минимальный размер</b>
@@ -1547,7 +1587,7 @@ body.studio-lite.video-mode #vxControls{
       </div>
     </div>
     <div class="group context-hidden" id="photoFormatGroup"><h4>Формат фото</h4>
-      <div class="seg" id="fmt"><button data-f="jpeg" class="on">JPG</button><button data-f="png">PNG</button></div>
+      <div class="seg" id="fmt"><button data-f="auto">Авто</button><button data-f="jpeg" class="on">JPG</button><button data-f="webp">WebP</button><button data-f="png">PNG</button></div>
     </div>
   
 <div class="group" id="vxControls" style="display:none">
@@ -1575,8 +1615,9 @@ body.studio-lite.video-mode #vxControls{
   <div class="pro-publication-only" id="vxOutputGroup">
     <h4 style="margin-top:14px">Формат выгрузки</h4>
     <select class="v-select output-select" id="vxOutputFormat">
-      <option value="mp4" selected>MP4 — рекомендуется</option>
-      <option value="source">Как исходный контейнер, если браузер поддерживает</option>
+      <option value="auto" selected>Автоматически — совместимый MP4</option>
+      <option value="mp4">MP4 — H.264/AAC</option>
+      <option value="source">Как исходный контейнер</option>
       <option value="webm">WebM</option>
     </select>
     <small class="codec-status" id="vxCodecStatus">Проверка возможностей браузера…</small>
@@ -1667,14 +1708,13 @@ body.studio-lite.video-mode #vxControls{
     <button type="button" class="mini-action danger voice-secondary-control" id="vxRemoveVideo"><span aria-hidden="true">✕</span> Удалить видео</button>
   </div>
   <div class="frame-capture-compact">
-    <button type="button" class="mini-action" id="vxFramesToggle">📷 Фото каждую секунду ▾</button>
-    <div class="frame-range-box context-hidden" id="vxFramesPanel">
+    <button type="button" class="mini-action" id="vxFramesToggle" aria-expanded="false">📷 Фото каждую секунду ▾</button>
+    <div class="frame-range-box context-hidden" id="vxFramesPanel" hidden>
       <div class="frame-range-fields">
-        <label>Начало, сек<input type="number" id="vxFramesStart" min="0" step="1" value="0"></label>
-        <label>Конец, сек<input type="number" id="vxFramesEnd" min="1" step="1" value="10"></label>
-        <button type="button" class="mini-action" id="vxFramesEverySecond">Создать фотографии</button>
+        <button type="button" class="mini-action primary-action" id="vxFramesEverySecond">Фото каждую секунду</button>
       </div>
-      <div class="frame-range-status" id="vxFramesStatus">Выберите промежуток. За одну операцию разрешено до 60 кадров, чтобы браузер не зависал.</div>
+      <div class="frame-range-status" id="vxFramesStatus">Кадры будут созданы из всего видео с базовым интервалом 1 секунда. Безопасный лимит — 60 кадров.</div>
+      <div class="frame-results" id="vxFramesResults" aria-live="polite"></div>
     </div>
   </div>
   <div class="speech-collapse">
@@ -1684,7 +1724,6 @@ body.studio-lite.video-mode #vxControls{
     <div class="whisper-box compact-whisper">
       <div class="whisper-head">
         <strong>Распознать речь из видео</strong>
-        <span class="beta-pill">Whisper Beta</span>
       </div>
       <div class="whisper-actions">
         <select id="vxWhisperQuality" class="mark-color-select" title="Точность распознавания"><option value="tiny">Быстро</option><option value="base" selected>Точно</option></select>
@@ -1697,11 +1736,10 @@ body.studio-lite.video-mode #vxControls{
     <div class="whisper-box compact-whisper">
       <div class="whisper-head">
         <strong>Создать автоматические субтитры</strong>
-        <span class="beta-pill">Whisper Beta</span>
       </div>
       <div class="whisper-actions">
-        <select id="vxSubtitleStyle" class="mark-color-select" title="Стиль субтитров"><option value="classic" selected>Classic</option><option value="minimal">Minimal</option><option value="shorts">Shorts</option><option value="tiktok">TikTok</option><option value="bold-card">Bold Card — Beta 1</option><option value="cinema">Cinema — Beta 2</option><option value="outline-pro">Outline Pro — Beta 3</option><option value="caption-bar">Caption Bar — Beta 4</option></select>
-        <select id="vxSubtitleMotion" class="mark-color-select" title="Появление субтитров"><option value="phrase" selected>Фразой</option><option value="words">По словам — Beta 1</option><option value="words-pop">По словам — Beta 2</option><option value="words-karaoke">По словам — Beta 3</option><option value="pop">Резкое увеличение</option><option value="rise">Снизу вверх</option><option value="drop">Сверху вниз</option><option value="fade">Плавное появление</option><option value="bounce">Пружина — Beta 4</option><option value="slide-left">Слева направо — Beta 5</option><option value="word-fade">По словам, плавно — Beta 6</option><option value="word-pulse">По словам, пульс — Beta 7</option></select>
+        <select id="vxSubtitleStyle" class="mark-color-select" title="Стиль субтитров"><option value="classic" selected>Classic</option><option value="minimal">Minimal</option><option value="shorts">Shorts</option><option value="tiktok">TikTok</option><option value="bold-card">Bold Card</option><option value="cinema">Cinema</option><option value="outline-pro">Outline Pro</option><option value="caption-bar">Caption Bar</option></select>
+        <select id="vxSubtitleMotion" class="mark-color-select" title="Появление субтитров"><option value="phrase" selected>Фразой</option><option value="words">По словам</option><option value="words-pop">Акцент текущего слова</option><option value="words-karaoke">Караоке</option><option value="pop">Резкое увеличение</option><option value="rise">Снизу вверх</option><option value="drop">Сверху вниз</option><option value="fade">Плавное появление</option><option value="bounce">Пружина</option><option value="slide-left">Слева направо</option><option value="word-fade">По словам, плавно</option><option value="word-pulse">По словам, пульс</option></select>
         <button type="button" class="mini-action" id="vxWhisperRun">Создать субтитры</button>
         <button type="button" class="mini-action context-hidden" id="vxSubtitleToggle">Редактировать</button>
         <button type="button" class="mini-action danger context-hidden" id="vxSubtitleClear">🗑 Удалить субтитры</button>
@@ -1724,6 +1762,7 @@ body.studio-lite.video-mode #vxControls{
   </div>
   <div class="video-shell"><video id="vxVideo" controls playsinline></video><canvas id="vxLiveOverlay" class="video-live-overlay"></canvas></div>
   <div class="video-export-under-player">
+    <button type="button" class="preset lite-video-enhance-action" id="liteVideoEnhanceStageBtn">✨ Улучшить видео</button>
     <button class="preset" id="vxExport">Обработать и скачать видео</button>
     <button type="button" class="mini-action danger context-hidden" id="vxCancelExport">Отменить обработку</button>
     <div class="v-progress" id="vxProgress"><div id="vxProgressText">Подготовка…</div><div class="bar"><div class="fill" id="vxProgressFill"></div></div></div>
@@ -1745,8 +1784,8 @@ body.studio-lite.video-mode #vxControls{
 
 const THEME_STORAGE_BG='nexestate-bg-theme';
 const THEME_STORAGE_UI='nexestate-ui-theme';
-const BG_LABELS={original:'Original',classic:'Classic',dark:'Dark','calm-blue':'Calm Blue'};
-const UI_LABELS={gold:'Gold',green:'Green',blue:'Blue',outline:'Outline'};
+const BG_LABELS={original:'Original',classic:'Тёплый','paper':'Студия','mist':'Нейтральный',dark:'Графит','calm-blue':'Спокойный синий',midnight:'Премиум',dusk:'Градиент',contrast:'Монтажный'};
+const UI_LABELS={gold:'Золото',green:'Изумруд',blue:'Кобальт',outline:'Контур',graphite:'Графит',noir:'Noir',pearl:'Pearl',glass:'Glass',studio:'Студия'};
 function updateThemeButtonLabels(){
   const bg=document.body.classList.contains('original-source')?'original':(localStorage.getItem(THEME_STORAGE_BG)||'dark');
   const ui=localStorage.getItem(THEME_STORAGE_UI)||'blue';
@@ -1756,7 +1795,7 @@ function updateThemeButtonLabels(){
   if(uiBtn)uiBtn.textContent=`Интерфейс: ${UI_LABELS[ui]||'Blue'} ▾`;
 }
 function applyBgTheme(name){
-  document.body.classList.remove('bg-classic','bg-dark','bg-calm-blue');
+  document.body.classList.remove('bg-classic','bg-paper','bg-mist','bg-dark','bg-calm-blue','bg-midnight','bg-dusk','bg-contrast');
   if(name==='original'){
     document.body.classList.add('original-source');
   }else{
@@ -1767,7 +1806,7 @@ function applyBgTheme(name){
   updateThemeButtonLabels();
 }
 function applyUiTheme(name){
-  document.body.classList.remove('ui-gold','ui-green','ui-blue','ui-outline');
+  document.body.classList.remove('ui-gold','ui-green','ui-blue','ui-outline','ui-graphite','ui-noir','ui-pearl','ui-glass','ui-studio');
   document.body.classList.add('ui-'+name);
   localStorage.setItem(THEME_STORAGE_UI,name);
   updateThemeButtonLabels();
@@ -1970,12 +2009,38 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 <script>
 const MARKS={"A_dark":"./assets/marks/A_dark.svg","A_light":"./assets/marks/A_light.svg","B_dark":"./assets/marks/B_dark.svg","B_light":"./assets/marks/B_light.svg","C_dark":"./assets/marks/C_dark.svg","C_light":"./assets/marks/C_light.svg","D_dark":"./assets/marks/D_dark.svg","D_light":"./assets/marks/D_light.svg","E_dark":"./assets/marks/E_dark.png","E_light":"./assets/marks/E_light.png","F_dark":"./assets/marks/F_dark.svg","F_light":"./assets/marks/F_light.svg"}, SPECS={"A_dark":{"w":745,"h":510},"A_light":{"w":745,"h":510},"B_dark":{"w":657,"h":318},"B_light":{"w":657,"h":318},"C_dark":{"w":380,"h":380},"C_light":{"w":380,"h":380},"D_dark":{"w":618,"h":619},"D_light":{"w":618,"h":619},"E_dark":{"w":1100,"h":842},"E_light":{"w":1100,"h":842},"F_dark":{"w":745,"h":285},"F_light":{"w":745,"h":285}};
-const state={variant:'A',theme:'light',pos:'mc',tile:false,size:42,op:18,mg:4,shadow:false,lightBoost:false,greenLogo:false,fmt:'jpeg',qualityMode:'original',markMode:false,markColor:'#35b84b',markThickness:Number(localStorage.getItem('nexestate-mark-thickness'))||3,infoBarPos:localStorage.getItem('nexestate-info-bar-position')||'bottom',photoEnhance:false,photoEnhanceMode:'off'};
+const state={variant:'A',theme:'light',pos:'mc',tile:false,size:42,op:18,mg:4,shadow:false,lightBoost:false,greenLogo:false,fmt:'jpeg',qualityMode:'original',markMode:false,markColor:'#35b84b',markThickness:Number(localStorage.getItem('nexestate-mark-thickness'))||3,markOpacity:Number(localStorage.getItem('nexestate-mark-opacity'))||100,infoBarPos:localStorage.getItem('nexestate-info-bar-position')||'bottom',photoEnhance:false,photoEnhanceMode:'off'};
 let lightBoostBackup=null;
-const imgs=[]; let cur=-1;
-const markCache={};
+const imgs=[]; let cur=-1,photoRecordSequence=0;
+const markCache={},markLoadPromises={},markObjectUrls={};
 const greenMarkCache={};
-function loadBaseMark(k){return new Promise(r=>{if(markCache[k])return r(markCache[k]);const im=new Image();let done=false;const finish=(value)=>{if(done)return;done=true;if(value)markCache[k]=value;r(value||null);};im.onload=()=>finish(im);im.onerror=()=>finish(null);im.src=MARKS[k];setTimeout(()=>finish(null),4000);});}
+async function loadBaseMark(k){
+  if(markCache[k])return markCache[k];
+  if(markLoadPromises[k])return markLoadPromises[k];
+  markLoadPromises[k]=(async()=>{
+    const asset=MARKS[k];
+    if(!asset)throw new Error(`Не найден ресурс логотипа: ${k}.`);
+    const response=await fetch(asset,{credentials:'same-origin',cache:'no-cache'});
+    if(!response.ok||response.type==='opaque')throw new Error(`Логотип ${k} недоступен (${response.status||'opaque'}).`);
+    const blob=await response.blob();
+    if(!blob.size)throw new Error(`Файл логотипа ${k} пуст.`);
+    const objectUrl=URL.createObjectURL(blob),im=new Image();
+    markObjectUrls[k]=objectUrl;
+    try{
+      await new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error(`Декодирование логотипа ${k} превысило 8 секунд.`)),8000);
+        im.onload=()=>{clearTimeout(timer);resolve();};
+        im.onerror=()=>{clearTimeout(timer);reject(new Error(`Не удалось декодировать логотип ${k}.`));};
+        im.src=objectUrl;
+      });
+      markCache[k]=im;
+      return im;
+    }catch(error){
+      URL.revokeObjectURL(objectUrl);delete markObjectUrls[k];throw error;
+    }
+  })().finally(()=>{delete markLoadPromises[k];});
+  return markLoadPromises[k];
+}
 async function loadMark(k){
   const base=await loadBaseMark(k);
   if(!base||!state.greenLogo)return base;
@@ -1999,6 +2064,13 @@ const ready=Promise.resolve();
 const $=s=>document.querySelector(s);
 const stage=$('#stage'),drop=$('#drop'),fileI=$('#file'),folderI=$('#folder');
 const progressBox=$('#progressBox'),progressText=$('#progressText'),progressCount=$('#progressCount'),progressFill=$('#progressFill');
+function setPhotoProgress(done,total,label='Обработка фотографий'){
+  const safeTotal=Math.max(1,Number(total)||1),safeDone=Math.max(0,Math.min(safeTotal,Number(done)||0));
+  progressBox?.classList.add('show');
+  if(progressText)progressText.textContent=label;
+  if(progressCount)progressCount.textContent=`${Math.round(safeDone)} / ${Math.round(safeTotal)}`;
+  if(progressFill)progressFill.style.width=`${Math.round(safeDone/safeTotal*100)}%`;
+}
 function segwire(id,cb){document.querySelectorAll('#'+id+' button').forEach(b=>{b.onclick=()=>{
   document.querySelectorAll('#'+id+' button').forEach(x=>{
     x.classList.toggle('on',x===b);
@@ -2068,10 +2140,9 @@ if(greenLogoControl){
   greenLogoControl.checked=state.greenLogo;
   greenLogoControl.addEventListener('change',()=>{
     state.greenLogo=greenLogoControl.checked;
-    liveMark=null;liveMarkKey='';
     photoLogoRequest++;
     if(imgs.length&&cur>=0)buildStage();
-    drawLiveOverlay();
+    window.NEXVideoPreview?.invalidateMark?.();
   });
 }
 $('#presetCenter').onclick=()=>{lightBoostBackup=null;Object.assign(state,{pos:'mc',tile:false,size:42,op:18,shadow:false,lightBoost:false});$('#presetCenter').classList.add('on');$('#presetCorner').classList.remove('on');setUI();if(imgs.length&&cur>=0)buildStage();};
@@ -2099,7 +2170,7 @@ async function addFiles(fl){
     const isZip=f.type==='application/zip'||/\.zip$/i.test(f.name);
     if(isZip){
       try{
-        setProgress(0,1,'Распаковка ZIP-архива');
+        setPhotoProgress(0,1,'Распаковка ZIP-архива');
         const zip=await JSZip.loadAsync(f);
         const entries=Object.values(zip.files).filter(entry=>!entry.dir&&/\.(jpe?g|png|webp|gif|bmp)$/i.test(entry.name));
         let done=0;
@@ -2107,18 +2178,39 @@ async function addFiles(fl){
           const blob=await entry.async('blob');
           const name=entry.name.split('/').pop()||`archive_${done+1}.jpg`;
           incoming.push(new File([blob],name,{type:blob.type||guessImageMime(name)}));
-          done++;setProgress(done,entries.length,'Распаковка ZIP-архива');
+          done++;setPhotoProgress(done,entries.length,'Распаковка ZIP-архива');
         }
       }catch(err){alert('Не удалось открыть ZIP-архив. Проверьте, что архив не повреждён и не защищён паролем.');}
       finally{setTimeout(()=>progressBox.classList.remove('show'),900);}
     }else if(f.type.startsWith('image/'))incoming.push(f);
   }
-  for(const f of incoming)await loadImageFile(f);
+  let added=0,duplicates=0;
+  for(const f of incoming){
+    const fingerprint=await fileFingerprint(f);
+    if(imgs.some(record=>record.fingerprint===fingerprint)){duplicates++;continue;}
+    if(await loadImageFile(f,fingerprint))added++;
+  }
+  if(duplicates)window.NEXStudio?.toast?.(`Пропущено точных дубликатов: ${duplicates}. Файлы с одинаковыми именами, но разным содержимым сохранены.`,'info');
+  return {added,duplicates};
 }
 function guessImageMime(name){const ext=(name.split('.').pop()||'').toLowerCase();return ext==='png'?'image/png':ext==='webp'?'image/webp':ext==='gif'?'image/gif':ext==='bmp'?'image/bmp':'image/jpeg';}
-function loadImageFile(f){return new Promise(resolve=>{const im=new Image();const objectUrl=URL.createObjectURL(f);
-  im.onload=()=>{imgs.push({img:im,name:f.name.replace(/\.[^.]+$/,''),rects:[]});URL.revokeObjectURL(objectUrl);if(cur<0)cur=0;buildStage();resolve();};
-  im.onerror=()=>{URL.revokeObjectURL(objectUrl);resolve();};im.src=objectUrl;});}
+async function fileFingerprint(file){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(globalThis.crypto?.subtle){
+    const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+    return [...digest].map(value=>value.toString(16).padStart(2,'0')).join('');
+  }
+  let h1=0x811c9dc5,h2=0x9e3779b9;
+  for(const value of bytes){h1=Math.imul(h1^value,0x01000193);h2=Math.imul(h2+value,0x85ebca6b);}
+  return `${file.size}:${(h1>>>0).toString(16)}${(h2>>>0).toString(16)}`;
+}
+function loadImageFile(f,fingerprint){return new Promise(resolve=>{const im=new Image();const objectUrl=URL.createObjectURL(f);
+  im.onload=()=>{imgs.push({id:globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${++photoRecordSequence}`,fingerprint,img:im,objectUrl,name:f.name.replace(/\.[^.]+$/,''),rects:[],redoRects:[],sourceSize:f.size||0,sourceType:f.type||guessImageMime(f.name),sourceName:f.name,sourceWidth:im.naturalWidth||im.width,sourceHeight:im.naturalHeight||im.height});if(cur<0)cur=0;buildStage();resolve(true);};
+  im.onerror=()=>{URL.revokeObjectURL(objectUrl);resolve(false);};im.src=objectUrl;});}
+window.addEventListener('pagehide',()=>{
+  imgs.forEach(record=>{if(record?.objectUrl)URL.revokeObjectURL(record.objectUrl);});
+  Object.values(markObjectUrls).forEach(url=>URL.revokeObjectURL(url));
+},{once:true});
 document.addEventListener('paste',async e=>{
   const files=[];
   for(const item of [...(e.clipboardData?.items||[])])if(item.type.startsWith('image/')){const f=item.getAsFile();if(f)files.push(new File([f],`clipboard_${Date.now()}.${(f.type.split('/')[1]||'png').replace('jpeg','jpg')}`,{type:f.type}));}
@@ -2133,15 +2225,74 @@ function chooseKey(img,gx,gy,gw,gh){let dark;
   else dark=regionLum(img,gx,gy,gw,gh)<140;
   return state.variant+(dark?'_light':'_dark');}
 const PHOTO_ENHANCE_PRESETS={
-  classic:{brightness:1.08,contrast:1.12,saturate:1.16},
-  balanced:{brightness:1.08,contrast:1.12,saturate:1.16},
-  bright:{brightness:1.20,contrast:1.06,saturate:1.10},
-  vivid:{brightness:1.06,contrast:1.18,saturate:1.42},
-  sharp:{brightness:1.03,contrast:1.28,saturate:1.12},
-  premium:{brightness:1.12,contrast:1.20,saturate:1.28}
+  auto:{brightness:1.04,contrast:1.06,saturate:1.06},
+  classic:{brightness:1.04,contrast:1.06,saturate:1.06},
+  balanced:{brightness:1.04,contrast:1.06,saturate:1.06},
+  natural:{brightness:1.02,contrast:1.04,saturate:1.03},
+  bright:{brightness:1.10,contrast:1.03,saturate:1.04},
+  professional:{brightness:1.04,contrast:1.09,saturate:1.05},
+  interior:{brightness:1.09,contrast:1.04,saturate:1.03},
+  exterior:{brightness:1.02,contrast:1.10,saturate:1.08},
+  soft:{brightness:1.04,contrast:1.02,saturate:1.02},
+  detail:{brightness:1.02,contrast:1.12,saturate:1.04}
 };
 function getPhotoEnhancePreset(){
   return PHOTO_ENHANCE_PRESETS[state.photoEnhanceMode||'balanced']||PHOTO_ENHANCE_PRESETS.balanced;
+}
+
+function getPhotoAdjustments(){
+  const read=id=>Number(document.getElementById(id)?.value||0);
+  return {exposure:read('photoAdjustExposure'),temperature:read('photoAdjustTemperature'),contrast:read('photoAdjustContrast'),saturation:read('photoAdjustSaturation'),shadows:read('photoAdjustShadows'),highlights:read('photoAdjustHighlights'),clarity:read('photoAdjustClarity'),denoise:read('photoAdjustDenoise'),sharpness:read('photoAdjustSharpness')};
+}
+function updatePhotoProcessingStatus(text,progressValue){
+  const status=document.getElementById('photoProcessingStatus');
+  if(status)status.textContent=text||'';
+  if(Number.isFinite(progressValue))setPhotoProgress(Math.round(progressValue),100,text||'Обработка фотографии');
+}
+async function getPhotoPixelSource(rec,W,H,{forExport=false,signal}={}){
+  if(!state.photoEnhance||state.photoEnhanceMode==='off'||!window.NEXPhotoEngine)return rec.img;
+  return await window.NEXPhotoEngine.getEnhancedCanvas(rec.img,W,H,{
+    mode:state.photoEnhanceMode||'auto',
+    adjustments:getPhotoAdjustments(),
+    signal,
+    onProgress:value=>{
+      if(forExport||value===100)updatePhotoProcessingStatus(`Улучшение фотографии: ${Math.round(value)}%`,forExport?value:undefined);
+    }
+  });
+}
+function drawPhotoMarks(g,W,H,marks){
+  for(const mark of (marks||[])){
+    g.save();
+    g.strokeStyle=mark.color||'#35b84b';
+    g.globalAlpha=Number.isFinite(Number(mark.opacity))?Number(mark.opacity)/100:1;
+    g.lineWidth=Math.max(2,W*.00115*(mark.thickness||3));
+    g.setLineDash([]);g.lineJoin='round';g.lineCap='round';
+    if(Array.isArray(mark.points)&&mark.points.length>=3){
+      g.beginPath();
+      mark.points.forEach((point,index)=>{
+        const x=Math.max(0,Math.min(1,Number(point.x)||0))*W;
+        const y=Math.max(0,Math.min(1,Number(point.y)||0))*H;
+        if(index===0)g.moveTo(x,y);else g.lineTo(x,y);
+      });
+      g.closePath();g.stroke();
+    }else{
+      g.strokeRect(mark.x*W,mark.y*H,mark.w*W,mark.h*H);
+    }
+    g.restore();
+  }
+}
+function photoOutputPlan(rec){
+  const sourceW=rec.img.naturalWidth||rec.img.width,sourceH=rec.img.naturalHeight||rec.img.height;
+  const limit=state.qualityMode==='small'?1920:state.qualityMode==='high'?4096:Infinity;
+  const scale=Math.min(1,limit/Math.max(sourceW,sourceH));
+  const width=Math.max(1,Math.round(sourceW*scale)),height=Math.max(1,Math.round(sourceH*scale));
+  let format=state.fmt||'jpeg';
+  if(format==='auto')format=window.NEXPhotoEngine?.supportsWebP?.()?'webp':'jpeg';
+  if(format==='webp'&&!window.NEXPhotoEngine?.supportsWebP?.())format='jpeg';
+  const type=format==='png'?'image/png':format==='webp'?'image/webp':'image/jpeg';
+  const extension=format==='png'?'png':format==='webp'?'webp':'jpg';
+  const quality=state.qualityMode==='original'?(format==='webp'?0.96:0.98):state.qualityMode==='high'?(format==='webp'?0.89:0.92):(format==='webp'?0.78:0.82);
+  return {width,height,format,type,extension,quality,sourceW,sourceH};
 }
 
 function drawPhotoInfoBar(g,W,H){
@@ -2166,29 +2317,14 @@ function drawPhotoInfoBar(g,W,H){
 }
 
 async function compositeTo(canvas,rec,forExport=false){
-  const src=rec.img;
-  const srcW=src.naturalWidth||src.width,srcH=src.naturalHeight||src.height;
-  let scale=1;
-  if(forExport&&state.qualityMode==='small')scale=Math.min(1,2560/Math.max(srcW,srcH));
-  const W=Math.max(1,Math.round(srcW*scale)),H=Math.max(1,Math.round(srcH*scale));
+  const plan=forExport?photoOutputPlan(rec):{width:rec.img.naturalWidth||rec.img.width,height:rec.img.naturalHeight||rec.img.height,format:state.fmt};
+  const W=plan.width,H=plan.height;
   canvas.width=W;canvas.height=H;
-  const g=canvas.getContext('2d',{alpha:state.fmt==='png'});
+  const g=canvas.getContext('2d',{alpha:plan.format==='png'});
   g.clearRect(0,0,W,H);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-  if(state.photoEnhance&&forExport){
-    const pp=getPhotoEnhancePreset();
-    g.filter=`brightness(${pp.brightness}) contrast(${pp.contrast}) saturate(${pp.saturate})`;
-  }
-  g.drawImage(src,0,0,W,H);
-  g.filter='none';
-  for(const r of (rec.rects||[])){
-    g.save();
-    g.strokeStyle=r.color||'#35b84b';
-    g.lineWidth=Math.max(2,W*.002*(r.thickness||3));
-    g.setLineDash([]);
-    g.lineJoin='round';
-    g.strokeRect(r.x*W,r.y*H,r.w*W,r.h*H);
-    g.restore();
-  }
+  const pixelSource=await getPhotoPixelSource(rec,W,H,{forExport});
+  g.drawImage(pixelSource,0,0,W,H);g.filter='none';
+  drawPhotoMarks(g,W,H,rec.rects);
   const sp=SPECS[state.variant+'_dark'];const ar=sp.h/sp.w;const mg=state.mg/100*W;
   if(state.tile){const mw=state.size/100*W*0.62,mh=mw*ar;const mk=await loadMark(state.variant+'_light');
     g.save();g.globalAlpha=state.op/100*0.6;g.translate(W/2,H/2);g.rotate(-Math.PI/6);g.translate(-W/2,-H/2);
@@ -2215,6 +2351,8 @@ function resetPhotoContext(){
 }
 function removePhotoAt(index){
   if(index<0||index>=imgs.length)return;
+  window.NEXPhotoEngine?.clear?.(imgs[index]?.img);
+  if(imgs[index]?.objectUrl)URL.revokeObjectURL(imgs[index].objectUrl);
   imgs.splice(index,1);
   if(!imgs.length){
     resetPhotoContext();
@@ -2232,6 +2370,8 @@ function removePhotoAt(index){
 async function buildStage(){
   stage.querySelectorAll('.canvas-holder').forEach(e=>e.remove());
   if(cur<0||!imgs.length){resetPhotoContext();return;}
+  const rec=imgs[cur];
+  rec.rects=rec.rects||[];rec.redoRects=rec.redoRects||[];
   const stack=$('#mediaDropStack');
   if(stack)stack.classList.add('context-hidden');
   $('#photoQualityGroup')?.classList.remove('context-hidden');
@@ -2241,76 +2381,185 @@ async function buildStage(){
   const holder=document.createElement('div');holder.className='canvas-holder';
 
   const markTools=document.createElement('div');markTools.className='photo-mark-tools';
-  const markBtn=document.createElement('button');markBtn.type='button';markBtn.className='photo-action';markBtn.textContent='▭ Выделить часть объекта';
-  const markColor=document.createElement('select');markColor.className='mark-color-select';
-  [['#35b84b','Зелёный'],['#ef3f3f','Красный'],['#f1c64b','Жёлтый'],['#ffffff','Белый']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;markColor.appendChild(o)});
+  const quickMarkBtn=document.createElement('button');quickMarkBtn.type='button';quickMarkBtn.className='photo-action';quickMarkBtn.dataset.selectionTool='quick';quickMarkBtn.textContent='Быстрое выделение';
+  const flexibleMarkBtn=document.createElement('button');flexibleMarkBtn.type='button';flexibleMarkBtn.className='photo-action';flexibleMarkBtn.dataset.selectionTool='flexible';flexibleMarkBtn.textContent='Редактируемое выделение';
+  const markColor=document.createElement('select');markColor.className='mark-color-select';markColor.setAttribute('aria-label','Цвет выделения');
+  [['#35b84b','Зелёный'],['#ef3f3f','Красный'],['#f1c64b','Жёлтый'],['#ffffff','Белый'],['#3d9cff','Синий']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;markColor.appendChild(o)});
   markColor.value=state.markColor;
-  const thickness=document.createElement('div');thickness.className='mark-thickness-control';
-  const thicknessLabel=document.createElement('span');thicknessLabel.textContent='Толщина';
-  const thicknessPrev=document.createElement('button');thicknessPrev.type='button';thicknessPrev.className='mark-step';thicknessPrev.textContent='◀';thicknessPrev.setAttribute('aria-label','Уменьшить толщину');
-  const thicknessValue=document.createElement('b');thicknessValue.className='mark-thickness-value';thicknessValue.textContent=String(state.markThickness||3);
-  const thicknessNext=document.createElement('button');thicknessNext.type='button';thicknessNext.className='mark-step';thicknessNext.textContent='▶';thicknessNext.setAttribute('aria-label','Увеличить толщину');
-  const setThickness=(value)=>{
-    const numeric=Number(value);
-    state.markThickness=Math.max(1,Math.min(5,Number.isFinite(numeric)?numeric:3));
-    thicknessValue.textContent=String(state.markThickness);
-    localStorage.setItem('nexestate-mark-thickness',String(state.markThickness));
-    if(rec.rects?.length){
-      rec.rects[rec.rects.length-1].thickness=state.markThickness;
-      render();
-    }
+  const makeRange=(label,min,max,value,aria)=>{
+    const wrap=document.createElement('label');wrap.className='mark-live-range';
+    const text=document.createElement('span');text.textContent=label;
+    const output=document.createElement('b');output.textContent=String(value);
+    const input=document.createElement('input');input.type='range';input.min=String(min);input.max=String(max);input.value=String(value);input.setAttribute('aria-label',aria);
+    wrap.append(text,input,output);return {wrap,input,output};
   };
-  thicknessPrev.onclick=()=>setThickness(state.markThickness-1);
-  thicknessNext.onclick=()=>setThickness(state.markThickness+1);
-  thickness.append(thicknessLabel,thicknessPrev,thicknessValue,thicknessNext);
-  const undoMark=document.createElement('button');undoMark.type='button';undoMark.className='photo-action mark-history-hidden';undoMark.textContent='Отменить выделение';
-  const clearMarks=document.createElement('button');clearMarks.type='button';clearMarks.className='photo-action danger mark-history-hidden';clearMarks.textContent='Убрать выделения';
-  markBtn.onclick=()=>{state.markMode=!state.markMode;markBtn.classList.toggle('active-mark',state.markMode);previewWrap?.classList.toggle('mark-mode',state.markMode)};
-  markColor.onchange=()=>{state.markColor=markColor.value};
-  undoMark.onclick=()=>{imgs[cur]?.rects?.pop();render()};
-  const syncMarkHistory=()=>{
-    const has=Boolean(imgs[cur]?.rects?.length);
-    undoMark.classList.toggle('mark-history-hidden',!has);
-    clearMarks.classList.toggle('mark-history-hidden',!has);
-  };
-  undoMark.onclick=()=>{imgs[cur]?.rects?.pop();syncMarkHistory();render()};
-  clearMarks.onclick=()=>{if(imgs[cur])imgs[cur].rects=[];syncMarkHistory();render()};
-  markTools.append(markBtn,markColor,thickness,undoMark,clearMarks);holder.appendChild(markTools);
-  syncMarkHistory();
+  const thickness=makeRange('Толщина',1,12,state.markThickness||3,'Толщина линии выделения');
+  const opacity=makeRange('Прозрачность',20,100,state.markOpacity||100,'Непрозрачность линии выделения');
+  opacity.output.textContent=`${state.markOpacity||100}%`;
+  const applyMark=document.createElement('button');applyMark.type='button';applyMark.className='photo-action mark-confirm mark-active-only';applyMark.textContent='Применить';
+  const cancelMark=document.createElement('button');cancelMark.type='button';cancelMark.className='photo-action danger mark-active-only';cancelMark.textContent='Отменить';
+  const undoMark=document.createElement('button');undoMark.type='button';undoMark.className='photo-action mark-history-hidden';undoMark.textContent='Назад';
+  const redoMark=document.createElement('button');redoMark.type='button';redoMark.className='photo-action mark-history-hidden';redoMark.textContent='Повторить';
+  const editMark=document.createElement('button');editMark.type='button';editMark.className='photo-action mark-history-hidden';editMark.textContent='Изменить последнее';
+  const clearMarks=document.createElement('button');clearMarks.type='button';clearMarks.className='photo-action danger mark-history-hidden';clearMarks.textContent='Сбросить';
+  const zoom=makeRange('Масштаб',50,200,100,'Масштаб рабочей области');zoom.output.textContent='100%';zoom.wrap.classList.add('mark-zoom-range');
+  markTools.append(quickMarkBtn,flexibleMarkBtn,markColor,thickness.wrap,opacity.wrap,applyMark,cancelMark,undoMark,redoMark,editMark,clearMarks,zoom.wrap);holder.appendChild(markTools);
 
   const previewWrap=document.createElement('div');previewWrap.className='photo-preview-wrap';
-  const cv=document.createElement('canvas');stageCanvas=cv;previewWrap.appendChild(cv);
-  let markStart=null,markPreview=null;
-  const canvasPoint=e=>{
-    const b=cv.getBoundingClientRect();
-    return {x:(e.clientX-b.left)/b.width,y:(e.clientY-b.top)/b.height};
-  };
-  cv.addEventListener('pointerdown',e=>{
-    if(!state.markMode)return;
-    e.preventDefault();cv.setPointerCapture?.(e.pointerId);
-    markStart=canvasPoint(e);markPreview=null;
-  });
-  cv.addEventListener('pointermove',async e=>{
-    if(!state.markMode||!markStart)return;
-    const p=canvasPoint(e);
-    markPreview={x:Math.min(markStart.x,p.x),y:Math.min(markStart.y,p.y),w:Math.abs(p.x-markStart.x),h:Math.abs(p.y-markStart.y),color:state.markColor,thickness:state.markThickness||3};
-    await render();
-    if(markPreview&&stageCanvas){
-      const g=stageCanvas.getContext('2d');
-      g.save();g.strokeStyle=markPreview.color;g.lineWidth=Math.max(2,stageCanvas.width*.002*(markPreview.thickness||3));
-      g.setLineDash([]);
-      g.strokeRect(markPreview.x*stageCanvas.width,markPreview.y*stageCanvas.height,markPreview.w*stageCanvas.width,markPreview.h*stageCanvas.height);g.restore();
+  const surface=document.createElement('div');surface.className='photo-canvas-surface';
+  const cv=document.createElement('canvas');stageCanvas=cv;surface.appendChild(cv);previewWrap.appendChild(surface);
+  const selectionLayer=document.createElement('div');selectionLayer.className='photo-selection-layer';
+  const selectionSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');selectionSvg.setAttribute('viewBox','0 0 100 100');selectionSvg.setAttribute('preserveAspectRatio','none');
+  const rotationLine=document.createElementNS('http://www.w3.org/2000/svg','line');rotationLine.classList.add('selection-rotation-line');
+  const polygon=document.createElementNS('http://www.w3.org/2000/svg','polygon');polygon.classList.add('selection-polygon');polygon.setAttribute('vector-effect','non-scaling-stroke');
+  selectionSvg.append(rotationLine,polygon);selectionLayer.appendChild(selectionSvg);surface.appendChild(selectionLayer);
+
+  let activeSelection=null,creationStart=null,dragState=null,editingOriginal=null,selectionTool='flexible';
+  const activeUndo=[],activeRedo=[];
+  const cloneSelection=value=>value?JSON.parse(JSON.stringify(value)):null;
+  const clampPoint=point=>({x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))});
+  const canvasPoint=e=>{const b=surface.getBoundingClientRect();return clampPoint({x:(e.clientX-b.left)/Math.max(1,b.width),y:(e.clientY-b.top)/Math.max(1,b.height)});};
+  const centroid=points=>points.reduce((acc,p)=>({x:acc.x+p.x/points.length,y:acc.y+p.y/points.length}),{x:0,y:0});
+  const rotationPoint=points=>{
+    const c=centroid(points),mid={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+    const b=surface.getBoundingClientRect(),width=Math.max(1,b.width),height=Math.max(1,b.height);
+    const px=(mid.x-c.x)*width,py=(mid.y-c.y)*height,len=Math.max(1,Math.hypot(px,py));
+    const offset={x:px/len*42/width,y:py/len*42/height};
+    const distance=value=>Math.hypot((value.x-mid.x)*width,(value.y-mid.y)*height);
+    let result=clampPoint({x:mid.x+offset.x,y:mid.y+offset.y});
+    if(distance(result)<30)result=clampPoint({x:mid.x-offset.x,y:mid.y-offset.y});
+    if(distance(result)<30){
+      const direction=mid.x<.5?1:-1;
+      result=clampPoint({x:mid.x+direction*42/width,y:mid.y});
     }
-  });
-  cv.addEventListener('pointerup',async e=>{
-    if(!state.markMode||!markStart)return;
-    const p=canvasPoint(e);
-    const r={x:Math.min(markStart.x,p.x),y:Math.min(markStart.y,p.y),w:Math.abs(p.x-markStart.x),h:Math.abs(p.y-markStart.y),color:state.markColor,thickness:state.markThickness||3};
-    markStart=null;markPreview=null;
-    if(r.w>.01&&r.h>.01){imgs[cur].rects=imgs[cur].rects||[];imgs[cur].rects.push(r)}
+    return result;
+  };
+  const syncMarkHistory=()=>{
+    const active=!!activeSelection;
+    markTools.classList.toggle('has-active-selection',active);
+    selectionLayer.classList.toggle('show',active);
+    selectionLayer.classList.toggle('quick-selection',active&&selectionTool==='quick');
+    quickMarkBtn.classList.toggle('active-mark',state.markMode&&selectionTool==='quick');
+    flexibleMarkBtn.classList.toggle('active-mark',state.markMode&&selectionTool==='flexible');
+    quickMarkBtn.setAttribute('aria-pressed',String(state.markMode&&selectionTool==='quick'));
+    flexibleMarkBtn.setAttribute('aria-pressed',String(state.markMode&&selectionTool==='flexible'));
+    previewWrap.classList.toggle('mark-mode',state.markMode&&!active);
+    undoMark.classList.toggle('mark-history-hidden',active?activeUndo.length===0:rec.rects.length===0);
+    redoMark.classList.toggle('mark-history-hidden',active?activeRedo.length===0:rec.redoRects.length===0);
+    editMark.classList.toggle('mark-history-hidden',active||rec.rects.length===0);
+    clearMarks.classList.toggle('mark-history-hidden',active||rec.rects.length===0);
+    quickMarkBtn.disabled=active;
+    flexibleMarkBtn.disabled=active;
+  };
+  const beginActiveChange=()=>cloneSelection(activeSelection);
+  const finishActiveChange=before=>{
+    if(!before||JSON.stringify(before)===JSON.stringify(activeSelection))return;
+    activeUndo.push(before);if(activeUndo.length>30)activeUndo.shift();activeRedo.length=0;
+  };
+  const renderSelection=()=>{
+    selectionLayer.querySelectorAll('.selection-handle').forEach(handle=>handle.remove());
+    if(!activeSelection){polygon.setAttribute('points','');syncMarkHistory();return;}
+    const points=activeSelection.points.map(clampPoint);activeSelection.points=points;
+    polygon.setAttribute('points',points.map(point=>`${point.x*100},${point.y*100}`).join(' '));
+    polygon.style.stroke=activeSelection.color;polygon.style.opacity=String((activeSelection.opacity||100)/100);polygon.style.strokeWidth=`${Math.max(2,activeSelection.thickness||3)}px`;
+    if(selectionTool==='flexible'){
+      const rotation=rotationPoint(points),topMid={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+      rotationLine.setAttribute('x1',String(topMid.x*100));rotationLine.setAttribute('y1',String(topMid.y*100));rotationLine.setAttribute('x2',String(rotation.x*100));rotationLine.setAttribute('y2',String(rotation.y*100));
+      rotationLine.style.stroke=activeSelection.color;rotationLine.style.opacity=String((activeSelection.opacity||100)/100);rotationLine.style.display='';
+      points.forEach((point,index)=>{
+        const handle=document.createElement('button');handle.type='button';handle.className='selection-handle selection-corner';handle.style.left=`${point.x*100}%`;handle.style.top=`${point.y*100}%`;handle.dataset.corner=String(index);handle.setAttribute('aria-label',`Переместить точку ${index+1}`);selectionLayer.appendChild(handle);
+        handle.classList.toggle('is-active',dragState?.kind==='corner'&&dragState.index===index);
+      });
+      points.forEach((point,index)=>{
+        const next=points[(index+1)%points.length],mid={x:(point.x+next.x)/2,y:(point.y+next.y)/2};
+        const handle=document.createElement('button');handle.type='button';handle.className='selection-handle selection-side';handle.style.left=`${mid.x*100}%`;handle.style.top=`${mid.y*100}%`;handle.dataset.side=String(index);handle.setAttribute('aria-label',`Переместить сторону ${index+1}`);selectionLayer.appendChild(handle);
+        handle.classList.toggle('is-active',dragState?.kind==='side'&&dragState.index===index);
+      });
+      const rotate=document.createElement('button');rotate.type='button';rotate.className='selection-handle selection-rotate';rotate.style.left=`${rotation.x*100}%`;rotate.style.top=`${rotation.y*100}%`;rotate.dataset.rotate='1';rotate.setAttribute('aria-label','Повернуть выделение');selectionLayer.appendChild(rotate);
+      rotate.classList.toggle('is-active',dragState?.kind==='rotate');
+    }else{
+      rotationLine.style.display='none';
+    }
     syncMarkHistory();
-    await render();
+  };
+  const makeRectangle=(a,b)=>({points:[{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y)},{x:Math.max(a.x,b.x),y:Math.min(a.y,b.y)},{x:Math.max(a.x,b.x),y:Math.max(a.y,b.y)},{x:Math.min(a.x,b.x),y:Math.max(a.y,b.y)}],color:state.markColor,thickness:state.markThickness||3,opacity:state.markOpacity||100,selectionType:selectionTool});
+  const makeClickRectangle=point=>{
+    const half=selectionTool==='quick'?{x:.16,y:.12}:{x:.14,y:.10};
+    return makeRectangle(clampPoint({x:point.x-half.x,y:point.y-half.y}),clampPoint({x:point.x+half.x,y:point.y+half.y}));
+  };
+  const selectionSize=selection=>{const xs=selection.points.map(p=>p.x),ys=selection.points.map(p=>p.y);return {w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};};
+
+  const activateSelectionTool=tool=>{
+    selectionTool=tool;state.markMode=true;creationStart=null;syncMarkHistory();
+    window.NEXStudio?.toast?.(tool==='quick'?'Нажмите на объект или протяните рамку. Затем примените или отмените выделение.':'Нажмите на объект или протяните рамку. Форму можно менять точками, сторонами и поворотом.','info');
+  };
+  quickMarkBtn.onclick=()=>activateSelectionTool('quick');
+  flexibleMarkBtn.onclick=()=>activateSelectionTool('flexible');
+  markColor.onchange=()=>{state.markColor=markColor.value;if(activeSelection){const before=beginActiveChange();activeSelection.color=state.markColor;finishActiveChange(before);renderSelection();}};
+  thickness.input.oninput=()=>{state.markThickness=Math.max(1,Math.min(12,Number(thickness.input.value)||3));thickness.output.textContent=String(state.markThickness);localStorage.setItem('nexestate-mark-thickness',String(state.markThickness));if(activeSelection){activeSelection.thickness=state.markThickness;renderSelection();}};
+  thickness.input.onchange=()=>{if(activeSelection)activeUndo.push({...cloneSelection(activeSelection),thickness:Number(thickness.input.defaultValue)||3});};
+  opacity.input.oninput=()=>{state.markOpacity=Math.max(20,Math.min(100,Number(opacity.input.value)||100));opacity.output.textContent=`${state.markOpacity}%`;localStorage.setItem('nexestate-mark-opacity',String(state.markOpacity));if(activeSelection){activeSelection.opacity=state.markOpacity;renderSelection();}};
+  zoom.input.oninput=()=>{const value=Math.max(50,Math.min(200,Number(zoom.input.value)||100));zoom.output.textContent=`${value}%`;surface.style.width=`${value}%`;};
+  applyMark.onclick=()=>{if(!activeSelection)return;rec.rects.push(cloneSelection(activeSelection));rec.redoRects=[];activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;renderSelection();render();};
+  cancelMark.onclick=()=>{if(editingOriginal)rec.rects.push(editingOriginal);activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;renderSelection();render();};
+  undoMark.onclick=()=>{if(activeSelection&&activeUndo.length){activeRedo.push(cloneSelection(activeSelection));activeSelection=activeUndo.pop();renderSelection();return;}const value=rec.rects.pop();if(value)rec.redoRects.push(value);syncMarkHistory();render();};
+  redoMark.onclick=()=>{if(activeSelection&&activeRedo.length){activeUndo.push(cloneSelection(activeSelection));activeSelection=activeRedo.pop();renderSelection();return;}const value=rec.redoRects.pop();if(value)rec.rects.push(value);syncMarkHistory();render();};
+  editMark.onclick=()=>{if(activeSelection||!rec.rects.length)return;editingOriginal=cloneSelection(rec.rects.pop());activeSelection=cloneSelection(editingOriginal);selectionTool='flexible';activeSelection.selectionType='flexible';state.markMode=true;activeUndo.length=0;activeRedo.length=0;markColor.value=activeSelection.color||state.markColor;thickness.input.value=String(activeSelection.thickness||3);opacity.input.value=String(activeSelection.opacity||100);renderSelection();render();};
+  clearMarks.onclick=()=>{if(!rec.rects.length)return;rec.redoRects=rec.rects.splice(0).reverse();syncMarkHistory();render();};
+
+  surface.addEventListener('pointerdown',e=>{
+    if(!activeSelection){
+      if(!state.markMode)return;
+      e.preventDefault();creationStart=canvasPoint(e);surface.setPointerCapture?.(e.pointerId);return;
+    }
+    if(selectionTool==='quick')return;
+    const corner=e.target.closest?.('[data-corner]'),side=e.target.closest?.('[data-side]'),rotate=e.target.closest?.('[data-rotate]');
+    if(!corner&&!side&&!rotate&&e.target!==polygon)return;
+    e.preventDefault();surface.setPointerCapture?.(e.pointerId);
+    const start=canvasPoint(e),before=beginActiveChange();
+    if(corner)dragState={kind:'corner',index:Number(corner.dataset.corner),start,before};
+    else if(side)dragState={kind:'side',index:Number(side.dataset.side),start,startPoints:cloneSelection(activeSelection).points,before};
+    else if(rotate){const c=centroid(activeSelection.points),b=surface.getBoundingClientRect();dragState={kind:'rotate',centre:c,startAngle:Math.atan2((start.y-c.y)*b.height,(start.x-c.x)*b.width),startPoints:cloneSelection(activeSelection).points,before};}
+    else dragState={kind:'move',start,startPoints:cloneSelection(activeSelection).points,before};
+    renderSelection();
   });
+  surface.addEventListener('pointermove',e=>{
+    const point=canvasPoint(e);
+    if(creationStart){activeSelection=makeRectangle(creationStart,point);renderSelection();return;}
+    if(!dragState||!activeSelection)return;
+    if(dragState.kind==='corner')activeSelection.points[dragState.index]=point;
+    if(dragState.kind==='side'){
+      const first=dragState.index,second=(first+1)%dragState.startPoints.length,startPoints=dragState.startPoints;
+      let dx=point.x-dragState.start.x,dy=point.y-dragState.start.y;
+      const sidePoints=[startPoints[first],startPoints[second]];
+      dx=Math.max(-Math.min(...sidePoints.map(p=>p.x)),Math.min(1-Math.max(...sidePoints.map(p=>p.x)),dx));
+      dy=Math.max(-Math.min(...sidePoints.map(p=>p.y)),Math.min(1-Math.max(...sidePoints.map(p=>p.y)),dy));
+      activeSelection.points=startPoints.map((p,index)=>(index===first||index===second)?clampPoint({x:p.x+dx,y:p.y+dy}):{...p});
+    }
+    if(dragState.kind==='move'){
+      const dx=point.x-dragState.start.x,dy=point.y-dragState.start.y;
+      const xs=dragState.startPoints.map(p=>p.x+dx),ys=dragState.startPoints.map(p=>p.y+dy);
+      const adjustX=Math.min(0,...xs)+Math.max(0,Math.max(...xs)-1),adjustY=Math.min(0,...ys)+Math.max(0,Math.max(...ys)-1);
+      activeSelection.points=dragState.startPoints.map(p=>({x:p.x+dx-adjustX,y:p.y+dy-adjustY})).map(clampPoint);
+    }
+    if(dragState.kind==='rotate'){
+      const c=dragState.centre,b=surface.getBoundingClientRect(),angle=Math.atan2((point.y-c.y)*b.height,(point.x-c.x)*b.width)-dragState.startAngle,cos=Math.cos(angle),sin=Math.sin(angle);
+      activeSelection.points=dragState.startPoints.map(p=>{const px=(p.x-c.x)*b.width,py=(p.y-c.y)*b.height;return clampPoint({x:c.x+(px*cos-py*sin)/b.width,y:c.y+(px*sin+py*cos)/b.height});});
+    }
+    renderSelection();
+  });
+  const finishPointer=e=>{
+    if(creationStart){
+      const clickPoint=e?.clientX!=null?canvasPoint(e):creationStart;
+      creationStart=null;
+      if(!activeSelection||selectionSize(activeSelection).w<.012||selectionSize(activeSelection).h<.012)activeSelection=makeClickRectangle(clickPoint);
+      activeUndo.length=activeRedo.length=0;
+      renderSelection();return;
+    }
+    if(dragState){finishActiveChange(dragState.before);dragState=null;renderSelection();}
+  };
+  surface.addEventListener('pointerup',finishPointer);surface.addEventListener('pointercancel',()=>{creationStart=null;dragState=null;renderSelection();});
+  renderSelection();
   const close=document.createElement('button');close.type='button';close.className='photo-close';close.setAttribute('aria-label','Удалить фотографию');close.title='Удалить фотографию';close.textContent='×';close.onclick=()=>removePhotoAt(cur);
   previewWrap.appendChild(close);holder.appendChild(previewWrap);
 
@@ -2327,13 +2576,24 @@ async function buildStage(){
   }
 
   const act=document.createElement('div');act.className='actions';
+  const addMore=document.createElement('button');addMore.type='button';addMore.className='btn secondary-action photo-add-action';addMore.textContent='+ Добавить фото';addMore.setAttribute('aria-label','Добавить ещё фотографии');addMore.onclick=()=>fileI.click();act.appendChild(addMore);
+  const quickEnhance=document.createElement('button');quickEnhance.type='button';quickEnhance.className='btn gold photo-light-enhance-action';
+  const syncQuickEnhance=()=>{const enabled=state.photoEnhance&&state.photoEnhanceMode!=='off';quickEnhance.classList.toggle('on',enabled);quickEnhance.textContent=enabled?'✓ Улучшение фото включено':'✨ Улучшить фото';};
+  quickEnhance.onclick=()=>{document.getElementById('litePhotoEnhanceBtn')?.click();syncQuickEnhance();};
+  syncQuickEnhance();act.appendChild(quickEnhance);
   const dl=document.createElement('button');dl.className='btn primary photo-download-primary';dl.textContent='Скачать это фото';dl.onclick=()=>download(cur);act.appendChild(dl);
   if(imgs.length>1){const dla=document.createElement('button');dla.className='btn gold';dla.textContent='Скачать все ('+imgs.length+')';dla.onclick=downloadAll;act.appendChild(dla);}
   holder.appendChild(act);stage.appendChild(holder);await render();window.applyPhotoPresetPreview?.();
 }
 window.NEXPhotoState={
   hasPhotos:()=>imgs.length>0,
+  count:()=>imgs.length,
+  ids:()=>imgs.map(record=>record.id),
+  current:()=>cur,
+  marks:()=>imgs[cur]?.rects?.map(mark=>JSON.parse(JSON.stringify(mark)))||[],
   rebuild:()=>{if(imgs.length&&cur>=0)return buildStage();},
+  exportOne:index=>createPhotoExport(index),
+  exportAll:()=>downloadAll(),
   hideCanvas:()=>stage.querySelectorAll('.canvas-holder').forEach(e=>e.style.display='none'),
   showCanvas:()=>stage.querySelectorAll('.canvas-holder').forEach(e=>e.style.display='')
 };
@@ -2368,23 +2628,11 @@ async function render(){
   g.imageSmoothingEnabled=true;
   g.imageSmoothingQuality='high';
 
-  if(state.photoEnhance){
-    const p=getPhotoEnhancePreset();
-    g.filter=`brightness(${p.brightness}) contrast(${p.contrast}) saturate(${p.saturate})`;
-  }else{
-    g.filter='none';
-  }
-  g.drawImage(source,0,0,W,H);
   g.filter='none';
-
-  for(const r of (rec.rects||[])){
-    g.save();
-    g.strokeStyle=r.color||'#35b84b';
-    g.lineWidth=Math.max(2,W*.002*(r.thickness||3));
-    g.lineJoin='round';
-    g.strokeRect(r.x*W,r.y*H,r.w*W,r.h*H);
-    g.restore();
-  }
+  const pixelSource=await getPhotoPixelSource(rec,W,H,{forExport:false});
+  if(request!==renderTok)return;
+  g.drawImage(pixelSource,0,0,W,H);
+  drawPhotoMarks(g,W,H,rec.rects);
 
   const variant=state.variant||'A';
   const spec=SPECS[variant+'_dark']||SPECS.A_dark;
@@ -2432,36 +2680,114 @@ async function render(){
   visible.clearRect(0,0,W,H);
   visible.drawImage(off,0,0);
 }
+let photoExportBusy=false;
+function formatFileSize(bytes){
+  const value=Number(bytes)||0;
+  if(value<1024)return `${value} Б`;
+  if(value<1024*1024)return `${(value/1024).toFixed(value<10240?1:0)} КБ`;
+  return `${(value/1024/1024).toFixed(value<10*1024*1024?2:1)} МБ`;
+}
+function safePhotoBase(rec,index){
+  const base=(rec?.name||`NEX_ESTATE_photo_${index+1}`).normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'_').replace(/[. ]+$/g,'').trim();
+  return (base||`NEX_ESTATE_photo_${index+1}`).slice(0,140);
+}
+function updatePhotoMetrics(rec,plan,blob){
+  const target=document.getElementById('photoOutputMetrics');
+  if(!target)return;
+  const sourceSize=Number(rec.sourceSize)||0;
+  const reduction=sourceSize?Math.round((1-blob.size/sourceSize)*100):null;
+  target.innerHTML=`<b>Последний результат</b><span>${plan.sourceW}×${plan.sourceH} → ${plan.width}×${plan.height}</span><span>${formatFileSize(sourceSize)} → ${formatFileSize(blob.size)}${reduction===null?'':` · ${reduction>=0?'−':'+'}${Math.abs(reduction)}%`}</span><span>${plan.format.toUpperCase()}</span>`;
+  target.classList.add('show');
+}
+async function createPhotoExport(index){
+  const rec=imgs[index];
+  if(!rec)throw new Error('Фотография не найдена.');
+  const plan=photoOutputPlan(rec);
+  const canvas=document.createElement('canvas');
+  try{
+    await compositeTo(canvas,rec,true);
+    canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,1,1);
+    const blob=window.NEXPhotoEngine
+      ? await window.NEXPhotoEngine.toBlob(canvas,plan.type,plan.format==='png'?undefined:plan.quality)
+      : await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Не удалось подготовить изображение.')),plan.type,plan.quality));
+    if(!blob.size)throw new Error('Получен пустой файл изображения.');
+    updatePhotoMetrics(rec,plan,blob);
+    return {blob,plan,name:`${safePhotoBase(rec,index)}_NEX_ESTATE.${plan.extension}`};
+  }catch(error){
+    if(error?.name==='SecurityError')throw new Error('Экспорт заблокирован защитой canvas. Перезагрузите локальное приложение через START_WINDOWS.cmd: логотипы должны загружаться как локальные Blob-ресурсы.');
+    throw error;
+  }finally{
+    canvas.width=0;canvas.height=0;
+  }
+}
+function triggerBlobDownload(blob,name,delay=3500){
+  const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+  anchor.download=name;anchor.href=url;anchor.style.display='none';document.body.appendChild(anchor);anchor.click();
+  setTimeout(()=>{anchor.remove();URL.revokeObjectURL(url);},delay);
+}
+function setPhotoExportButtonsBusy(busy){
+  document.querySelectorAll('.photo-download-primary,.actions .btn.gold').forEach(button=>{
+    button.disabled=busy;
+    button.setAttribute('aria-busy',String(busy));
+  });
+}
 async function download(i){
   await ready;
+  if(photoExportBusy)return window.NEXStudio?.toast?.('Экспорт уже выполняется. Дождитесь завершения.','warning');
   if(!imgs[i])return alert('Сначала загрузите фотографию.');
+  photoExportBusy=true;setPhotoExportButtonsBusy(true);
   try{
-    const cv=document.createElement('canvas');
-    await compositeTo(cv,imgs[i],true);
-    const jpegQuality=state.qualityMode==='original'?1:state.qualityMode==='high'?0.95:0.85;
-    const type=state.fmt==='png'?'image/png':'image/jpeg';
-    const blob=await new Promise((resolve,reject)=>{
-      cv.toBlob(result=>result?resolve(result):reject(new Error('Не удалось подготовить изображение.')),type,state.fmt==='jpeg'?jpegQuality:undefined);
-    });
-    const safeBase=(imgs[i].name||`NEX_ESTATE_photo_${i+1}`).replace(/[\\/:*?"<>|]+/g,'_');
-    const ext=state.fmt==='png'?'png':'jpg';
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.download=`${safeBase}_NEX_ESTATE.${ext}`;
-    a.href=url;
-    a.style.display='none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},2500);
+    setPhotoProgress(0,100,'Подготовка фотографии');
+    const result=await createPhotoExport(i);
+    setPhotoProgress(100,100,'Фотография готова');
+    triggerBlobDownload(result.blob,result.name);
+    window.NEXStudio?.toast?.(`Готово: ${result.name}`,'success');
   }catch(error){
     console.error(error);
-    alert('Не удалось скачать фото: '+(error?.message||error));
+    window.NEXStudio?.toast?.(`Не удалось скачать фото: ${error?.message||error}`,'error');
+  }finally{
+    photoExportBusy=false;setPhotoExportButtonsBusy(false);
+    setTimeout(()=>progressBox?.classList.remove('show'),1600);
   }
 }
 async function downloadAll(){
-  const total=imgs.length;if(!total)return;setProgress(0,total);
-  for(let i=0;i<total;i++){await download(i);setProgress(i+1,total,i+1===total?'Готово':'Обработка фотографий');await new Promise(r=>setTimeout(r,550));}
-  setTimeout(()=>progressBox.classList.remove('show'),2200);
+  const total=imgs.length;
+  if(!total)return alert('Сначала загрузите фотографии.');
+  if(photoExportBusy)return window.NEXStudio?.toast?.('Архив уже подготавливается.','warning');
+  photoExportBusy=true;setPhotoExportButtonsBusy(true);
+  try{
+    const zip=new JSZip(),usedNames=new Set();
+    setPhotoProgress(0,total,'Подготовка обработанных фотографий');
+    for(let i=0;i<total;i++){
+      const result=await createPhotoExport(i);
+      let name=result.name,counter=2;
+      while(usedNames.has(name.toLocaleLowerCase('ru'))){
+        name=`${safePhotoBase(imgs[i],i)}_NEX_ESTATE_${counter++}.${result.plan.extension}`;
+      }
+      usedNames.add(name.toLocaleLowerCase('ru'));
+      zip.file(name,result.blob,{binary:true,date:new Date()});
+      setPhotoProgress(i+1,total,`Обработано ${i+1} из ${total}`);
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    setPhotoProgress(0,100,'Создание ZIP-архива');
+    const archive=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},platform:'DOS'},metadata=>{
+      setPhotoProgress(metadata.percent,100,`Упаковка ZIP: ${Math.round(metadata.percent)}%`);
+    });
+    if(!archive.size)throw new Error('ZIP-архив получился пустым.');
+    const verified=await JSZip.loadAsync(archive,{checkCRC32:true});
+    const verifiedFiles=Object.values(verified.files).filter(entry=>!entry.dir);
+    if(verifiedFiles.length!==total)throw new Error(`Проверка ZIP не пройдена: ожидалось ${total}, найдено ${verifiedFiles.length}.`);
+    const stamp=new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
+    triggerBlobDownload(archive,`NEX_ESTATE_photos_${stamp}.zip`,5000);
+    setPhotoProgress(100,100,`Готово: ${total} файлов, ZIP проверен`);
+    window.NEXStudio?.toast?.(`ZIP проверен: ${total} обработанных фотографий.`,'success');
+  }catch(error){
+    console.error(error);
+    window.NEXStudio?.toast?.(`Не удалось создать ZIP: ${error?.message||error}`,'error');
+  }finally{
+    photoExportBusy=false;setPhotoExportButtonsBusy(false);
+    setTimeout(()=>progressBox?.classList.remove('show'),2200);
+  }
 }
 </script>
 
@@ -2469,16 +2795,47 @@ async function downloadAll(){
 <script>
 /* 3.5.3 enhancement presets must exist before first preview call */
 var ENHANCE_PRESETS={
-  classic:{brightness:1.08,contrast:1.12,saturate:1.16,sharpness:.18},
-  balanced:{brightness:1.08,contrast:1.12,saturate:1.16,sharpness:.18},
-  bright:{brightness:1.20,contrast:1.06,saturate:1.10,sharpness:.12},
-  vivid:{brightness:1.06,contrast:1.18,saturate:1.42,sharpness:.16},
-  sharp:{brightness:1.03,contrast:1.28,saturate:1.12,sharpness:.30},
-  premium:{brightness:1.12,contrast:1.20,saturate:1.28,sharpness:.24}
+  auto:{brightness:1.065,contrast:1.085,saturate:1.100,sharpness:.12,temperature:0,shadows:.055,highlights:.055},
+  classic:{brightness:1.065,contrast:1.085,saturate:1.100,sharpness:.12,temperature:0,shadows:.055,highlights:.055},
+  balanced:{brightness:1.065,contrast:1.085,saturate:1.100,sharpness:.12,temperature:0,shadows:.055,highlights:.055},
+  natural:{brightness:1.025,contrast:1.050,saturate:1.055,sharpness:.08,temperature:0,shadows:.035,highlights:.045},
+  bright:{brightness:1.135,contrast:1.065,saturate:1.085,sharpness:.08,temperature:1,shadows:.095,highlights:.080},
+  light:{brightness:1.155,contrast:1.035,saturate:1.070,sharpness:.07,temperature:0,shadows:.110,highlights:.095},
+  warm:{brightness:1.075,contrast:1.080,saturate:1.115,sharpness:.09,temperature:5,shadows:.055,highlights:.050},
+  professional:{brightness:1.060,contrast:1.150,saturate:1.115,sharpness:.16,temperature:0,shadows:.045,highlights:.075},
+  interior:{brightness:1.125,contrast:1.060,saturate:1.070,sharpness:.10,temperature:-2,shadows:.120,highlights:.105},
+  exterior:{brightness:1.055,contrast:1.145,saturate:1.155,sharpness:.16,temperature:1,shadows:.040,highlights:.115},
+  evening:{brightness:1.105,contrast:1.105,saturate:1.135,sharpness:.10,temperature:5,shadows:.125,highlights:.055},
+  detail:{brightness:1.040,contrast:1.175,saturate:1.090,sharpness:.24,temperature:0,shadows:.025,highlights:.065},
+  social:{brightness:1.085,contrast:1.145,saturate:1.220,sharpness:.18,temperature:1,shadows:.050,highlights:.060},
+  contrast:{brightness:1.025,contrast:1.225,saturate:1.120,sharpness:.17,temperature:0,shadows:.025,highlights:.080},
+  vivid:{brightness:1.055,contrast:1.160,saturate:1.320,sharpness:.16,temperature:1,shadows:.040,highlights:.060},
+  premium:{brightness:1.085,contrast:1.185,saturate:1.210,sharpness:.19,temperature:2,shadows:.055,highlights:.085},
+  soft:{brightness:1.090,contrast:1.025,saturate:1.060,sharpness:.045,temperature:2,shadows:.100,highlights:.075},
+  selling:{brightness:1.105,contrast:1.165,saturate:1.255,sharpness:.19,temperature:1,shadows:.080,highlights:.090},
+  sharp:{brightness:1.040,contrast:1.175,saturate:1.090,sharpness:.24,temperature:0,shadows:.025,highlights:.065}
 };
 function getEnhancePreset(){
-  const mode=document.querySelector('#vxEnhanceMode')?.value||'classic';
+  const mode=document.querySelector('#vxEnhanceMode')?.value||'auto';
   return ENHANCE_PRESETS[mode]||ENHANCE_PRESETS.balanced;
+}
+function videoEnhanceSettings(){
+  const preset=getEnhancePreset(),read=id=>Number(document.getElementById(id)?.value||0)/100;
+  return {
+    brightness:Math.max(.72,Math.min(1.35,preset.brightness+read('vxAdjustExposure')*.30)),
+    contrast:Math.max(.76,Math.min(1.38,preset.contrast+read('vxAdjustContrast')*.28)),
+    saturate:Math.max(.70,Math.min(1.45,preset.saturate+read('vxAdjustSaturation')*.34)),
+    temperature:Math.max(-12,Math.min(12,(preset.temperature||0)+Number(document.getElementById('vxAdjustTemperature')?.value||0)/8)),
+    shadows:Math.max(-.08,Math.min(.18,(preset.shadows||0)+read('vxAdjustShadows')*.12)),
+    highlights:Math.max(-.08,Math.min(.18,(preset.highlights||0)-read('vxAdjustHighlights')*.12)),
+    sharpness:Math.max(0,Math.min(.28,(preset.sharpness||0)+Math.max(0,read('vxAdjustSharpness'))*.16)),
+    denoise:Math.max(0,Math.min(.45,Math.max(0,read('vxAdjustDenoise'))*.45))
+  };
+}
+function videoFilterText(){
+  const settings=videoEnhanceSettings();
+  const blur=settings.denoise>.02?` blur(${(settings.denoise*.55).toFixed(2)}px)`:'';
+  return `brightness(${settings.brightness}) contrast(${settings.contrast}) saturate(${settings.saturate})${blur}`;
 }
 
 (()=>{
@@ -2493,11 +2850,16 @@ let recognition=null, recognitionWanted=false, recognitionBusy=false;
 let audioCtx=null, audioSource=null, audioDest=null;
 let voiceRecorder=null, voiceStream=null, voiceChunks=[], voiceBlob=null, voiceURL=null, voiceAudio=null, voiceBuffer=null, voiceAccepted=false, voiceTimerId=null, voiceStartedAt=0, voiceElapsedMs=0, voicePaused=false, voiceInputCtx=null, voicePreviewMode=false;
 let whisperSrt='', recognizedChunks=[], recognizedText='', subtitlePreviewRAF=0;
-let exportCancelled=false, exportInProgress=false, activeExportRecorder=null, activeExportRAF=0, activeNarrationSource=null;
+let exportCancelled=false, exportInProgress=false, activeExportRecorder=null, activeExportRAF=0, activeNarrationSource=null, activeExportStream=null, lastVideoExport=null;
 let videoVolume=1, voiceVolume=1, originalGain=null;
 let videoQualityMode=localStorage.getItem('nexestate-video-quality')||'smart';
 let exportStabilizer=null;
 let stabilizationTrajectory=null;
+let sourceFpsEstimate=30,frameExtractionCancelled=false,whisperRunId=0;
+const FRAME_SAFE_LIMIT=60,FRAME_BATCH_SIZE=8;
+let frameResults=[];
+const whisperPipelines=new Map();
+let whisperModulePromise=null;
 
 const statusEl=q('#vxSubStatus');
 const codecEl=q('#vxCodecStatus');
@@ -2505,14 +2867,20 @@ const exportBtn=q('#vxExport');
 const progress=q('#vxProgress');
 const progressText=q('#vxProgressText');
 const progressFill=q('#vxProgressFill');
+const processingStageHistory=[];
 
 function setSubStatus(msg){ if(statusEl) statusEl.textContent=msg; }
 function setProgress(text,pct){
   if(progress) progress.classList.add('show');
   if(progressText) progressText.textContent=text;
-  if(progressFill) progressFill.style.width=Math.max(0,Math.min(100,pct||0))+'%';
+  if(processingStageHistory.at(-1)?.text!==text){processingStageHistory.push({text,progress:pct??null,time:new Date().toISOString()});if(processingStageHistory.length>240)processingStageHistory.shift();}
+  if(progressFill){
+    const indeterminate=pct===null||pct===undefined;
+    progressFill.classList.toggle('is-indeterminate',indeterminate);
+    progressFill.style.width=indeterminate?'34%':Math.max(0,Math.min(100,Number(pct)||0))+'%';
+  }
 }
-function hideProgress(){ if(progress) progress.classList.remove('show'); }
+function hideProgress(){ if(progress) progress.classList.remove('show');if(progressFill)progressFill.classList.remove('is-indeterminate'); }
 
 
 q('#vxCover').oninput=e=>{
@@ -2537,8 +2905,10 @@ function syncCoverRange(){
 video.addEventListener('loadedmetadata',()=>{
   syncCoverRange();
   resizeLiveOverlay();
-  const end=q('#vxFramesEnd');
-  if(end)end.value=String(Math.min(10,Math.floor(video.duration||10)));
+  const status=q('#vxFramesStatus'),plan=framePlan(video.duration||0);
+  if(status&&plan.count)status.textContent=plan.adjusted
+    ?`Видео ${plan.duration.toFixed(1)} с: интервал автоматически увеличится до ${plan.interval.toFixed(2)} с, будет создано ${plan.count} кадров (лимит ${FRAME_SAFE_LIMIT}).`
+    :`Видео ${plan.duration.toFixed(1)} с: будет создано ${plan.count} кадров с интервалом 1 секунда (лимит ${FRAME_SAFE_LIMIT}).`;
 });
 video.addEventListener('durationchange',syncCoverRange);
 window.addEventListener('resize',resizeLiveOverlay);
@@ -2607,6 +2977,11 @@ function startLivePreviewLoop(){
 }
 video?.addEventListener('loadedmetadata', startLivePreviewLoop);
 video?.addEventListener('play', startLivePreviewLoop);
+window.NEXVideoPreview={
+  draw:()=>drawLiveOverlay(),
+  invalidateMark:async()=>{liveMarkRequest++;liveMark=null;liveMarkKey='';await ensureLiveMark();drawLiveOverlay();},
+  start:()=>startLivePreviewLoop()
+};
 
 q('#vxAspect').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   q('#vxAspect').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
@@ -2626,41 +3001,93 @@ function showPhotoContext(){
   if(proOpts)proOpts.style.display=document.body.classList.contains('studio-pro')?'block':'none';
   window.setEditorMode?.('photo');
 }
-function preferredMime(){
-  const requested=q('#vxOutputFormat')?.value||'mp4';
-  const mp4=[
-    'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
-    'video/mp4;codecs=h264,aac',
-    'video/mp4'
-  ];
-  const webm=[
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm'
-  ];
-  const list=requested==='webm'?webm:[...mp4,...webm];
-  return list.find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported(x))||'';
+function recorderMime(){
+  const formats=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  return formats.find(value=>window.MediaRecorder&&MediaRecorder.isTypeSupported(value))||'';
 }
-function updateCodecStatus(){
+let encoderHealthCache=null,encoderHealthCheckedAt=0,codecStatusRequest=0;
+async function checkLocalEncoder(force=false){
+  if(!force&&encoderHealthCache&&Date.now()-encoderHealthCheckedAt<4000)return encoderHealthCache;
+  try{
+    const response=await fetch('/api/health',{cache:'no-store'});
+    const payload=await response.json().catch(()=>({}));
+    encoderHealthCache={...payload,ok:response.ok&&payload.ok===true&&payload.mp4===true};
+  }catch(error){
+    encoderHealthCache={ok:false,error:error?.message||String(error)};
+  }
+  encoderHealthCheckedAt=Date.now();
+  return encoderHealthCache;
+}
+function sourceUsesMp4Container(){
+  return /\b(?:mp4|m4v|quicktime)\b/i.test(srcFile?.type||'')||/\.(?:mp4|m4v|mov)$/i.test(srcFile?.name||'');
+}
+async function resolveOutputPlan(){
+  const recordMime=recorderMime();
+  if(!recordMime)throw new Error('Браузер не поддерживает промежуточную запись WebM. Используйте актуальную версию Chrome или Edge.');
+  const requested=q('#vxOutputFormat')?.value||'auto';
+  if(requested==='webm'||(requested==='source'&&!sourceUsesMp4Container()))return {requested,container:'webm',mime:'video/webm',recordMime,extension:'webm',localEncoder:false};
+  const health=await checkLocalEncoder();
+  if(health.ok)return {requested,container:'mp4',mime:'video/mp4',recordMime,extension:'mp4',localEncoder:true,health};
+  if(requested==='mp4'||requested==='source')throw new Error('MP4 H.264/AAC недоступен: запустите приложение через START_WINDOWS.cmd, чтобы включить встроенный локальный кодировщик FFmpeg.');
+  return {requested,container:'webm',mime:'video/webm',recordMime,extension:'webm',localEncoder:false,fallbackReason:'Локальный MP4-кодировщик недоступен; выбран честный WebM без переименования.'};
+}
+async function updateCodecStatus(){
   if(!codecEl)return;
-  if(!window.MediaRecorder){
-    codecEl.textContent='Этот браузер не поддерживает обработку видео. Используйте последнюю версию Chrome или Edge.';
-    return;
-  }
-  const mime=preferredMime();
-  if(!mime){
-    codecEl.textContent='Браузер не нашёл поддерживаемый видеокодек.';
-  }else if(mime.startsWith('video/mp4')){
-    codecEl.textContent='Готово: браузер поддерживает прямую запись обработанного видео в MP4.';
-  }else{
-    codecEl.textContent='MP4 через MediaRecorder недоступен: браузер сможет обработать видео только в WebM.';
+  const request=++codecStatusRequest;
+  if(!window.MediaRecorder){codecEl.textContent='Этот браузер не поддерживает обработку видео. Используйте последнюю версию Chrome или Edge.';return;}
+  codecEl.textContent='Проверка локального видеокодировщика…';
+  try{
+    const plan=await resolveOutputPlan();if(request!==codecStatusRequest)return;
+    codecEl.dataset.container=plan.container;
+    codecEl.textContent=plan.container==='mp4'
+      ?`Будет создан настоящий MP4: H.264/AAC через локальный ${plan.health?.ffmpeg||'FFmpeg'}, затем контейнер и дорожки будут проверены.`
+      :plan.fallbackReason||'Будет создан настоящий WebM; расширение соответствует контейнеру, файл и дорожки будут проверены.';
+  }catch(error){
+    if(request!==codecStatusRequest)return;
+    codecEl.dataset.container='unavailable';codecEl.textContent=error?.message||String(error);
   }
 }
-q('#vxOutputFormat')?.addEventListener('change',updateCodecStatus);
+q('#vxOutputFormat')?.addEventListener('change',()=>updateCodecStatus());
 
+function clearVideoDerivedStateForNewSource(){
+  stopRecognition(false);
+  whisperRunId++;
+  frameExtractionCancelled=true;
+  video.pause();
+  voicePreviewMode=false;
+  try{
+    if(voiceRecorder&&voiceRecorder.state!=='inactive'){
+      voiceRecorder.ondataavailable=null;voiceRecorder.onstop=null;voiceRecorder.onpause=null;voiceRecorder.onresume=null;
+      voiceRecorder.stop();
+    }
+  }catch{}
+  voiceRecorder=null;
+  voiceStream?.getTracks().forEach(track=>track.stop());voiceStream=null;
+  voiceInputCtx?.close().catch(()=>{});voiceInputCtx=null;
+  voiceAudio?.pause();
+  if(voiceURL)URL.revokeObjectURL(voiceURL);
+  voiceChunks=[];voiceBlob=null;voiceURL=null;voiceAudio=null;voiceBuffer=null;voiceAccepted=false;
+  voiceElapsedMs=0;voicePaused=false;
+  recognizedChunks=[];recognizedText='';whisperSrt='';subtitles=[];lastVideoExport=null;
+  clearFrameResults();
+  q('#vxTranscriptText').value='';q('#vxWhisperText').value='';
+  q('#vxTranscriptText').classList.add('context-hidden');q('#vxWhisperText').classList.add('context-hidden');
+  q('#vxTranscriptToggle').classList.add('context-hidden');q('#vxSubtitleToggle').classList.add('context-hidden');q('#vxSubtitleClear')?.classList.add('context-hidden');
+  q('#vxVoiceMix')?.classList.add('context-hidden');setVoiceButtons?.('idle');
+  const cover=q('#vxCoverPreview');if(cover){cover.removeAttribute('src');cover.classList.remove('show');}
+  const candidates=q('#vxCoverCandidates');if(candidates)candidates.replaceChildren();
+  const outputMetrics=q('#vxOutputMetrics');if(outputMetrics){outputMetrics.replaceChildren();outputMetrics.classList.remove('show');}
+  const recognizeStatus=q('#vxRecognizeStatus');if(recognizeStatus)recognizeStatus.textContent='Модель загружается из интернета только при первом запуске. Затем браузер может использовать локальный кэш.';
+  const subtitleStatus=q('#vxWhisperStatus');if(subtitleStatus)subtitleStatus.textContent='Сначала распознайте речь слева. После этого субтитры появятся в предпросмотре и войдут в экспорт.';
+  hideProgress();
+}
 file.onchange=()=>{
   const f=file.files&&file.files[0]; if(!f)return;
-  stopRecognition(false);
+  if(exportInProgress||q('#vxFramesEverySecond')?.disabled){
+    window.NEXStudio?.toast?.('Дождитесь завершения или отмените текущую обработку перед загрузкой другого видео.','warning');
+    file.value='';return;
+  }
+  clearVideoDerivedStateForNewSource();
   srcFile=f;
   if(srcURL)URL.revokeObjectURL(srcURL);
   srcURL=URL.createObjectURL(f);
@@ -2686,6 +3113,7 @@ q('#vxRemoveVideo').onclick=()=>{
   q('#vxVoiceStatus')?.classList.add('context-hidden');
   if(q('#vxVoiceStatus'))q('#vxVoiceStatus').textContent='';
   recognizedChunks=[];recognizedText='';whisperSrt='';subtitles=[];
+  clearFrameResults();
   if(q('#vxTranscriptText'))q('#vxTranscriptText').value='';
   if(q('#vxWhisperText'))q('#vxWhisperText').value='';
   q('#vxTranscriptToggle')?.classList.add('context-hidden');
@@ -2726,16 +3154,21 @@ q('#file')?.addEventListener('change',()=>setTimeout(()=>showPhotoContext(),0));
 q('#folder')?.addEventListener('change',()=>setTimeout(()=>showPhotoContext(),0));
 
 async function ensureAudioGraph(){
-  if(audioCtx)return;
   const AC=window.AudioContext||window.webkitAudioContext;
   if(!AC)return;
-  audioCtx=new AC();
-  audioSource=audioCtx.createMediaElementSource(video);
+  if(!audioCtx)audioCtx=new AC();
+  if(!audioSource)audioSource=audioCtx.createMediaElementSource(video);
+  if(!originalGain){
+    originalGain=audioCtx.createGain();
+    originalGain.gain.value=videoVolume;
+    audioSource.connect(originalGain);
+    originalGain.connect(audioCtx.destination);
+  }
+  if(audioDest){
+    try{originalGain.disconnect(audioDest)}catch{}
+  }
   audioDest=audioCtx.createMediaStreamDestination();
-  originalGain=audioCtx.createGain();originalGain.gain.value=videoVolume;
-  audioSource.connect(originalGain);
   originalGain.connect(audioDest);
-  originalGain.connect(audioCtx.destination);
 }
 function stopRecognition(showMessage=true){
   recognitionWanted=false; recognitionBusy=false;
@@ -2751,11 +3184,15 @@ q('#vxStopSubLegacy')?.addEventListener('click',()=>stopRecognition(true));
 
 
 function dims(vw,vh){
-  if(aspect==='original')return [vw,vh];
-  const [aw,ah]=aspect.split(':').map(Number),target=aw/ah;
-  let w=vw,h=Math.round(vw/target);
-  if(h>vh){h=vh;w=Math.round(vh*target);}
-  const max=1080,sc=Math.min(1,max/Math.max(w,h));
+  let w=vw,h=vh;
+  if(aspect!=='original'){
+    const [aw,ah]=aspect.split(':').map(Number),target=aw/ah;
+    h=Math.round(vw/target);
+    if(h>vh){h=vh;w=Math.round(vh*target);}
+  }
+  const custom=Number(q('#vxCustomResolution')?.value||0);
+  const limit=videoQualityMode==='small'?720:videoQualityMode==='smart'?1080:videoQualityMode==='custom'&&custom?custom:Infinity;
+  const sc=Math.min(1,limit/Math.max(w,h));
   return [Math.max(2,Math.round(w*sc/2)*2),Math.max(2,Math.round(h*sc/2)*2)];
 }
 function fitCrop(sw,sh,dw,dh,zoom=1){
@@ -2775,11 +3212,17 @@ function activeSubObj(t){
 }
 function activeSub(t){return activeSubObj(t)?.text||'';}
 function wrap(ctx,text,max){
-  const words=text.split(/\s+/),lines=[];let line='';
-  for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>max&&line){lines.push(line);line=w}else line=test;}
-  if(line)lines.push(line);return lines.slice(0,3);
+  const words=text.split(/\s+/).filter(Boolean),lines=[];let line='';
+  const pieces=[];
+  for(const word of words){
+    if(ctx.measureText(word).width<=max){pieces.push(word);continue;}
+    let part='';for(const symbol of Array.from(word)){const test=part+symbol;if(part&&ctx.measureText(test).width>max){pieces.push(part);part=symbol}else part=test;}if(part)pieces.push(part);
+  }
+  for(const word of pieces){const test=line?line+' '+word:word;if(ctx.measureText(test).width>max&&line){lines.push(line);line=word}else line=test;}
+  if(line)lines.push(line);return lines.slice(0,Math.max(1,Number(q('#vxSubtitleLines')?.value||3)));
 }
 function roundRect(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h);}
+function hexToRgba(hex,alpha){const value=String(hex||'#000000').replace('#','');const full=value.length===3?value.split('').map(x=>x+x).join(''):value;const number=parseInt(full,16);return `rgba(${number>>16&255},${number>>8&255},${number&255},${Math.max(0,Math.min(1,alpha))})`;}
 function drawText(ctx,subOrText,W,H,currentTime=0){
   const sub=typeof subOrText==='string'
     ? {text:subOrText,start:currentTime,end:currentTime+2}
@@ -2796,18 +3239,20 @@ function drawText(ctx,subOrText,W,H,currentTime=0){
   let alpha=1;
   let scale=1;
   let translateY=0;
+  let translateX=0;
+  const wordsAtOnce=Math.max(1,Number(q('#vxSubtitleWords')?.value||3));
 
   let activeWordIndex=-1;
   if(motion==='words'||motion==='words-pop'||motion==='words-karaoke'){
     const words=sub.text.trim().split(/\s+/).filter(Boolean);
     activeWordIndex=Math.max(0,Math.min(words.length-1,Math.floor((elapsed/duration)*words.length)));
     if(motion==='words'){
-      const start=Math.max(0,activeWordIndex-1);
-      text=words.slice(start,Math.min(words.length,activeWordIndex+2)).join(' ');
+      const start=Math.max(0,activeWordIndex-Math.floor(wordsAtOnce/2));
+      text=words.slice(start,Math.min(words.length,start+wordsAtOnce)).join(' ');
       const local=(elapsed/(duration/Math.max(1,words.length)))%1;
       alpha=Math.min(1,local*3.2);
     }else if(motion==='words-pop'){
-      const start=Math.max(0,activeWordIndex-1);
+      const start=Math.max(0,activeWordIndex-wordsAtOnce+1);
       text=words.slice(start,activeWordIndex+1).join(' ');
       const local=(elapsed/(duration/Math.max(1,words.length)))%1;
       scale=.72+.28*(1-Math.pow(1-Math.min(1,local*2.7),3));
@@ -2833,15 +3278,25 @@ function drawText(ctx,subOrText,W,H,currentTime=0){
     alpha=Math.min(1,t*3);
   }else if(motion==='slide-left'){
     const t=Math.min(1,elapsed/.28);
-    alpha=t;
+    alpha=t;translateX=-Math.max(18,W*.035)*(1-t);
   }else if(motion==='word-fade'||motion==='word-pulse'){
     const words=sub.text.trim().split(/\s+/).filter(Boolean);
     activeWordIndex=Math.max(0,Math.min(words.length-1,Math.floor((elapsed/duration)*words.length)));
-    const start=Math.max(0,activeWordIndex-1);
+    const start=Math.max(0,activeWordIndex-wordsAtOnce+1);
     text=words.slice(start,activeWordIndex+1).join(' ');
     const local=(elapsed/(duration/Math.max(1,words.length)))%1;
     alpha=Math.min(1,local*3.2);
     if(motion==='word-pulse')scale=.82+.18*(1-Math.pow(1-Math.min(1,local*3),3));
+  }else if(motion==='typewriter'){
+    const symbols=Array.from(sub.text),visible=Math.max(1,Math.ceil(symbols.length*Math.min(1,elapsed/duration)));
+    text=symbols.slice(0,visible).join('');alpha=Math.min(1,enter*2);
+  }else if(motion==='soft-scale'){
+    const eased=1-Math.pow(1-enter,4);scale=.92+.08*eased;alpha=eased;
+  }else if(motion==='reveal'){
+    const words=sub.text.trim().split(/\s+/).filter(Boolean),visible=Math.max(1,Math.ceil(words.length*Math.min(1,elapsed/duration)));
+    text=words.slice(0,visible).join(' ');alpha=Math.min(1,enter*2.5);
+  }else if(motion==='key-word'){
+    const words=sub.text.trim().split(/\s+/).filter(Boolean);activeWordIndex=Math.max(0,Math.min(words.length-1,Math.floor((elapsed/duration)*words.length)));text=words.slice(Math.max(0,activeWordIndex-wordsAtOnce+1),activeWordIndex+1).join(' ');scale=.96+.04*Math.sin(Math.min(1,(elapsed%(duration/Math.max(1,words.length)))/(duration/Math.max(1,words.length)))*Math.PI);alpha=1;
   }
 
   ctx.save();
@@ -2884,8 +3339,24 @@ function drawText(ctx,subOrText,W,H,currentTime=0){
     fontSize=Math.max(24,W*.034);weight=600;maxWidth=W*.78;lineHeight=Math.max(34,W*.045);box=false;textColor='#f7f1df';strokeWidth=Math.max(2,W*.002);yOffset=70;
 }else if(style==='outline-pro'){
     fontSize=Math.max(29,W*.042);weight=900;maxWidth=W*.76;lineHeight=Math.max(39,W*.054);box=false;textColor='#fff';strokeWidth=Math.max(5,W*.0045);yOffset=58;
-}else if(style==='caption-bar'){
+  }else if(style==='caption-bar'){
     fontSize=Math.max(24,W*.033);weight=800;maxWidth=W*.82;lineHeight=Math.max(34,W*.045);box=true;boxAlpha=.88;textColor='#fff';strokeWidth=0;yOffset=28;
+  }else if(style==='youtube'){
+    fontSize=Math.max(26,W*.037);weight=800;maxWidth=W*.80;lineHeight=Math.max(36,W*.049);box=true;boxAlpha=.72;textColor='#fff';strokeWidth=Math.max(2,W*.0025);yOffset=44;
+  }else if(style==='premium'){
+    fontSize=Math.max(25,W*.035);weight=650;family='Georgia, serif';maxWidth=W*.76;lineHeight=Math.max(36,W*.047);box=true;boxAlpha=.82;textColor='#f7e3b5';strokeWidth=0;yOffset=58;
+  }else if(style==='clean'){
+    fontSize=Math.max(24,W*.034);weight=650;maxWidth=W*.78;lineHeight=Math.max(34,W*.045);box=true;boxAlpha=.58;textColor='#fff';strokeWidth=0;yOffset=48;
+  }else if(style==='business'){
+    fontSize=Math.max(23,W*.032);weight=700;maxWidth=W*.76;lineHeight=Math.max(33,W*.043);box=true;boxAlpha=.90;textColor='#f7f9fb';strokeWidth=0;yOffset=50;
+  }else if(style==='real-estate'){
+    fontSize=Math.max(25,W*.035);weight=750;maxWidth=W*.78;lineHeight=Math.max(35,W*.047);box=true;boxAlpha=.86;textColor='#ead39e';strokeWidth=Math.max(1,W*.0015);yOffset=54;
+  }else if(style==='elegant'){
+    fontSize=Math.max(25,W*.036);weight=600;family='Georgia, serif';maxWidth=W*.74;lineHeight=Math.max(36,W*.048);box=false;textColor='#fff8e8';strokeWidth=Math.max(2,W*.002);yOffset=64;
+  }else if(style==='news'){
+    fontSize=Math.max(24,W*.034);weight=800;maxWidth=W*.84;lineHeight=Math.max(34,W*.045);box=true;boxAlpha=.94;textColor='#fff';strokeWidth=0;yOffset=22;
+  }else if(style==='luxury'){
+    fontSize=Math.max(26,W*.037);weight=600;family='Georgia, serif';maxWidth=W*.72;lineHeight=Math.max(38,W*.050);box=true;boxAlpha=.78;textColor='#f3d79a';strokeWidth=0;yOffset=68;
 }else if(style==='tiktok'){
     fontSize=Math.max(28,W*.041);
     weight=900;
@@ -2897,19 +3368,28 @@ function drawText(ctx,subOrText,W,H,currentTime=0){
     yOffset=58;
   }
 
+  const sizeScale=Math.max(.65,Math.min(1.6,Number(q('#vxSubtitleSize')?.value||100)/100));
+  fontSize*=sizeScale;lineHeight*=sizeScale;
+  const customText=q('#vxSubtitleColor')?.value;if(customText)textColor=customText;
+  const customOutline=q('#vxSubtitleOutlineColor')?.value||'#000000';
+  const customStroke=Number(q('#vxSubtitleOutline')?.value);if(Number.isFinite(customStroke))strokeWidth=Math.max(0,W*.0012*customStroke);
+  const customBoxAlpha=Number(q('#vxSubtitleBackgroundOpacity')?.value);if(Number.isFinite(customBoxAlpha))boxAlpha=Math.max(0,Math.min(1,customBoxAlpha/100));
+
   ctx.font=`${weight} ${fontSize}px ${family}`;
   const lines=wrap(ctx,text,maxWidth);
   const boxH=lines.length*lineHeight+28;
-  const y=H-boxH-yOffset;
+  const position=q('#vxSubtitlePosition')?.value||'bottom';
+  let y=position==='top'?Math.max(H*.08,yOffset):position==='middle'?(H-boxH)/2:H-boxH-yOffset;
+  y=Math.max(H*.035,Math.min(H-boxH-H*.035,y));
 
   const cx=W/2;
   const cy=y+boxH/2+translateY;
-  ctx.translate(cx,cy);
+  ctx.translate(cx+translateX,cy);
   ctx.scale(scale,scale);
   ctx.translate(-cx,-cy);
 
   if(box){
-    ctx.fillStyle=`rgba(0,0,0,${boxAlpha})`;
+    ctx.fillStyle=hexToRgba(q('#vxSubtitleBackground')?.value||'#000000',boxAlpha);
     roundRect(ctx,W*.08,y+translateY,W*.84,boxH,18);
     ctx.fill();
   }
@@ -2918,31 +3398,35 @@ function drawText(ctx,subOrText,W,H,currentTime=0){
   ctx.shadowColor='rgba(0,0,0,.9)';
   ctx.shadowBlur=style==='minimal'?5:8;
   ctx.lineJoin='round';
-  ctx.strokeStyle='#000';
+  ctx.strokeStyle=customOutline;
   ctx.lineWidth=strokeWidth;
 
   if(motion==='words-karaoke'&&activeWordIndex>=0){
-    const words=sub.text.trim().split(/\s+/).filter(Boolean);
-    const before=words.slice(0,activeWordIndex).join(' ');
-    const current=words[activeWordIndex]||'';
-    const after=words.slice(activeWordIndex+1).join(' ');
-    const full=[before,current,after].filter(Boolean).join(' ');
-    const karaokeLines=wrap(ctx,full,maxWidth);
+    const karaokeLines=wrap(ctx,text,maxWidth);
+    let wordOffset=0;
     karaokeLines.forEach((line,i)=>{
       const ty=y+translateY+20+lineHeight*(i+.5);
-      if(strokeWidth>0)ctx.strokeText(line,W/2,ty,W*.78);
-      ctx.fillStyle='#fff';
-      ctx.fillText(line,W/2,ty,W*.78);
+      const lineWords=line.split(/\s+/).filter(Boolean);
+      const measuredWidth=Math.max(1,ctx.measureText(line).width);
+      const horizontalScale=Math.min(1,(W*.78)/measuredWidth);
+      let x=-measuredWidth/2;
+      ctx.save();
+      ctx.translate(W/2,0);
+      ctx.scale(horizontalScale,1);
+      ctx.textAlign='left';
+      lineWords.forEach((word,lineWordIndex)=>{
+        const globalWordIndex=wordOffset+lineWordIndex;
+        const active=globalWordIndex===activeWordIndex;
+        ctx.fillStyle=active?'#20e85f':textColor;
+        ctx.shadowColor=active?'rgba(32,232,95,.55)':'rgba(0,0,0,.9)';
+        ctx.shadowBlur=active?12:(style==='minimal'?5:8);
+        if(strokeWidth>0)ctx.strokeText(word,x,ty);
+        ctx.fillText(word,x,ty);
+        x+=ctx.measureText(word+(lineWordIndex<lineWords.length-1?' ':'')).width;
+      });
+      ctx.restore();
+      wordOffset+=lineWords.length;
     });
-    const visible=words.slice(Math.max(0,activeWordIndex-1),activeWordIndex+2).join(' ');
-    const local=(elapsed/(duration/Math.max(1,words.length)))%1;
-    ctx.save();
-    ctx.font=`${weight} ${fontSize*(.88+.12*Math.min(1,local*3))}px ${family}`;
-    ctx.fillStyle='#20e85f';
-    ctx.shadowColor='rgba(32,232,95,.55)';
-    ctx.shadowBlur=12;
-    ctx.fillText(visible,W/2,y+translateY+boxH/2,W*.78);
-    ctx.restore();
   }else{
     lines.forEach((line,i)=>{
       const ty=y+translateY+20+lineHeight*(i+.5);
@@ -2970,7 +3454,7 @@ function drawInfo(ctx,W,H){
   ctx.restore();
 }
 async function markImage(){
-  try{return await loadMark((state.variant||'A')+'_light')}catch{return null}
+  return loadMark((state.variant||'A')+'_light');
 }
 function drawMark(ctx,m,W,H){
   if(!m)return;
@@ -3376,7 +3860,8 @@ function smoothTrajectoryAdaptive(frames,sourceWidth,sourceHeight){
   /* 3.12.0: ordinary-hand-jitter stabilizer.
      A local weighted linear trend preserves intentional pans/tilts while the
      residual high-frequency motion is treated as hand shake. */
-  const radius=10;
+  const profile=stabilizationProfile();
+  const radius=profile.radius;
   const sxScale=sourceWidth/160;
   const syScale=sourceHeight/90;
   const trend=frames.map((f,i)=>{
@@ -3403,7 +3888,7 @@ function smoothTrajectoryAdaptive(frames,sourceWidth,sourceHeight){
     const localSpeed=.5*(Math.hypot(f.pathX-prev.pathX,f.pathY-prev.pathY)+Math.hypot(next.pathX-f.pathX,next.pathY-f.pathY));
     /* Strong intentional movement receives less correction. */
     const panPreservation=localSpeed>2.8?.42:localSpeed>1.7?.62:.88;
-    const strength=panPreservation*(.58+.30*conf);
+    const strength=panPreservation*(.58+.30*conf)*profile.strength;
     let rx=(trend[i].x-f.pathX)*sxScale;
     let ry=(trend[i].y-f.pathY)*syScale;
     let ra=(trend[i].a-(f.pathA||0));
@@ -3415,7 +3900,7 @@ function smoothTrajectoryAdaptive(frames,sourceWidth,sourceHeight){
 
     let cx=rx*strength,cy=ry*strength;
     let ca=ra*(conf>.42?.48:.18);
-    const maxX=sourceWidth*.028,maxY=sourceHeight*.028;
+    const maxX=sourceWidth*profile.maxShift,maxY=sourceHeight*profile.maxShift;
     cx=Math.max(-maxX,Math.min(maxX,cx));
     cy=Math.max(-maxY,Math.min(maxY,cy));
     ca=Math.max(-.014,Math.min(.014,ca));
@@ -3425,7 +3910,7 @@ function smoothTrajectoryAdaptive(frames,sourceWidth,sourceHeight){
   /* One light temporal pass removes correction chatter without lagging pans. */
   const old=stabilizationTrajectory.map(p=>({...p}));
   for(let i=1;i<old.length-1;i++){
-    const side=.12,center=.76;
+    const side=profile.temporalSide,center=1-side*2;
     stabilizationTrajectory[i].x=old[i-1].x*side+old[i].x*center+old[i+1].x*side;
     stabilizationTrajectory[i].y=old[i-1].y*side+old[i].y*center+old[i+1].y*side;
     stabilizationTrajectory[i].a=old[i-1].a*side+old[i].a*center+old[i+1].a*side;
@@ -3593,15 +4078,31 @@ function stabilizationAtTime(t){
 function selectedVideoBitrate(W,H){
   const pixels=Math.max(1,W*H);
   const scale=pixels/(1920*1080);
+  if(videoQualityMode==='custom'){
+    const requested=Number(q('#vxCustomBitrate')?.value||10)*1_000_000;
+    return Math.round(Math.max(1_000_000,Math.min(36_000_000,requested)));
+  }
   const presets={
     none:20_000_000,
     smart:10_000_000,
     quality:16_000_000,
-    small:5_000_000
+    small:4_200_000
   };
   const base=presets[videoQualityMode]||presets.smart;
   const detailBoost=(q('#vxEnhance')?.checked||q('#vxStabilize')?.checked)?1.10:1;
   return Math.round(Math.max(2_500_000,Math.min(36_000_000,base*Math.max(.52,scale)*detailBoost)));
+}
+function selectedVideoFps(){
+  const selected=q('#vxCustomFps')?.value||'source';
+  if(videoQualityMode==='custom'&&selected!=='source')return Math.max(12,Math.min(60,Number(selected)||30));
+  if(videoQualityMode==='small')return Math.min(25,sourceFpsEstimate||30);
+  return Math.max(20,Math.min(60,sourceFpsEstimate||30));
+}
+function stabilizationProfile(){
+  const level=q('#vxStabilizeLevel')?.value||'standard';
+  if(level==='light')return {level,radius:7,strength:.68,maxShift:.020,zoom:1.045,temporalSide:.09};
+  if(level==='strong')return {level,radius:15,strength:1.28,maxShift:.045,zoom:1.125,temporalSide:.17};
+  return {level:'standard',radius:10,strength:1,maxShift:.030,zoom:1.078,temporalSide:.12};
 }
 function applyStabilizationPreview(){
   const enabled=!!q('#vxStabilize')?.checked;
@@ -3620,7 +4121,7 @@ function drawFrame(ctx,canvas,m){
   const c=(stabilizationEnabled&&exportInProgress)?stabilizationAtTime(video.currentTime):{x:0,y:0,a:0,s:1};
   const rot=Math.abs(c.a||0);
   const dynamicSafety=Math.min(.018,rot*.60);
-  const zoom=stabilizationEnabled?1.075+dynamicSafety:1;
+  const zoom=stabilizationEnabled?stabilizationProfile().zoom+dynamicSafety:1;
   let [sx,sy,sw,sh]=fitCrop(video.videoWidth,video.videoHeight,W,H,zoom);
 
   const correctionX=c.x||0,correctionY=c.y||0;
@@ -3629,10 +4130,7 @@ function drawFrame(ctx,canvas,m){
 
   ctx.save();
   ctx.clearRect(0,0,W,H);
-  if(q('#vxEnhance')?.checked){
-    const ep=getEnhancePreset();
-    ctx.filter=`brightness(${ep.brightness}) contrast(${ep.contrast}) saturate(${ep.saturate})`;
-  }
+  if(q('#vxEnhance')?.checked)ctx.filter=videoFilterText();
   ctx.translate(W/2,H/2);
   if(stabilizationEnabled&&exportInProgress){
     ctx.rotate(c.a||0);
@@ -3640,6 +4138,17 @@ function drawFrame(ctx,canvas,m){
   }
   ctx.drawImage(video,sourceX,sourceY,sw,sh,-W/2,-H/2,W,H);
   ctx.restore();
+
+  if(q('#vxEnhance')?.checked){
+    const settings=videoEnhanceSettings();
+    if(Math.abs(settings.temperature)>.2){
+      ctx.save();ctx.globalCompositeOperation='soft-light';ctx.globalAlpha=Math.min(.16,Math.abs(settings.temperature)*.012);
+      ctx.fillStyle=settings.temperature>0?'#ff9a52':'#5e9dff';ctx.fillRect(0,0,W,H);ctx.restore();
+    }
+    if(settings.shadows>.01){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=Math.min(.10,settings.shadows*.55);ctx.fillStyle='#8794a4';ctx.fillRect(0,0,W,H);ctx.restore();}
+    if(settings.highlights>.01){ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=Math.min(.08,settings.highlights*.42);ctx.fillStyle='#e7edf2';ctx.fillRect(0,0,W,H);ctx.restore();}
+    if(settings.sharpness>.04){ctx.save();ctx.globalCompositeOperation='overlay';ctx.globalAlpha=Math.min(.10,settings.sharpness*.42);ctx.drawImage(canvas,0,0);ctx.restore();}
+  }
 
   drawMark(ctx,m,W,H);
   drawInfo(ctx,W,H);
@@ -3654,6 +4163,10 @@ async function waitMetadata(){
     video.addEventListener('loadedmetadata',ok,{once:true});video.addEventListener('error',bad,{once:true});
   });
 }
+function waitDecodedFrame(){
+  if(typeof video.requestVideoFrameCallback==='function')return new Promise(resolve=>{let timer=setTimeout(resolve,350);video.requestVideoFrameCallback(()=>{clearTimeout(timer);resolve();});});
+  return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+}
 function seekTo(t){
   return new Promise((res,rej)=>{
     const done=()=>{cleanup();res()},bad=()=>{cleanup();rej(new Error('Не удалось перейти к нужному кадру'))};
@@ -3665,44 +4178,119 @@ function seekTo(t){
 
 function updateEnhancePreview(){
   const enabled=!!q('#vxEnhance')?.checked;
-  const ep=getEnhancePreset();
-  video.style.filter=enabled
-    ? `brightness(${ep.brightness}) contrast(${ep.contrast}) saturate(${ep.saturate})`
-    : 'none';
+  video.style.filter=enabled?videoFilterText():'none';
 }
 q('#vxEnhance')?.addEventListener('change',updateEnhancePreview);
 q('#vxEnhanceMode')?.addEventListener('change',updateEnhancePreview);
 updateEnhancePreview();
 
+function coverDimensions(){
+  const ratio=q('#vxCoverAspect')?.value||'source';
+  let W=video.videoWidth,H=video.videoHeight;
+  if(ratio!=='source'){
+    const [rw,rh]=ratio.split(':').map(Number),target=rw/rh;
+    if(W/H>target)W=Math.round(H*target);else H=Math.round(W/target);
+  }
+  const scale=Math.min(1,1920/Math.max(W,H));
+  return [Math.max(2,Math.round(W*scale)),Math.max(2,Math.round(H*scale))];
+}
+async function generateCoverCandidates(){
+  if(!srcFile)throw new Error('Сначала загрузите видео.');
+  await waitMetadata();
+  const container=q('#vxCoverCandidates');if(!container)return [];
+  const duration=Math.max(.2,video.duration||0),old=video.currentTime,wasPlaying=!video.paused;video.pause();
+  const sample=document.createElement('canvas');sample.width=192;sample.height=108;
+  const context=sample.getContext('2d',{alpha:false,willReadFrequently:true}),candidates=[];
+  try{
+    container.innerHTML='<span class="cover-candidates-status">Анализ кадров…</span>';
+    const count=Math.min(14,Math.max(7,Math.ceil(duration/3)));
+    for(let i=0;i<count;i++){
+      const time=Math.max(.02,Math.min(duration-.05,duration*(i+.55)/(count+1)));
+      await seekTo(time);context.drawImage(video,0,0,192,108);
+      const image=context.getImageData(0,0,192,108),data=image.data,gray=new Uint8Array(192*108);let sum=0,bright=0,dark=0;
+      for(let p=0,j=0;p<data.length;p+=4,j++){const value=(data[p]*77+data[p+1]*150+data[p+2]*29)>>8;gray[j]=value;sum+=value;if(value>245)bright++;if(value<10)dark++;}
+      let detail=0;for(let y=1;y<107;y+=2)for(let x=1;x<191;x+=2){const p=y*192+x;detail+=Math.abs(gray[p]*4-gray[p-1]-gray[p+1]-gray[p-192]-gray[p+192]);}
+      const mean=sum/gray.length,exposurePenalty=(dark/gray.length+bright/gray.length)*18000+Math.abs(mean-130)*18;
+      candidates.push({time,score:detail-exposurePenalty,preview:sample.toDataURL('image/jpeg',.72)});
+      if((i&2)===0)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    const selected=candidates.sort((a,b)=>b.score-a.score).filter((candidate,index,array)=>array.slice(0,index).every(other=>Math.abs(other.time-candidate.time)>.45)).slice(0,5).sort((a,b)=>a.time-b.time);
+    container.innerHTML='';
+    selected.forEach((candidate,index)=>{
+      const button=document.createElement('button');button.type='button';button.className='cover-candidate';button.innerHTML=`<img src="${candidate.preview}" alt="Вариант обложки ${index+1}"><span>${candidate.time.toFixed(1)} с</span>`;
+      button.onclick=async()=>{container.querySelectorAll('button').forEach(item=>item.classList.toggle('on',item===button));q('#vxCover').value=String(candidate.time);q('#vxCoverV').textContent=candidate.time.toFixed(1);await seekTo(candidate.time);drawLiveOverlay();};
+      container.appendChild(button);
+    });
+    if(selected[0])container.querySelector('button')?.click();
+    return selected;
+  }finally{
+    if(!candidates.length)await seekTo(old).catch(()=>{});
+    if(wasPlaying&&candidates.length===0)video.play().catch(()=>{});
+  }
+}
 q('#vxMakeCover').onclick=async()=>{
   if(!srcFile)return alert('Сначала загрузите видео.');
   try{
     await waitMetadata(); const old=video.currentTime; await seekTo(Number(q('#vxCover').value)||1);
-    const [W,H]=dims(video.videoWidth,video.videoHeight),cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    const [W,H]=coverDimensions(),cv=document.createElement('canvas');cv.width=W;cv.height=H;
     const ctx=cv.getContext('2d'),m=await markImage();drawFrame(ctx,cv,m);
     const blob=await new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('Не удалось создать обложку')),'image/jpeg',.94));
-    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='NEX_ESTATE_cover.jpg';a.click();
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`NEX_ESTATE_cover_${W}x${H}.jpg`;a.click();
+    const preview=q('#vxCoverPreview');if(preview){preview.src=url;preview.classList.add('show');}
     setTimeout(()=>URL.revokeObjectURL(url),1500); await seekTo(old);
   }catch(e){alert(e.message||String(e));}
 };
 
 
 
-async function captureFrameBlobAt(second){
-  await seekTo(Math.min(second,Math.max(0,(video.duration||second)-0.03)));
-  const W=video.videoWidth,H=video.videoHeight;
+async function captureFrameBlobAt(second,options={}){
+  const target=Math.min(Math.max(0,second),Math.max(0,(video.duration||second)-0.03));
+  await seekTo(target);
+  const maxDimension=Number(options.maxDimension)||Infinity;
+  const scale=Math.min(1,maxDimension/Math.max(video.videoWidth,video.videoHeight));
+  const W=Math.max(2,Math.round(video.videoWidth*scale)),H=Math.max(2,Math.round(video.videoHeight*scale));
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  cv.getContext('2d').drawImage(video,0,0,W,H);
-  return await new Promise((res,rej)=>cv.toBlob(
-    b=>b?res(b):rej(new Error('Не удалось создать изображение')),
-    'image/jpeg',.95
-  ));
+  try{
+    const context=cv.getContext('2d',{alpha:options.format==='png'});
+    context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+    if(q('#vxEnhance')?.checked)context.filter=videoFilterText();
+    context.drawImage(video,0,0,W,H);context.filter='none';
+    const probe=context.getImageData(0,0,Math.min(W,24),Math.min(H,24)).data;
+    let brightness=0;for(let i=0;i<probe.length;i+=4)brightness+=(probe[i]+probe[i+1]+probe[i+2])/3;
+    brightness/=Math.max(1,probe.length/4);
+    if(brightness<5&&target+.14<(video.duration||0)){
+      await seekTo(target+.14);if(q('#vxEnhance')?.checked)context.filter=videoFilterText();context.drawImage(video,0,0,W,H);context.filter='none';
+    }
+    const format=options.format==='png'?'png':options.format==='webp'?'webp':'jpeg';
+    const type=format==='png'?'image/png':format==='webp'?'image/webp':'image/jpeg';
+    const quality=Number.isFinite(options.quality)?options.quality:.95;
+    const blob=await new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('Не удалось создать изображение')),type,format==='png'?undefined:quality));
+    return {blob,time:video.currentTime,width:W,height:H,format};
+  }finally{
+    cv.width=0;cv.height=0;
+  }
+}
+async function bestFrameNear(second){
+  const sample=document.createElement('canvas');sample.width=160;sample.height=90;
+  const context=sample.getContext('2d',{alpha:false,willReadFrequently:true});
+  let best={time:second,score:-Infinity};
+  for(const offset of [-.14,-.07,0,.07,.14]){
+    const time=Math.max(0,Math.min((video.duration||second)-.04,second+offset));
+    await seekTo(time);context.drawImage(video,0,0,160,90);
+    const data=context.getImageData(0,0,160,90).data;let sum=0,edges=0,count=0;
+    const gray=new Uint8Array(160*90);
+    for(let i=0,p=0;i<data.length;i+=4,p++){const value=(data[i]*77+data[i+1]*150+data[i+2]*29)>>8;gray[p]=value;sum+=value;count++;}
+    for(let y=1;y<89;y+=2)for(let x=1;x<159;x+=2){const i=y*160+x;edges+=Math.abs(gray[i]*4-gray[i-1]-gray[i+1]-gray[i-160]-gray[i+160]);}
+    const mean=sum/Math.max(1,count),exposurePenalty=mean<16||mean>244?5000:Math.abs(mean-128)*2;
+    const score=edges-exposurePenalty;if(score>best.score)best={time,score};
+  }
+  return best.time;
 }
 
 /* 3.8.3: reliable collapsible video controls */
 function setExpandablePanel(panel, button, open, openText, closedText){
   if(!panel || !button)return;
-  panel.hidden=false;
+  panel.hidden=!open;
   panel.classList.toggle('context-hidden', !open);
   panel.style.display=open?'':'none';
   button.setAttribute('aria-expanded', String(open));
@@ -3721,67 +4309,113 @@ q('#vxSubtitleToolsToggle')?.addEventListener('click',()=>{
   setExpandablePanel(panel,button,open,'Работа с субтитрами ▴','Работа с субтитрами ▾');
 });
 
+function framePlan(value){
+  const duration=Math.max(0,Number(value)||0);
+  if(!duration)return {duration:0,oneSecondCount:0,interval:1,count:0,adjusted:false,safeLimit:FRAME_SAFE_LIMIT,batchSize:FRAME_BATCH_SIZE,batches:0,width:0,height:0,estimatedPeakMB:0};
+  const oneSecondCount=Math.max(1,Math.ceil(duration));
+  const adjusted=oneSecondCount>FRAME_SAFE_LIMIT;
+  const interval=adjusted?Math.ceil(duration/FRAME_SAFE_LIMIT*100)/100:1;
+  const count=Math.min(FRAME_SAFE_LIMIT,Math.max(1,Math.ceil(duration/interval)));
+  const requestedMax=Number(q('#vxFramesResolution')?.value||0)||Infinity;
+  const sourceW=Math.max(2,video.videoWidth||1920),sourceH=Math.max(2,video.videoHeight||1080);
+  const scale=Math.min(1,requestedMax/Math.max(sourceW,sourceH));
+  const width=Math.max(2,Math.round(sourceW*scale)),height=Math.max(2,Math.round(sourceH*scale));
+  const rawFrameBytes=width*height*4;
+  const estimatedPeakBytes=rawFrameBytes*Math.min(FRAME_BATCH_SIZE,count)+rawFrameBytes*.35*count;
+  return {duration,oneSecondCount,interval,count,adjusted,safeLimit:FRAME_SAFE_LIMIT,batchSize:FRAME_BATCH_SIZE,batches:Math.ceil(count/FRAME_BATCH_SIZE),width,height,estimatedPeakMB:estimatedPeakBytes/1024/1024};
+}
+function clearFrameResults(){
+  frameResults.forEach(result=>{if(result?.objectUrl)URL.revokeObjectURL(result.objectUrl);});
+  frameResults=[];
+  q('#vxFramesResults')?.replaceChildren();
+}
+function renderFrameResults(){
+  const container=q('#vxFramesResults');if(!container)return;
+  container.replaceChildren();
+  frameResults.forEach((result,index)=>{
+    const item=document.createElement('figure');item.className='frame-result';item.dataset.frameIndex=String(index);
+    const image=document.createElement('img');image.src=result.objectUrl;image.alt=`Кадр ${index+1} на ${result.time.toFixed(2)} секунде`;
+    const label=document.createElement('span');label.textContent=`${index+1}. ${result.time.toFixed(2)} с · ${result.width}×${result.height}`;
+    const button=document.createElement('button');button.type='button';button.className='mini-action';button.textContent='Скачать кадр';button.onclick=()=>triggerBlobDownload(result.blob,result.name);
+    item.append(image,label,button);container.appendChild(item);
+  });
+}
+window.addEventListener('pagehide',clearFrameResults,{once:true});
+setExpandablePanel(q('#vxFramesPanel'),q('#vxFramesToggle'),false,'📷 Фото каждую секунду ▴','📷 Фото каждую секунду ▾');
+
 q('#vxFramesEverySecond').onclick=async()=>{
   if(!srcFile)return alert('Сначала загрузите видео.');
   const status=q('#vxFramesStatus');
-  const start=Math.max(0,Math.floor(Number(q('#vxFramesStart').value)||0));
-  const end=Math.floor(Number(q('#vxFramesEnd').value)||0);
-  if(end<start)return alert('Конец промежутка должен быть не меньше начала.');
-  if(Number.isFinite(video.duration)&&end>Math.floor(video.duration)){
-    return alert(`Конец промежутка не может быть больше длительности видео: ${Math.floor(video.duration)} сек.`);
-  }
-  const count=end-start+1;
-  if(count>60){
-    return alert(`Выбрано ${count} кадров. За одну операцию разрешено максимум 60, чтобы браузер не зависал. Разделите диапазон на две части.`);
-  }
-  const estimatedMP=(video.videoWidth*video.videoHeight*count/1e6).toFixed(0);
-  if(count>30&&!confirm(`Будет создано ${count} фотографий (${estimatedMP} мегапикселей исходных кадров). Это может занять время и потребовать много памяти. Продолжить?`))return;
+  await waitMetadata();
+  const plan=framePlan(video.duration);
+  status.textContent=plan.adjusted
+    ?`До запуска: вместо ${plan.oneSecondCount} кадров с шагом 1 с будет создано ${plan.count}; автоматический интервал ${plan.interval.toFixed(2)} с, ${plan.batches} пакетов, оценка памяти до ${Math.ceil(plan.estimatedPeakMB)} МБ.`
+    :`До запуска: ${plan.count} кадров с шагом 1 с, ${plan.batches} пакетов, оценка памяти до ${Math.ceil(plan.estimatedPeakMB)} МБ.`;
+  if(plan.adjusted&&!confirm(`Видео длится ${plan.duration.toFixed(1)} с. При интервале 1 секунда потребовалось бы ${plan.oneSecondCount} кадров. Безопасный лимит — ${FRAME_SAFE_LIMIT}. Интервал будет автоматически увеличен до ${plan.interval.toFixed(2)} с; итог — ${plan.count} кадров в ${plan.batches} пакетах. Оценка пиковой памяти: до ${Math.ceil(plan.estimatedPeakMB)} МБ. Продолжить?`))return;
   const oldTime=video.currentTime,wasPlaying=!video.paused;
-  video.pause();
+  const button=q('#vxFramesEverySecond'),cancel=q('#vxFramesCancel');
+  frameExtractionCancelled=false;button.disabled=true;cancel?.classList.remove('context-hidden');video.pause();
   try{
+    clearFrameResults();
     status.textContent='Подготовка архива…';
     const zip=new JSZip();
-    for(let sec=start,i=1;sec<=end;sec++,i++){
-      status.textContent=`Создание кадра ${i} из ${count}: ${sec} сек.`;
-      const blob=await captureFrameBlobAt(sec);
-      zip.file(`NEX_ESTATE_frame_${String(sec).padStart(4,'0')}s.jpg`,blob);
-      await new Promise(r=>setTimeout(r,0));
+    const format=q('#vxFramesFormat')?.value||'jpeg';
+    const extension=format==='png'?'png':format==='webp'?'webp':'jpg';
+    const quality=Number(q('#vxFramesQuality')?.value||92)/100;
+    const maxDimension=Number(q('#vxFramesResolution')?.value||0)||Infinity;
+    let created=0;
+    for(let i=0;i<plan.count;i++){
+      if(frameExtractionCancelled)throw new Error('__FRAMES_CANCELLED__');
+      const sec=Math.min(Math.max(0,plan.duration-.03),i*plan.interval);
+      const batch=Math.floor(i/FRAME_BATCH_SIZE)+1;
+      status.textContent=`Пакет ${batch} из ${plan.batches}: кадр ${i+1} из ${plan.count}, ${sec.toFixed(2)} с.`;
+      const result=await captureFrameBlobAt(sec,{format,quality,maxDimension});
+      const name=`NEX_ESTATE_frame_${String(i+1).padStart(4,'0')}_${result.time.toFixed(2).replace('.', '_')}s.${extension}`;
+      zip.file(name,result.blob);
+      frameResults.push({...result,name,objectUrl:URL.createObjectURL(result.blob)});
+      created++;
+      if(created%FRAME_BATCH_SIZE===0||created===plan.count){renderFrameResults();await new Promise(r=>setTimeout(r,0));}
     }
     status.textContent='Упаковка фотографий в ZIP…';
     const out=await zip.generateAsync({type:'blob',compression:'STORE'},m=>{
       status.textContent=`Упаковка ZIP: ${Math.round(m.percent)}%`;
     });
+    const verified=await JSZip.loadAsync(out,{checkCRC32:true});
+    const verifiedEntries=Object.values(verified.files).filter(entry=>!entry.dir);
+    const verifiedCount=verifiedEntries.length;
+    if(verifiedCount!==created)throw new Error(`Проверка ZIP не пройдена: ${verifiedCount} из ${created} файлов.`);
+    for(const entry of verifiedEntries)if(!(await entry.async('uint8array')).length)throw new Error(`Проверка ZIP не пройдена: файл ${entry.name} пуст.`);
     const url=URL.createObjectURL(out),a=document.createElement('a');
-    a.href=url;a.download=`NEX_ESTATE_frames_${start}-${end}s.zip`;
+    a.href=url;a.download=`NEX_ESTATE_frames_full_${plan.duration.toFixed(2).replace('.', '_')}s.zip`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),3000);
-    status.textContent=`Готово: ${count} фотографий сохранены одним ZIP-архивом.`;
+    status.textContent=`Готово: ${created} кадров из всего видео, интервал ${plan.interval.toFixed(2)} с. ZIP проверен; отдельные кадры доступны ниже.`;
   }catch(e){
-    status.textContent='Ошибка создания фотографий.';
-    alert(e.message||String(e));
+    clearFrameResults();
+    if(e?.message==='__FRAMES_CANCELLED__')status.textContent='Создание кадров отменено. Временные данные освобождены.';
+    else{status.textContent=`Ошибка создания кадров: ${e?.message||e}`;console.error(e);alert(e.message||String(e));}
   }finally{
     await seekTo(Math.min(oldTime,Math.max(0,(video.duration||oldTime)-.03)));
     if(wasPlaying)video.play().catch(()=>{});
+    frameExtractionCancelled=false;button.disabled=false;cancel?.classList.add('context-hidden');
   }
 };
 
-async function captureCurrentFrame(){
+async function captureCurrentFrame(findBest=false){
   if(!srcFile)return alert('Сначала загрузите видео.');
   try{
     await waitMetadata();
-    const W=video.videoWidth,H=video.videoHeight;
-    const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-    const ctx=cv.getContext('2d');
-    ctx.drawImage(video,0,0,W,H);
-    const blob=await new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('Не удалось создать изображение')),'image/jpeg',.97));
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    const sec=(video.currentTime||0).toFixed(2).replace('.', '_');
+    const originalTime=video.currentTime||0,target=findBest?await bestFrameNear(originalTime):originalTime;
+    const result=await captureFrameBlobAt(target,{format:'jpeg',quality:.97});
+    const url=URL.createObjectURL(result.blob),a=document.createElement('a');
+    const sec=(result.time||target).toFixed(2).replace('.', '_');
     a.href=url;a.download=`NEX_ESTATE_frame_${sec}s.jpg`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
+    if(findBest)window.NEXStudio?.toast?.(`Выбран наиболее чёткий кадр рядом с ${originalTime.toFixed(2)} с.`,'success');
   }catch(e){alert(e.message||String(e));}
 }
-q('#vxCaptureFrame').onclick=captureCurrentFrame;
+q('#vxCaptureFrame').onclick=()=>captureCurrentFrame(false);
 
 function formatClock(totalSeconds){
   const s=Math.max(0,Math.floor(totalSeconds||0));
@@ -3893,6 +4527,9 @@ async function rebuildVoicePreview(){
   if(voiceURL){URL.revokeObjectURL(voiceURL);voiceURL=null}
   const type=voiceRecorder?.mimeType||voiceChunks[0]?.type||'audio/webm';
   voiceBlob=new Blob(voiceChunks,{type});
+  if(/webm/i.test(type)&&window.NEXRepairWebmDuration){
+    voiceBlob=await window.NEXRepairWebmDuration(voiceBlob,Math.max(100,Math.round(voiceElapsedMs)),{logger:false});
+  }
   voiceURL=URL.createObjectURL(voiceBlob);
   voiceAudio=new Audio(voiceURL);
   voiceBuffer=null;
@@ -4150,13 +4787,18 @@ async function mixAudioBlobsTo16kMono(blobs){
   return mixed;
 }
 async function loadWhisperPipeline(status,quality='base'){
+  const device='wasm';
+  const key=`${quality}:${device}`;
+  if(whisperPipelines.has(key)){
+    status.textContent=`Whisper ${quality==='base'?'Точно':'Быстро'} готов (${device.toUpperCase()}, локальный кэш).`;
+    return await whisperPipelines.get(key);
+  }
   status.textContent='Подключение модуля Whisper…';
-  const mod=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3');
-  mod.env.allowLocalModels=false;
-  mod.env.useBrowserCache=true;
-  const device=navigator.gpu?'webgpu':'wasm';
+  whisperModulePromise=whisperModulePromise||import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3');
+  const mod=await whisperModulePromise;
+  mod.env.allowLocalModels=false;mod.env.useBrowserCache=true;
   status.textContent=`Загрузка модели Whisper (${device.toUpperCase()}). При первом запуске это может занять несколько минут…`;
-  return await mod.pipeline(
+  const loading=mod.pipeline(
     'automatic-speech-recognition',
     (quality==='base'?'onnx-community/whisper-base':'onnx-community/whisper-tiny'),
     {
@@ -4171,27 +4813,54 @@ async function loadWhisperPipeline(status,quality='base'){
       }
     }
   );
+  whisperPipelines.set(key,loading);
+  try{return await loading}catch(error){whisperPipelines.delete(key);throw error;}
 }
-function whisperTextLooksBroken(text){
+function whisperTextLooksBroken(text,language=q('#vxWhisperLanguage')?.value||'ru'){
   const s=(text||'').trim();
   if(!s)return true;
   const letters=(s.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;
+  const latin=(s.match(/[A-Za-z]/g)||[]).length;
+  const cyrillic=(s.match(/[А-Яа-яЁё]/g)||[]).length;
   const punctuation=(s.match(/[—–_\-]/g)||[]).length;
   const words=s.toLowerCase().match(/[a-zа-яё]+/g)||[];
-  if(words.length>=6){
+  if(words.length>=4){
     const counts={};
     for(const word of words)counts[word]=(counts[word]||0)+1;
     const maxRepeat=Math.max(...Object.values(counts));
     const uniqueCount=Object.keys(counts).length;
-    if(maxRepeat/words.length>=0.72&&uniqueCount<=3)return true;
+    let longestRun=1,currentRun=1,repeatedNeighbours=0;
+    for(let i=1;i<words.length;i++){
+      if(words[i]===words[i-1]){currentRun++;repeatedNeighbours++;longestRun=Math.max(longestRun,currentRun);}else currentRun=1;
+    }
+    const pairs={};
+    for(let i=0;i<words.length-1;i++){const pair=`${words[i]} ${words[i+1]}`;pairs[pair]=(pairs[pair]||0)+1;}
+    const maxPairRepeat=Math.max(0,...Object.values(pairs));
+    if(longestRun>=4||repeatedNeighbours/Math.max(1,words.length-1)>=.45)return true;
+    if(maxRepeat/words.length>=.45&&uniqueCount/words.length<=.34)return true;
+    if(maxPairRepeat>=3&&maxPairRepeat*2/words.length>=.60)return true;
   }
+  if(language==='ru'&&words.length>=3&&latin>Math.max(10,cyrillic*1.5))return true;
+  if(language==='en'&&words.length>=3&&cyrillic>Math.max(10,latin*1.5))return true;
   if(/^(?:[аa][\s,.;:!?-]*){6,}$/i.test(s))return true;
   return letters<3 || punctuation>Math.max(8,letters*1.5);
 }
-async function runWhisperRecognition(samples,quality,status){
+function whisperTextIsNoSpeech(text){
+  const s=(text||'').trim();
+  if(!s)return true;
+  return /^(?:[\[(]\s*(?:музыка|тишина|шум|аплодисменты|music|silence|noise|applause)\s*[\])]\s*[.!?…]*)+$/i.test(s);
+}
+function audioSamplesHaveAudibleSignal(samples){
+  if(!samples?.length)return false;
+  let peak=0,sumSquares=0;
+  for(const value of samples){peak=Math.max(peak,Math.abs(value));sumSquares+=value*value;}
+  return peak>=.0005||Math.sqrt(sumSquares/samples.length)>=.00005;
+}
+async function runWhisperRecognition(samples,quality,status,runId){
   const transcriber=await loadWhisperPipeline(status,quality);
-  return await transcriber(samples,{
-    language:'russian',
+  if(runId!==whisperRunId)throw new Error('__WHISPER_CANCELLED__');
+  const language=q('#vxWhisperLanguage')?.value||'ru';
+  const options={
     task:'transcribe',
     return_timestamps:true,
     chunk_length_s:30,
@@ -4200,38 +4869,60 @@ async function runWhisperRecognition(samples,quality,status){
     no_speech_threshold:0.6,
     compression_ratio_threshold:2.4,
     logprob_threshold:-1
-  });
+  };
+  options.language=language==='en'?'english':'russian';
+  const result=await transcriber(samples,options);
+  if(runId!==whisperRunId)throw new Error('__WHISPER_CANCELLED__');
+  return result;
 }
 async function recognizeCurrentAudio(){
   if(!srcFile)throw new Error('Сначала загрузите видео.');
   const status=q('#vxRecognizeStatus');
   const selectedQuality=q('#vxWhisperQuality')?.value||'base';
   const hasNarration=!!(voiceBlob&&voiceAccepted);
+  const source=q('#vxSubtitleSource')?.value||'original';
+  if((source==='narration'||source==='mix'||source==='both')&&!hasNarration)throw new Error('Для выбранного источника сначала запишите и сохраните озвучку.');
+  const runId=++whisperRunId;
+  q('#vxRecognizeCancel')?.classList.remove('context-hidden');
 
   const transcribeTrack=async(samples,label,quality=selectedQuality)=>{
     status.textContent=`Whisper распознаёт ${label}…`;
-    let result=await runWhisperRecognition(samples,quality,status);
+    if(!audioSamplesHaveAudibleSignal(samples))return {text:'',chunks:[]};
+    const language=q('#vxWhisperLanguage')?.value||'ru';
+    let result=await runWhisperRecognition(samples,quality,status,runId);
     let text=(result?.text||(result?.chunks||[]).map(x=>x.text).join(' ')).trim();
-    if(quality==='base'&&whisperTextLooksBroken(text)){
+    if(quality==='base'&&(whisperTextLooksBroken(text,language)||whisperTextIsNoSpeech(text))){
       status.textContent=`Повторное распознавание: ${label}, стабильный режим…`;
-      result=await runWhisperRecognition(samples,'tiny',status);
+      result=await runWhisperRecognition(samples,'tiny',status,runId);
       text=(result?.text||(result?.chunks||[]).map(x=>x.text).join(' ')).trim();
     }
+    if(whisperTextIsNoSpeech(text))return {text:'',chunks:[]};
+    if(whisperTextLooksBroken(text,language))throw new Error(`Whisper получил повторяющийся или неверный текст для дорожки «${label}». Проверьте выбранный язык и разборчивость речи.`);
     const chunks=(result?.chunks||[])
-      .filter(x=>x?.text?.trim()&&!whisperTextLooksBroken(x.text))
+      .filter(x=>x?.text?.trim()&&!whisperTextLooksBroken(x.text,language))
       .map(x=>({...x,_track:label}));
     return {text,chunks};
   };
 
-  status.textContent='Подготовка исходной аудиодорожки…';
-  const originalSamples=await audioBlobTo16kMono(srcFile);
-  const original=await transcribeTrack(originalSamples,'исходную речь');
-
-  let narration={text:'',chunks:[]};
-  if(hasNarration){
+  let originalSamples=null,narrationSamples=null;
+  if(source!=='narration'){
+    status.textContent='Подготовка исходной аудиодорожки…';
+    originalSamples=await audioBlobTo16kMono(srcFile);
+  }
+  if(source!=='original'&&hasNarration){
     status.textContent='Подготовка сохранённой озвучки…';
-    const narrationSamples=await audioBlobTo16kMono(voiceBlob);
-    narration=await transcribeTrack(narrationSamples,'записанную озвучку');
+    narrationSamples=await audioBlobTo16kMono(voiceBlob);
+  }
+
+  let original={text:'',chunks:[]},narration={text:'',chunks:[]};
+  if(source==='mix'){
+    const length=Math.max(originalSamples?.length||0,narrationSamples?.length||0),mixed=new Float32Array(length);
+    for(let i=0;i<length;i++)mixed[i]=(originalSamples?.[i]||0)*videoVolume+(narrationSamples?.[i]||0)*voiceVolume;
+    let peak=0;for(const value of mixed)peak=Math.max(peak,Math.abs(value));if(peak>.96)for(let i=0;i<mixed.length;i++)mixed[i]*=.96/peak;
+    original=await transcribeTrack(mixed,'итоговый микс');
+  }else{
+    if(originalSamples)original=await transcribeTrack(originalSamples,'исходную речь');
+    if(narrationSamples)narration=await transcribeTrack(narrationSamples,'записанную озвучку');
   }
 
   const chunkStart=x=>{
@@ -4239,6 +4930,7 @@ async function recognizeCurrentAudio(){
     const value=Array.isArray(raw)?raw[0]:x.start;
     return Number(Array.isArray(value)?value[0]:value)||0;
   };
+  if(runId!==whisperRunId)throw new Error('__WHISPER_CANCELLED__');
   recognizedChunks=[...original.chunks,...narration.chunks].sort((a,b)=>chunkStart(a)-chunkStart(b));
   recognizedText=recognizedChunks.length
     ? recognizedChunks.map(x=>x.text.trim()).join(' ').trim()
@@ -4247,15 +4939,14 @@ async function recognizeCurrentAudio(){
   if(!recognizedText)throw new Error('Whisper не обнаружил разборчивую речь.');
   q('#vxTranscriptText').value=recognizedText;
   q('#vxTranscriptToggle').classList.remove('context-hidden');
-  status.textContent=hasNarration
-    ? `Распознаны отдельно и объединены исходная речь и сохранённая озвучка. Фрагментов: ${recognizedChunks.length||2}. Нажмите справа «Создать субтитры».`
-    : `Речь распознана из исходного видео. Фрагментов: ${recognizedChunks.length||1}. Нажмите справа «Создать субтитры».`;
+  const descriptions={original:'Речь распознана из исходного видео.',narration:'Речь распознана из сохранённой озвучки.',mix:'Распознан итоговый микс с текущим балансом громкости.',both:'Дорожки распознаны отдельно и объединены по временным меткам. Одновременную речь Whisper не разделяет по говорящим — при наложении выберите основную дорожку.'};
+  status.textContent=`${descriptions[source]||descriptions.original} Фрагментов: ${recognizedChunks.length||1}. Нажмите справа «Создать субтитры».`;
 }
 q('#vxRecognizeRun').onclick=async()=>{
   const btn=q('#vxRecognizeRun');btn.disabled=true;
   try{await recognizeCurrentAudio()}
-  catch(e){console.error(e);q('#vxRecognizeStatus').textContent='Не удалось распознать речь.';alert('Whisper Beta: '+(e?.message||e))}
-  finally{btn.disabled=false}
+  catch(e){if(e?.message==='__WHISPER_CANCELLED__')q('#vxRecognizeStatus').textContent='Распознавание отменено. Результат не применён.';else{console.error(e);q('#vxRecognizeStatus').textContent='Не удалось распознать речь.';alert('Whisper: '+(e?.message||e));}}
+  finally{btn.disabled=false;q('#vxRecognizeCancel')?.classList.add('context-hidden')}
 };
 q('#vxTranscriptToggle').onclick=()=>{
   const a=q('#vxTranscriptText'),b=q('#vxTranscriptToggle');
@@ -4291,6 +4982,10 @@ q('#vxWhisperRun').onclick=async()=>{
     q('#vxWhisperDownload').classList.remove('context-hidden');
     q('#vxSubtitleClear')?.classList.remove('context-hidden');
     status.textContent='Субтитры созданы и уже отображаются поверх видео в предпросмотре. При экспорте они будут вшиты в ролик.';
+    const firstSubtitle=subtitles[0];
+    if(firstSubtitle&&video?.src&&(video.currentTime<firstSubtitle.start||video.currentTime>firstSubtitle.end)){
+      try{await seekTo(Math.min(firstSubtitle.end-.02,firstSubtitle.start+.06));}catch{video.currentTime=Math.max(0,firstSubtitle.start+.06);}
+    }
     refreshSubtitlePreview();
   }catch(e){status.textContent='Не удалось создать субтитры.';alert(e?.message||e)}
 };
@@ -4358,6 +5053,72 @@ q('#vxWhisperDownload').onclick=()=>{
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 };
 
+async function detectVideoContainer(blob){
+  const bytes=new Uint8Array(await blob.slice(0,16).arrayBuffer());
+  if(bytes.length>=8&&String.fromCharCode(...bytes.slice(4,8))==='ftyp')return 'mp4';
+  if(bytes.length>=4&&bytes[0]===0x1a&&bytes[1]===0x45&&bytes[2]===0xdf&&bytes[3]===0xa3)return 'webm';
+  return 'unknown';
+}
+async function probeVideoBlob(blob){
+  const response=await fetch('/api/probe',{method:'POST',headers:{'Content-Type':blob.type||'application/octet-stream'},body:blob,cache:'no-store'});
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok||payload.ok!==true){
+    console.error('Локальная проверка медиа не пройдена',payload);
+    throw new Error(payload.error||payload.detail||`Локальная проверка видео завершилась с кодом ${response.status}.`);
+  }
+  return payload;
+}
+async function transcodeToMp4(blob,videoBitrate,audioBitrate){
+  const query=new URLSearchParams({quality:videoQualityMode,videoBitrate:String(videoBitrate),audioBitrate:String(audioBitrate)});
+  const response=await fetch(`/api/transcode/mp4?${query}`,{method:'POST',headers:{'Content-Type':blob.type||'video/webm'},body:blob,cache:'no-store'});
+  if(!response.ok){
+    const payload=await response.json().catch(()=>({}));
+    console.error('Локальное кодирование MP4 не пройдено',payload);
+    throw new Error(payload.error||payload.detail||`Локальное кодирование MP4 завершилось с кодом ${response.status}.`);
+  }
+  const result=await response.blob();
+  if(!result.size)throw new Error('Локальный кодировщик вернул пустой MP4.');
+  return new Blob([result],{type:'video/mp4'});
+}
+async function readVideoBlobMetadata(blob,serverMetadata=null){
+  const url=URL.createObjectURL(blob),probe=document.createElement('video');probe.preload='auto';probe.muted=true;probe.playsInline=true;
+  try{
+    const inspected=serverMetadata||await probeVideoBlob(blob);
+    probe.src=url;
+    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Проверка видео превысила 8 секунд.')),8000);probe.onloadedmetadata=()=>{clearTimeout(timer);resolve();};probe.onerror=()=>{clearTimeout(timer);reject(new Error('Браузер не смог открыть созданное видео.'));};});
+    if(probe.videoWidth<2||probe.videoHeight<2)throw new Error('Созданный файл не содержит читаемую видеодорожку.');
+    if(probe.readyState<2){
+      await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Не удалось декодировать видеокадр за 8 секунд.')),8000);probe.onloadeddata=()=>{clearTimeout(timer);resolve();};probe.onerror=()=>{clearTimeout(timer);reject(new Error('Ошибка декодирования видеодорожки.'));};});
+    }
+    const duration=Number.isFinite(probe.duration)?probe.duration:null;
+    const frameTime=duration&&duration>.16?Math.min(duration*.25,.75):0;
+    if(frameTime>.01){
+      probe.currentTime=frameTime;
+      await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Не удалось открыть проверочный кадр за 8 секунд.')),8000);probe.onseeked=()=>{clearTimeout(timer);resolve();};probe.onerror=()=>{clearTimeout(timer);reject(new Error('Ошибка чтения проверочного кадра.'));};});
+    }
+    const scale=Math.min(1,320/probe.videoWidth),canvas=document.createElement('canvas');
+    canvas.width=Math.max(2,Math.round(probe.videoWidth*scale));canvas.height=Math.max(2,Math.round(probe.videoHeight*scale));
+    const context=canvas.getContext('2d',{willReadFrequently:true});
+    context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(probe,0,0,canvas.width,canvas.height);
+    const pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
+    let sum=0,sumSq=0,opaque=0,count=0;
+    for(let i=0;i<pixels.length;i+=16){const value=.2126*pixels[i]+.7152*pixels[i+1]+.0722*pixels[i+2];sum+=value;sumSq+=value*value;if(pixels[i+3]>0)opaque++;count++;}
+    if(!opaque)throw new Error('Видеодорожка открылась, но браузер не смог декодировать ни одного кадра.');
+    const frameMean=sum/Math.max(1,count),frameVariance=Math.max(0,sumSq/Math.max(1,count)-frameMean*frameMean);
+    canvas.width=0;canvas.height=0;
+    return {...inspected,duration:inspected.duration??duration,width:inspected.width||probe.videoWidth,height:inspected.height||probe.videoHeight,videoTrack:true,frameDecoded:true,frameMean,frameVariance};
+  }finally{probe.removeAttribute('src');try{probe.load()}catch{}URL.revokeObjectURL(url);}
+}
+function updateVideoOutputMetrics(blob,metadata,mime,fps,bitrate){
+  const target=q('#vxOutputMetrics');if(!target)return;
+  const sourceSize=srcFile?.size||0,reduction=sourceSize?Math.round((1-blob.size/sourceSize)*100):null;
+  const duration=metadata?.duration||video.duration||0;
+  const container=/mp4|mov/i.test(metadata?.container||'')?'MP4':'WebM';
+  const codecs=[metadata?.videoCodec,metadata?.audioTrack?metadata?.audioCodec:null].filter(Boolean).join('/').toUpperCase();
+  target.innerHTML=`<b>Итоговый файл проверен</b><span>${metadata?.width||'—'}×${metadata?.height||'—'} · ${duration?duration.toFixed(2)+' с':'длительность недоступна'} · ${fps} FPS</span><span>${formatFileSize(sourceSize)} → ${formatFileSize(blob.size)}${reduction===null?'':` · ${reduction>=0?'−':'+'}${Math.abs(reduction)}%`}</span><span>${container} · ${codecs||mime} · ${(bitrate/1e6).toFixed(1)} Мбит/с</span>`;
+  target.classList.add('show');
+}
+
 q('#vxCancelExport')?.addEventListener('click',()=>{
   if(!exportInProgress)return;
   exportCancelled=true;
@@ -4374,21 +5135,28 @@ q('#vxCancelExport')?.addEventListener('click',()=>{
   setProgress('Обработка отменена',0);
 });
 q('#vxExport').onclick=async()=>{
-  exportCancelled=false;exportInProgress=true;
-  q('#vxCancelExport')?.classList.remove('context-hidden');
-  q('#vxCancelExport').textContent='Отменить обработку';
+  if(exportInProgress)return window.NEXStudio?.toast?.('Экспорт видео уже выполняется.','warning');
   if(!srcFile)return alert('Сначала загрузите видео.');
   if(!window.MediaRecorder)return alert('Этот браузер не поддерживает обработку видео. Используйте последнюю версию Chrome или Edge.');
-  const mime=preferredMime();
-  if(!mime)return alert('Браузер не нашёл поддерживаемый видеокодек.');
+  exportCancelled=false;exportInProgress=true;
+  processingStageHistory.length=0;
+  q('#vxCancelExport')?.classList.remove('context-hidden');
+  q('#vxCancelExport').textContent='Отменить обработку';
   exportBtn.disabled=true;stopRecognition(false);
+  let exportCanvas=null,suspendedAudioForPreparation=false,cleanupPlaybackStart=null;
   try{
-    setProgress(q('#vxStabilize')?.checked?'Подготовка стабилизации обычного дрожания…':'Подготовка видео…',2);
+    setProgress('Проверка исходного файла и локального кодировщика…',1);
     await waitMetadata();
-    await ensureAudioGraph();
-    if(audioCtx?.state==='suspended')await audioCtx.resume();
+    const [outputPlan,sourceProbe]=await Promise.all([resolveOutputPlan(),probeVideoBlob(srcFile)]);
+    if(!sourceProbe.videoTrack)throw new Error('Исходный файл не содержит читаемую видеодорожку.');
+    setProgress(`Подготовка звука, эффектов и субтитров${q('#vxStabilize')?.checked?', включая стабилизацию':''}…`,4);
     const narration=(voiceBlob&&voiceAccepted)?await decodeVoice():null;
-    video.pause(); await seekTo(0);
+    const expectedAudio=Boolean(sourceProbe.audioTrack||narration);
+    if(audioCtx?.state==='running'){
+      await audioCtx.suspend();
+      suspendedAudioForPreparation=true;
+    }
+    video.pause();await seekTo(0);await waitDecodedFrame();
 
     const [W,H]=dims(video.videoWidth,video.videoHeight);
     resetExportStabilizer();
@@ -4397,27 +5165,50 @@ q('#vxExport').onclick=async()=>{
       await analyzeVideoStabilization();
       video.pause();
       await seekTo(0);
-      setProgress('Траектория рассчитана. Начинаю экспорт…',30);
+      setProgress('Траектория стабилизации рассчитана и будет применена к каждому кадру.',30);
     }
-    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
-    const ctx=canvas.getContext('2d',{alpha:false,desynchronized:true});
+    await ensureAudioGraph();
+    if(audioCtx?.state==='suspended')await audioCtx.resume();
+    suspendedAudioForPreparation=false;
+    exportCanvas=document.createElement('canvas');exportCanvas.width=W;exportCanvas.height=H;
+    const ctx=exportCanvas.getContext('2d',{alpha:false,desynchronized:true});
     ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
     const mark=await markImage();
-    const stream=canvas.captureStream(30);
+    const outputFps=selectedVideoFps();
+    const stream=exportCanvas.captureStream(outputFps),canvasTrack=stream.getVideoTracks()[0];
+    if(!canvasTrack||canvasTrack.readyState!=='live')throw new Error('Браузер не создал активную видеодорожку canvas для экспорта.');
+    activeExportStream=stream;
     if(audioDest)audioDest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+    if(expectedAudio&&!stream.getAudioTracks().length)throw new Error('Не удалось подключить звуковую дорожку к итоговому видео.');
 
     const chunks=[];
     const outputVideoBitrate=selectedVideoBitrate(W,H);
-    const outputAudioBitrate=videoQualityMode==='small'?128_000:(videoQualityMode==='quality'?256_000:192_000);
+    const outputAudioBitrate=videoQualityMode==='small'?128_000:(videoQualityMode==='quality'||videoQualityMode==='none'?256_000:192_000);
     const recorder=new MediaRecorder(stream,{
-      mimeType:mime,
+      mimeType:outputPlan.recordMime,
       videoBitsPerSecond:outputVideoBitrate,
       audioBitsPerSecond:outputAudioBitrate
     });activeExportRecorder=recorder;
-    recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-    const finished=new Promise((res,rej)=>{
-      recorder.onerror=e=>rej(e.error||new Error('Ошибка записи видео'));
-      recorder.onstop=()=>res();
+    let recorderFailure=null;
+    recorder.addEventListener('dataavailable',event=>{if(event.data?.size)chunks.push(event.data);});
+    recorder.addEventListener('error',event=>{recorderFailure=event.error||new Error('Ошибка записи видео.');});
+    const stoppedRecording=new Promise(resolve=>recorder.addEventListener('stop',resolve,{once:true}));
+    let startRecorder=()=>{};
+    const startedRecording=new Promise((resolve,reject)=>{
+      startRecorder=()=>{
+        let timer=0;
+        const cleanup=()=>{
+          clearTimeout(timer);
+          recorder.removeEventListener('start',onStart);
+          recorder.removeEventListener('error',onError);
+        };
+        const onStart=()=>{cleanup();resolve();};
+        const onError=event=>{cleanup();reject(event.error||new Error('MediaRecorder не запустился.'));};
+        timer=setTimeout(()=>{cleanup();reject(new Error('MediaRecorder не подтвердил запуск за 8 секунд.'));},8000);
+        recorder.addEventListener('start',onStart,{once:true});
+        recorder.addEventListener('error',onError,{once:true});
+        try{recorder.start(500)}catch(error){cleanup();reject(error);}
+      };
     });
 
     let raf=0,videoFrameHandle=0,stopped=false,lastRenderedMediaTime=-1;
@@ -4426,12 +5217,13 @@ q('#vxExport').onclick=async()=>{
       /* Ignore duplicate decoder callbacks but keep progress responsive. */
       const t=Number.isFinite(mediaTime)?mediaTime:video.currentTime;
       if(t>lastRenderedMediaTime+.0001||lastRenderedMediaTime<0){
-        drawFrame(ctx,canvas,mark);
+        drawFrame(ctx,exportCanvas,mark);
+        canvasTrack.requestFrame?.();
         lastRenderedMediaTime=t;
       }
       const rawPct=video.duration?Math.min(100,(video.currentTime/video.duration)*100):0;
-      const pct=q('#vxStabilize')?.checked?30+rawPct*.69:rawPct*.99;
-      setProgress(`Обработка видео: ${Math.round(rawPct)}%`,pct);
+      const pct=q('#vxStabilize')?.checked?30+rawPct*.64:6+rawPct*.88;
+      setProgress(`Рендер кадров, эффектов и субтитров${q('#vxStabilize')?.checked?', со стабилизацией':''}: ${Math.round(rawPct)}%`,pct);
     };
     const videoFrameLoop=(now,metadata)=>{
       if(stopped)return;
@@ -4446,7 +5238,7 @@ q('#vxExport').onclick=async()=>{
       activeExportRAF=raf;
     };
     const startRenderLoop=()=>{
-      drawFrame(ctx,canvas,mark);
+      drawFrame(ctx,exportCanvas,mark);canvasTrack.requestFrame?.();
       if(typeof video.requestVideoFrameCallback==='function'){
         videoFrameHandle=video.requestVideoFrameCallback(videoFrameLoop);
         activeExportRAF=videoFrameHandle;
@@ -4464,8 +5256,7 @@ q('#vxExport').onclick=async()=>{
     };
 
     let narrationSource=null;
-    recorder.start(2000);
-    startRenderLoop();
+    setProgress('Запуск реальной записи видео- и аудиодорожек…',q('#vxStabilize')?.checked?30:6);
     if(narration&&audioCtx&&audioDest){
       narrationSource=audioCtx.createBufferSource();activeNarrationSource=narrationSource;
       narrationSource.buffer=narration;
@@ -4473,10 +5264,8 @@ q('#vxExport').onclick=async()=>{
       narrationSource.connect(narrationGain);
       narrationGain.connect(audioDest);
       narrationGain.connect(audioCtx.destination);
-      narrationSource.start(0);
     }
-    await video.play();
-    await new Promise((res,rej)=>{
+    const playbackFinished=new Promise((res,rej)=>{
       const done=()=>{cleanup();res()};
       const bad=()=>{cleanup();rej(new Error('Ошибка воспроизведения исходного видео'))};
       const timer=setInterval(()=>{
@@ -4493,21 +5282,79 @@ q('#vxExport').onclick=async()=>{
       video.addEventListener('ended',done,{once:true});
       video.addEventListener('error',bad,{once:true});
     });
+    drawFrame(ctx,exportCanvas,mark);canvasTrack.requestFrame?.();
+    const actualPlaybackStarted=new Promise((resolve,reject)=>{
+      let timer=0;
+      const cleanup=()=>{
+        clearTimeout(timer);
+        video.removeEventListener('playing',onPlaying);
+        video.removeEventListener('error',onError);
+        if(cleanupPlaybackStart===cleanup)cleanupPlaybackStart=null;
+      };
+      const onPlaying=()=>{
+        cleanup();
+        try{
+          startRecorder();
+          startRenderLoop();
+          narrationSource?.start(0);
+          resolve();
+        }catch(error){reject(error);}
+      };
+      const onError=()=>{cleanup();reject(new Error('Ошибка запуска воспроизведения исходного видео'));};
+      cleanupPlaybackStart=cleanup;
+      video.addEventListener('playing',onPlaying,{once:true});
+      video.addEventListener('error',onError,{once:true});
+      timer=setTimeout(()=>{cleanup();reject(new Error('Исходное видео не начало воспроизведение за 8 секунд.'));},8000);
+    });
+    const playStarted=video.play();
+    await Promise.all([actualPlaybackStarted,startedRecording,playStarted]);
+    if(recorder.state!=='recording')throw recorderFailure||new Error(`MediaRecorder перешёл в состояние ${recorder.state} вместо recording.`);
+    await playbackFinished;
     if(exportCancelled)throw new Error('__EXPORT_CANCELLED__');
     stopRenderLoop();try{narrationSource?.stop()}catch{}
-    drawFrame(ctx,canvas,mark);
-    recorder.stop();
-    await finished;
+    setProgress('Финализация промежуточных дорожек…',95);
+    if(recorder.state==='recording'||recorder.state==='paused')recorder.stop();
+    await Promise.race([stoppedRecording,new Promise((_,reject)=>setTimeout(()=>reject(new Error('MediaRecorder не завершил запись за 8 секунд.')),8000))]);
+    if(recorderFailure)throw recorderFailure;
+    if(!chunks.length)throw new Error(`MediaRecorder завершился без данных (тип ${outputPlan.recordMime}, состояние ${recorder.state}).`);
 
-    if(!chunks.length)throw new Error('Браузер не создал выходной видеофайл.');
-    setProgress('Подготовка файла к скачиванию…',100);
-    const blob=new Blob(chunks,{type:mime});
-    const ext=mime.startsWith('video/mp4')?'mp4':'webm';
+    let intermediate=new Blob(chunks,{type:outputPlan.recordMime});
+    if(window.NEXRepairWebmDuration)intermediate=await window.NEXRepairWebmDuration(intermediate,Math.max(1,Math.round((video.duration||0)*1000)),{logger:false,force:true});
+    if(!intermediate.size)throw new Error('Промежуточный видеофайл пуст.');
+    if(await detectVideoContainer(intermediate)!=='webm')throw new Error('Промежуточный файл не является настоящим контейнером WebM.');
+    setProgress('Проверка промежуточных видео- и аудиодорожек…',96);
+    const intermediateProbe=await probeVideoBlob(intermediate);
+    if(!intermediateProbe.videoTrack)throw new Error('Промежуточный WebM не содержит видеодорожку.');
+    if(expectedAudio&&!intermediateProbe.audioTrack)throw new Error('Промежуточный WebM потерял звуковую дорожку.');
+
+    let blob=intermediate,actualMime='video/webm';
+    if(outputPlan.container==='mp4'){
+      setProgress('Локальное кодирование настоящего MP4 H.264/AAC…',null);
+      blob=await transcodeToMp4(intermediate,outputVideoBitrate,outputAudioBitrate);
+      actualMime='video/mp4';
+    }
+    setProgress('Проверка контейнера, кодеков, дорожек и контрольного кадра…',99);
+    const detectedContainer=await detectVideoContainer(blob);
+    if(detectedContainer!==outputPlan.container)throw new Error(`Контейнер результата ${detectedContainer}, ожидался ${outputPlan.container}. Файл не будет сохранён с неверным расширением.`);
+    const serverMetadata=await probeVideoBlob(blob);
+    if(outputPlan.container==='mp4'&&(serverMetadata.videoCodec!=='h264'||(expectedAudio&&serverMetadata.audioCodec!=='aac')))throw new Error(`MP4 не прошёл проверку кодеков: видео ${serverMetadata.videoCodec||'нет'}, аудио ${serverMetadata.audioCodec||'нет'}.`);
+    if(expectedAudio&&!serverMetadata.audioTrack)throw new Error('Итоговый файл не содержит ожидаемую звуковую дорожку.');
+    const metadata=await readVideoBlobMetadata(blob,serverMetadata);
+    const sourceDuration=Number(sourceProbe?.duration)||Number(video.duration)||0;
+    const durationTolerance=Math.max(.08,1.5/Math.max(1,outputFps));
+    if(metadata?.duration&&sourceDuration&&Math.abs(metadata.duration-sourceDuration)>durationTolerance)throw new Error(`Длительность результата ${metadata.duration.toFixed(2)} с отличается от исходных ${sourceDuration.toFixed(2)} с.`);
+    const ext=detectedContainer;
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=`NEX_ESTATE_processed_${Date.now()}.${ext}`;
+    const sourceBase=(srcFile.name||'video').replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'_').slice(0,120);
+    a.href=url;a.download=`${sourceBase}_NEX_ESTATE.${ext}`;
     document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),3000);
-    setTimeout(hideProgress,1800);
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    lastVideoExport={blob,metadata,mime:actualMime,container:detectedContainer,fps:outputFps,bitrate:outputVideoBitrate,sourceProbe,intermediateProbe,processingStages:processingStageHistory.slice()};
+    updateVideoOutputMetrics(blob,metadata,actualMime,outputFps,outputVideoBitrate);
+    const codecSummary=[metadata.videoCodec,metadata.audioTrack?metadata.audioCodec:null].filter(Boolean).join('/').toUpperCase();
+    setProgress(`Готово: ${detectedContainer.toUpperCase()} проверен, ${codecSummary}, контрольный кадр декодирован и файл передан на скачивание.`,100);
+    window.NEXStudio?.toast?.(`Видео проверено: ${metadata.width}×${metadata.height}, ${codecSummary}.`,'success');
+    setTimeout(hideProgress,4200);
     await seekTo(0);
   }catch(e){
     if(e?.message==='__EXPORT_CANCELLED__'||exportCancelled){
@@ -4515,18 +5362,51 @@ q('#vxExport').onclick=async()=>{
       setTimeout(hideProgress,900);
       try{await seekTo(0)}catch{}
     }else{
-      hideProgress();
-      alert('Обработка не завершена: '+(e?.message||e));
+      const message=e?.message||String(e);
+      console.error('Экспорт видео не завершён',e);
+      setProgress(`Ошибка: ${message}`,0);
+      window.NEXStudio?.toast?.(`Обработка видео не завершена: ${message}`,'error',9000);
     }
   }finally{
+    try{cleanupPlaybackStart?.()}catch{}
+    try{video.pause()}catch{}
+    try{if(activeExportRecorder&&activeExportRecorder.state!=='inactive')activeExportRecorder.stop()}catch{}
     exportInProgress=false;
     activeExportRecorder=null;
     activeExportRAF=0;
     activeNarrationSource=null;
+    activeExportStream?.getTracks?.().forEach(track=>track.stop());activeExportStream=null;
+    if(originalGain&&audioDest){try{originalGain.disconnect(audioDest)}catch{}}
+    audioDest=null;
+    if(suspendedAudioForPreparation&&audioCtx?.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(exportCanvas){exportCanvas.width=0;exportCanvas.height=0;}
     exportBtn.disabled=false;
     q('#vxCancelExport')?.classList.add('context-hidden');
     q('#vxCancelExport').textContent='Отменить обработку';
   }
+};
+
+window.NEXVideoRuntime={
+  hasVideo:()=>!!srcFile,
+  metadata:()=>({name:srcFile?.name||'',size:srcFile?.size||0,width:video.videoWidth||0,height:video.videoHeight||0,duration:video.duration||0,fps:sourceFpsEstimate}),
+  output:()=>lastVideoExport,
+  redraw:()=>{updateEnhancePreview();drawLiveOverlay();},
+  generateCoverCandidates,
+  captureBestFrame:()=>captureCurrentFrame(true),
+  cancelFrames:()=>{frameExtractionCancelled=true;},
+  frameSafeLimit:FRAME_SAFE_LIMIT,
+  framePlan,
+  frameResults:()=>frameResults.map(({name,time,width,height,format,blob})=>({name,time,width,height,format,size:blob.size})),
+  processingStages:()=>processingStageHistory.slice(),
+  encoderHealth:()=>checkLocalEncoder(true),
+  cancelWhisper:()=>{whisperRunId++;q('#vxRecognizeStatus').textContent='Отмена распознавания…';},
+  setQuality:value=>{videoQualityMode=value;localStorage.setItem('nexestate-video-quality',value);refreshVideoQualityButtons();},
+  quality:()=>videoQualityMode,
+  dimensions:()=>video.videoWidth&&video.videoHeight?dims(video.videoWidth,video.videoHeight):[0,0],
+  bitrate:()=>video.videoWidth&&video.videoHeight?selectedVideoBitrate(...dims(video.videoWidth,video.videoHeight)):0,
+  fps:()=>selectedVideoFps(),
+  whisperTextIsValid:(text,language='ru')=>!whisperTextLooksBroken(text,language)&&!whisperTextIsNoSpeech(text),
+  export:()=>q('#vxExport')?.click()
 };
 
 updateCodecStatus();
@@ -4759,11 +5639,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   async function applyVideoLogo(){
     if(!document.body.classList.contains('editor-video'))return;
-    liveMarkRequest++;
-    liveMark=null;
-    liveMarkKey='';
-    await ensureLiveMark();
-    drawLiveOverlay();
+    await window.NEXVideoPreview?.invalidateMark?.();
   }
 
   document.addEventListener('change',e=>{
@@ -4853,7 +5729,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const check=document.getElementById('vxEnhance');
     const enabled=!!check?.checked;
     const p=preset('vxEnhanceMode');
-    const filter=filterText(enabled,p);
+    const filter=enabled&&typeof videoFilterText==='function'?videoFilterText():filterText(enabled,p);
     if(!video)return;
 
     video.classList.remove('preview-enhanced');
@@ -4947,7 +5823,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const enabled=value!=='off';
     if(check)check.checked=enabled;
     if(video){
-      const f=filterFor(value,VIDEO_PRESETS);
+      const f=enabled&&typeof videoFilterText==='function'?videoFilterText():filterFor(value,VIDEO_PRESETS);
       video.style.setProperty('filter',f,'important');
       video.style.setProperty('-webkit-filter',f,'important');
     }
@@ -5901,7 +6777,7 @@ body.voice-paused #vxVoiceStatus{display:flex!important}
     const button = $(kind === 'photo' ? 'litePhotoEnhanceBtn' : 'liteVideoEnhanceBtn');
     if (!select || !button) return;
     const enabled = select.value !== 'off';
-    select.value = enabled ? 'off' : 'classic';
+    select.value = enabled ? 'off' : 'auto';
     select.dispatchEvent(new Event('change', { bubbles: true }));
     if (checkbox) {
       checkbox.checked = !enabled;
@@ -5924,6 +6800,13 @@ body.voice-paused #vxVoiceStatus{display:flex!important}
       const enabled = select.value !== 'off';
       button.classList.toggle('on', enabled);
       button.textContent = enabled ? `✓ Улучшение ${label} включено` : `✨ Улучшить ${label}`;
+      const quickButtons = selectId === 'photoEnhanceMode'
+        ? document.querySelectorAll('.photo-light-enhance-action')
+        : document.querySelectorAll('.lite-video-enhance-action');
+      quickButtons.forEach(quick => {
+        quick.classList.toggle('on', enabled);
+        quick.textContent = enabled ? `✓ Улучшение ${label} включено` : `✨ Улучшить ${label}`;
+      });
     });
   };
 
@@ -5941,11 +6824,12 @@ body.voice-paused #vxVoiceStatus{display:flex!important}
     if (!pro) {
       const originalAspectButton = document.querySelector('#vxAspect button[data-a="original"]');
       if (originalAspectButton && !originalAspectButton.classList.contains('on')) originalAspectButton.click();
+      if(window.NEXVideoRuntime?.quality?.()==='custom')window.NEXVideoRuntime.setQuality('smart');
       ['photoEnhancePanel', 'vxEnhancePanel', 'vxFramesPanel', 'vxSubtitleToolsPanel']
         .forEach(id => {
           const panel = $(id);
           if (panel) {
-            panel.hidden = false;
+            panel.hidden = true;
             panel.classList.add('context-hidden');
             panel.style.display = 'none';
           }
@@ -5955,7 +6839,7 @@ body.voice-paused #vxVoiceStatus{display:flex!important}
         .forEach(id => {
           const panel = $(id);
           if (panel) {
-            panel.hidden = false;
+            panel.hidden = true;
             panel.classList.add('context-hidden');
             panel.style.display = 'none';
           }
@@ -5984,6 +6868,7 @@ body.voice-paused #vxVoiceStatus{display:flex!important}
   proBtn?.addEventListener('click', () => applyEdition('pro'));
   $('litePhotoEnhanceBtn')?.addEventListener('click', () => setEnhanceMode('photo'));
   $('liteVideoEnhanceBtn')?.addEventListener('click', () => setEnhanceMode('video'));
+  $('liteVideoEnhanceStageBtn')?.addEventListener('click', () => setEnhanceMode('video'));
   $('photoEnhanceMode')?.addEventListener('change', syncSimpleButtons);
   $('vxEnhanceMode')?.addEventListener('change', syncSimpleButtons);
 
@@ -6283,6 +7168,10 @@ body.voice-recording #vxMediaToolbar #vxVoiceStatus{
 </style>
 
 
+<link rel="stylesheet" href="./studio-upgrade.css" data-final-styles="true">
+<script src="./vendor/webm-duration.js"></script>
+<script src="./photo-engine.js"></script>
+<script src="./studio-upgrade.js"></script>
 <script id="webEditionBootstrap">
 (() => {
   const finish = () => {

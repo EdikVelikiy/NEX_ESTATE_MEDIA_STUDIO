@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "baseUrl": "http://127.0.0.1:8767/",
+  "state": {
+    "active": true,
+    "controlled": true,
+    "cacheNames": [
+      "nex-estate-media-studio-v2-2-media-fixes"
+    ],
+    "cached": [
+      "http://127.0.0.1:8767/",
+      "http://127.0.0.1:8767/index.html",
+      "http://127.0.0.1:8767/studio-upgrade.css",
+      "http://127.0.0.1:8767/studio-upgrade.js",
+      "http://127.0.0.1:8767/photo-engine.js",
+      "http://127.0.0.1:8767/vendor/webm-duration.js",
+      "http://127.0.0.1:8767/vendor/webm-duration-LICENSE.txt",
+      "http://127.0.0.1:8767/manifest.webmanifest",
+      "http://127.0.0.1:8767/assets/icons/icon-192.png",
+      "http://127.0.0.1:8767/assets/icons/icon-512.png",
+      "http://127.0.0.1:8767/assets/icons/icon-maskable-192.png",
+      "http://127.0.0.1:8767/assets/icons/icon-maskable-512.png",
+      "http://127.0.0.1:8767/assets/marks/A_dark.svg",
+      "http://127.0.0.1:8767/assets/marks/A_light.svg",
+      "http://127.0.0.1:8767/assets/marks/B_dark.svg",
+      "http://127.0.0.1:8767/assets/marks/B_light.svg",
+      "http://127.0.0.1:8767/assets/marks/C_dark.svg",
+      "http://127.0.0.1:8767/assets/marks/C_light.svg",
+      "http://127.0.0.1:8767/assets/marks/D_dark.svg",
+      "http://127.0.0.1:8767/assets/marks/D_light.svg",
+      "http://127.0.0.1:8767/assets/marks/E_dark.png",
+      "http://127.0.0.1:8767/assets/marks/E_light.png",
+      "http://127.0.0.1:8767/assets/marks/F_dark.svg",
+      "http://127.0.0.1:8767/assets/marks/F_light.svg"
+    ]
+  },
+  "errors": []
+}

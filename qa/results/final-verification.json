@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "completedAt": "2026-08-02T22:24:47.495Z",
+  "uniqueBrowserChecks": 30,
+  "integrationRun": {
+    "startedAt": "2026-08-02T21:01:54.519Z",
+    "finishedAt": "2026-08-02T21:03:08.466Z",
+    "passedBeforeResume": 29,
+    "resumedCheck": "Service worker, версия кэша и офлайн-загрузка оболочки",
+    "consoleErrors": 0
+  },
+  "resumedVerification": {
+    "serviceWorker": "passed",
+    "active": true,
+    "controlled": true,
+    "errors": 0
+  },
+  "targetedRegression": {
+    "scenario": "Озвучка + стабилизация + встроенные субтитры + MP4",
+    "signature": "ftyp",
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "sourceDuration": 3.208333,
+    "outputDuration": 3.295,
+    "durationDelta": 0.08666699999999983,
+    "consoleErrors": 0
+  },
+  "sourceReports": {
+    "integration": {
+      "path": "qa\\results\\e2e-report.json",
+      "sha256": "0b4f7a8f062a4b7fdf4bb12a019127e8858de474a0016832423d1b3ee2bca278"
+    },
+    "audioStabilization": {
+      "path": "qa\\results\\audio-stabilization-report.json",
+      "sha256": "b7186362a25df26f7359803c1b1d0f92a93a42c9777b578c5b88c583663c8f2f"
+    },
+    "serviceWorker": {
+      "path": "qa\\results\\service-worker-report.json",
+      "sha256": "4154ffcd64220477231ebc5e5c7d591b21535c5b85489ba5fa13439bf718322b"
+    }
+  }
+}
