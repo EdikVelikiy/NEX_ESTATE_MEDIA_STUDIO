@@ -5144,8 +5144,8 @@ async function readVideoBlobMetadata(blob,serverMetadata=null){
     if(probe.readyState<2){
       await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Не удалось декодировать видеокадр за 8 секунд.')),8000);probe.onloadeddata=()=>{clearTimeout(timer);resolve();};probe.onerror=()=>{clearTimeout(timer);reject(new Error('Ошибка декодирования видеодорожки.'));};});
     }
-    const duration=Number.isFinite(probe.duration)?probe.duration:null;
-    const frameTime=duration&&duration>.16?Math.min(duration*.25,.75):0;
+    const initialDuration=Number.isFinite(probe.duration)?probe.duration:null;
+    const frameTime=initialDuration&&initialDuration>.16?Math.min(initialDuration*.25,.75):0;
     if(frameTime>.01){
       probe.currentTime=frameTime;
       await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Не удалось открыть проверочный кадр за 8 секунд.')),8000);probe.onseeked=()=>{clearTimeout(timer);resolve();};probe.onerror=()=>{clearTimeout(timer);reject(new Error('Ошибка чтения проверочного кадра.'));};});
@@ -5161,8 +5161,15 @@ async function readVideoBlobMetadata(blob,serverMetadata=null){
     const frameMean=sum/Math.max(1,count),frameVariance=Math.max(0,sumSq/Math.max(1,count)-frameMean*frameMean);
     canvas.width=0;canvas.height=0;
     const browserAudio=Boolean(probe.audioTracks?.length||probe.mozHasAudio||probe.webkitAudioDecodedByteCount>0);
-    return {...inspected,duration:inspected.duration??duration,width:inspected.width||probe.videoWidth,height:inspected.height||probe.videoHeight,videoTrack:true,audioTrack:Boolean(inspected.audioTrack||browserAudio),frameDecoded:true,frameMean,frameVariance};
+    const settledDuration=Number.isFinite(probe.duration)?probe.duration:initialDuration;
+    return {...inspected,duration:inspected.duration??settledDuration,width:inspected.width||probe.videoWidth,height:inspected.height||probe.videoHeight,videoTrack:true,audioTrack:Boolean(inspected.audioTrack||browserAudio),frameDecoded:true,frameMean,frameVariance};
   }finally{probe.removeAttribute('src');try{probe.load()}catch{}URL.revokeObjectURL(url);}
+}
+function technicalVideoDurationTolerance(outputFps){
+  const fps=Math.max(1,Number(outputFps)||30),frameDuration=1/fps;
+  const recorderFinalization=3*frameDuration,frameBoundary=frameDuration/2;
+  const aacPacketDuration=1024/44100,mp4TimeBaseTick=1/Math.max(1000,fps*1000);
+  return Math.max(.08,recorderFinalization+frameBoundary+aacPacketDuration+2*mp4TimeBaseTick);
 }
 function updateVideoOutputMetrics(blob,metadata,mime,fps,bitrate){
   const target=q('#vxOutputMetrics');if(!target)return;
@@ -5386,7 +5393,7 @@ q('#vxExport').onclick=async()=>{
     const metadata=await readVideoBlobMetadata(blob,browserProbe);
     if(expectedAudio&&!metadata.audioTrack)throw new Error('Итоговый файл не содержит ожидаемую звуковую дорожку.');
     const sourceDuration=Number(sourceProbe?.duration)||Number(video.duration)||0;
-    const durationTolerance=Math.max(.08,1.5/Math.max(1,outputFps));
+    const durationTolerance=technicalVideoDurationTolerance(outputFps);
     if(metadata?.duration&&sourceDuration&&Math.abs(metadata.duration-sourceDuration)>durationTolerance)throw new Error(`Длительность результата ${metadata.duration.toFixed(2)} с отличается от исходных ${sourceDuration.toFixed(2)} с.`);
     const ext=detectedContainer;
     const url=URL.createObjectURL(blob),a=document.createElement('a');

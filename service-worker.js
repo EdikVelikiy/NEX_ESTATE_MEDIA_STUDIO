@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nex-estate-media-studio-v2-4-photo-tools-brush-fix';
+const CACHE_NAME = 'nex-estate-media-studio-v2-5-video-duration-download-fix';
 const APP_SHELL = [
   './',
   './index.html',
