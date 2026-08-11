@@ -1,0 +1,367 @@
+{
+  "startedAt": "2026-08-11T07:53:49.385Z",
+  "baseUrl": "http://127.0.0.1:8771/",
+  "browser": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "checks": [
+    {
+      "name": "Главный экран: две точные карточки и изоляция модулей",
+      "status": "passed",
+      "durationMs": 174,
+      "details": {
+        "cards": [
+          {
+            "title": "Редактор фото и видео",
+            "description": "Обработка фотографий и видео объектов",
+            "href": "./apps/media/"
+          },
+          {
+            "title": "Редактор презентаций",
+            "description": "Создание и экспорт презентаций объектов",
+            "href": "./apps/presentation/"
+          }
+        ],
+        "scripts": [
+          "./pwa-shell.js"
+        ]
+      }
+    },
+    {
+      "name": "Hover, focus, keyboard and reduced motion",
+      "status": "passed",
+      "durationMs": 1217,
+      "details": {
+        "hoverStyle": {
+          "transform": "matrix(1.06, 0, 0, 1.06, 0, -8)",
+          "borderColor": "rgba(106, 200, 255, 0.9)",
+          "boxShadow": "rgba(0, 0, 0, 0.4) 0px 32px 78px 0px, rgba(53, 155, 219, 0.16) 0px 8px 30px 0px"
+        },
+        "focusStyle": {
+          "active": true,
+          "shadow": "rgba(0, 0, 0, 0.282) 0px 22.182px 56.4005px 0px, rgba(53, 155, 219, 0.004) 0px 0.145635px 0.546132px 0px"
+        },
+        "reduced": {
+          "transform": "none",
+          "duration": "0.001s"
+        }
+      }
+    },
+    {
+      "name": "Мобильная компоновка Hub",
+      "status": "passed",
+      "durationMs": 68,
+      "details": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "cards": [
+          {
+            "x": 20,
+            "y": 312.765625,
+            "width": 350,
+            "height": 350,
+            "right": 370
+          },
+          {
+            "x": 20,
+            "y": 682.765625,
+            "width": 350,
+            "height": 350,
+            "right": 370
+          }
+        ]
+      }
+    },
+    {
+      "name": "Навигация, browser Back и сохранение origin-storage",
+      "status": "passed",
+      "durationMs": 569,
+      "details": {
+        "mediaIsolation": {
+          "manifest": "http://127.0.0.1:8771/manifest.webmanifest",
+          "presentationScripts": 0,
+          "sentinel": "preserve"
+        },
+        "presentationIsolation": {
+          "manifest": "http://127.0.0.1:8771/manifest.webmanifest",
+          "mediaScripts": 0,
+          "sentinel": "preserve"
+        }
+      }
+    },
+    {
+      "name": "Медиаредактор: фото, существующее изменение и скачивание",
+      "status": "passed",
+      "durationMs": 1005,
+      "details": {
+        "before": {
+          "width": 360,
+          "height": 360,
+          "data": "87zJ1g+G1HkTyiu+oB5yaC3wKS3HWpPBMSPWZfIHuo07aAcX2+DG9XbZtmzjevDLugQoH6v/vwAAAP//T8a4ngAAAAZJREFUAwCgy3o4myEiKAAAAABJRU5ErkJggg=="
+        },
+        "after": {
+          "width": 360,
+          "height": 360,
+          "data": "ULr6unrlmHavcz9lX/fklM+no8+BuM6U9V5jbTvgj3ZyUSZv8qxjDuW17Qgf94P9t79eR2IOVP8PAAD//wcsOekAAAAGSURBVAMAoEg8byt+qyUAAAAASUVORK5CYII="
+        },
+        "photoDownload": {
+          "target": "C:\\Users\\ED\\AppData\\Local\\Temp\\nexestate-unified-pwa-smoke\\unified-photo-result.jpg",
+          "suggested": "video-cover_NEX_ESTATE.jpg",
+          "size": 12064
+        },
+        "signature": "ffd8ffe000104a4649460001"
+      }
+    },
+    {
+      "name": "Медиаредактор: загрузка существующего видео и возврат в Hub",
+      "status": "passed",
+      "durationMs": 390,
+      "details": {
+        "metadata": {
+          "name": "video-export.mp4",
+          "size": 795168,
+          "width": 480,
+          "height": 270,
+          "duration": 3.54,
+          "fps": 30
+        },
+        "storedKeys": [
+          "nexestate-bg-theme",
+          "nexestate-ui-theme",
+          "nexestateStudioUiTheme",
+          "nexestate-unified-smoke-sentinel"
+        ]
+      }
+    },
+    {
+      "name": "Presentation Studio: импорт PDF, разделы, сохранение и PDF-экспорт",
+      "status": "passed",
+      "durationMs": 2710,
+      "details": {
+        "projectCount": 1,
+        "tabs": [
+          {
+            "name": "2 Данные",
+            "selected": "true"
+          },
+          {
+            "name": "3 Медиа",
+            "selected": "true"
+          },
+          {
+            "name": "4 Дизайн",
+            "selected": "true"
+          },
+          {
+            "name": "1 PDF",
+            "selected": "true"
+          }
+        ],
+        "bottomBar": {
+          "height": 64,
+          "bottom": 772,
+          "viewport": 800,
+          "groups": [
+            "Работа и сохранение",
+            "Макет и экспорт",
+            "Финальные действия"
+          ]
+        },
+        "stored": [
+          {
+            "id": "4ee9a4c4-432c-49db-8771-7840e28879f0",
+            "status": "ready",
+            "hasSnapshot": true
+          }
+        ],
+        "storedAfterHub": [
+          {
+            "id": "4ee9a4c4-432c-49db-8771-7840e28879f0",
+            "status": "ready",
+            "hasSnapshot": true
+          }
+        ],
+        "pdfDownload": {
+          "target": "C:\\Users\\ED\\AppData\\Local\\Temp\\nexestate-unified-pwa-smoke\\unified-presentation.pdf",
+          "suggested": "NexEstate-unified-smoke.pdf",
+          "size": 692561
+        }
+      }
+    },
+    {
+      "name": "Manifest, иконки, installability и единственный service worker",
+      "status": "passed",
+      "durationMs": 688,
+      "details": {
+        "worker": {
+          "scope": "http://127.0.0.1:8771/",
+          "scriptURL": "http://127.0.0.1:8771/service-worker.js",
+          "controlled": true
+        },
+        "manifest": {
+          "id": "./",
+          "name": "NEX ESTATE Media Studio",
+          "short_name": "NEX Media",
+          "description": "Рабочие инструменты NexEstate для обработки медиа и создания презентаций объектов",
+          "lang": "ru-RU",
+          "start_url": "./",
+          "scope": "./",
+          "display": "standalone",
+          "display_override": [
+            "window-controls-overlay",
+            "standalone",
+            "minimal-ui"
+          ],
+          "orientation": "any",
+          "background_color": "#0b0b0c",
+          "theme_color": "#0b0b0c",
+          "categories": [
+            "photo",
+            "video",
+            "graphics-and-design",
+            "productivity"
+          ],
+          "icons": [
+            {
+              "src": "assets/icons/icon-192.png",
+              "sizes": "192x192",
+              "type": "image/png",
+              "purpose": "any"
+            },
+            {
+              "src": "assets/icons/icon-512.png",
+              "sizes": "512x512",
+              "type": "image/png",
+              "purpose": "any"
+            },
+            {
+              "src": "assets/icons/icon-maskable-192.png",
+              "sizes": "192x192",
+              "type": "image/png",
+              "purpose": "maskable"
+            },
+            {
+              "src": "assets/icons/icon-maskable-512.png",
+              "sizes": "512x512",
+              "type": "image/png",
+              "purpose": "maskable"
+            }
+          ]
+        },
+        "registrations": [
+          {
+            "scope": "http://127.0.0.1:8771/",
+            "scriptURL": "http://127.0.0.1:8771/service-worker.js"
+          }
+        ],
+        "cacheNames": [
+          "foreign-origin-cache-unified-qa",
+          "nex-estate-media-studio-unified-v1"
+        ],
+        "icons": [
+          {
+            "src": "assets/icons/icon-192.png",
+            "width": 192,
+            "height": 192,
+            "purpose": "any"
+          },
+          {
+            "src": "assets/icons/icon-512.png",
+            "width": 512,
+            "height": 512,
+            "purpose": "any"
+          },
+          {
+            "src": "assets/icons/icon-maskable-192.png",
+            "width": 192,
+            "height": 192,
+            "purpose": "maskable"
+          },
+          {
+            "src": "assets/icons/icon-maskable-512.png",
+            "width": 512,
+            "height": 512,
+            "purpose": "maskable"
+          }
+        ],
+        "installability": {
+          "installabilityErrors": [
+            {
+              "errorId": "in-incognito",
+              "errorArguments": []
+            }
+          ]
+        },
+        "functionalInstallabilityErrors": []
+      }
+    },
+    {
+      "name": "Офлайн-запуск Hub и обоих редакторов",
+      "status": "passed",
+      "durationMs": 1635,
+      "details": {
+        "routes": [
+          {
+            "route": "/",
+            "cards": 2
+          },
+          {
+            "route": "/apps/media/",
+            "photoButton": 1
+          },
+          {
+            "route": "/apps/presentation/",
+            "heading": 1
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "name": "GitHub Pages base-path simulation",
+      "status": "passed",
+      "durationMs": 1090,
+      "details": {
+        "baseUrl": "http://127.0.0.1:60155/NEX_ESTATE_MEDIA_STUDIO/",
+        "hub": {
+          "cards": 2,
+          "url": "http://127.0.0.1:60155/NEX_ESTATE_MEDIA_STUDIO/"
+        },
+        "media": {
+          "url": "http://127.0.0.1:60155/NEX_ESTATE_MEDIA_STUDIO/apps/media/",
+          "manifest": "../../manifest.webmanifest",
+          "back": "../../"
+        },
+        "presentation": {
+          "url": "http://127.0.0.1:60155/NEX_ESTATE_MEDIA_STUDIO/apps/presentation/",
+          "manifest": "../../manifest.webmanifest",
+          "back": "../../"
+        },
+        "worker": {
+          "scope": "http://127.0.0.1:60155/NEX_ESTATE_MEDIA_STUDIO/",
+          "scriptURL": "http://127.0.0.1:60155/NEX_ESTATE_MEDIA_STUDIO/service-worker.js",
+          "controlled": true
+        }
+      }
+    },
+    {
+      "name": "Нет новых browser errors интеграции",
+      "status": "passed",
+      "durationMs": 1,
+      "details": []
+    }
+  ],
+  "consoleErrors": [],
+  "downloads": [
+    {
+      "label": "unified-photo-result",
+      "suggested": "video-cover_NEX_ESTATE.jpg",
+      "size": 12064
+    },
+    {
+      "label": "unified-presentation",
+      "suggested": "NexEstate-unified-smoke.pdf",
+      "size": 692561
+    }
+  ],
+  "status": "passed",
+  "finishedAt": "2026-08-11T07:53:59.808Z"
+}
