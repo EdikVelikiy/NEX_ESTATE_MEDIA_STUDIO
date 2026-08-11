@@ -6285,6 +6285,13 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
   function canvasBlob(canvas,type,quality){
     return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Не удалось сформировать изображение')),type||'image/png',quality));
   }
+  async function yieldPdfWork(){
+    await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  window.nePdfCooperativeYield=yieldPdfWork;
+  function assertPdfImportToken(token){
+    if(token!==app.pdf.loadToken)throw new DOMException('Импорт PDF отменён','AbortError');
+  }
   async function digestBlob(blob){
     const data=await blob.arrayBuffer();
     const hash=await crypto.subtle.digest('SHA-256',data);
@@ -6388,20 +6395,20 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     const scanWidth=Math.min(420,canvas.width),scanHeight=Math.max(1,Math.round(canvas.height*scanWidth/canvas.width)),scan=document.createElement('canvas');scan.width=scanWidth;scan.height=scanHeight;
     const ctx=scan.getContext('2d',{willReadFrequently:true});ctx.drawImage(canvas,0,0,scanWidth,scanHeight);const pixels=ctx.getImageData(0,0,scanWidth,scanHeight).data,count=scanWidth*scanHeight,lum=new Float32Array(count),chroma=new Float32Array(count),detail=new Uint8Array(count),content=new Uint8Array(count);
     for(let index=0;index<count;index++){const p=index*4,r=pixels[p],g=pixels[p+1],b=pixels[p+2],value=.2126*r+.7152*g+.0722*b,range=Math.max(r,g,b)-Math.min(r,g,b);lum[index]=value;chroma[index]=range}
-    for(let y=0;y<scanHeight;y++)for(let x=0;x<scanWidth;x++){const index=y*scanWidth+x,current=lum[index],left=x?lum[index-1]:current,top=y?lum[index-scanWidth]:current,edge=Math.max(Math.abs(current-left),Math.abs(current-top)),bright=current>54||(chroma[index]>44&&current>30);detail[index]=bright||edge>14?1:0;content[index]=bright||edge>22?1:0}
+    for(let y=0;y<scanHeight;y++)for(let x=0;x<scanWidth;x++){const index=y*scanWidth+x,current=lum[index],left=x?lum[index-1]:current,top=y?lum[index-scanWidth]:current,edge=Math.max(Math.abs(current-left),Math.abs(current-top)),meaningful=current<246||chroma[index]>12||edge>8;detail[index]=meaningful?1:0;content[index]=chroma[index]>18||edge>12||current<238?1:0}
     const rowScores=Array.from({length:scanHeight},(_,y)=>{let sum=0;for(let x=0;x<scanWidth;x++)sum+=content[y*scanWidth+x];return sum/scanWidth});
-    const topCut=Math.round(scanHeight*.055),bottomCut=Math.round(scanHeight*.965),rowFlags=smoothFlags(rowScores.map((score,index)=>index>=topCut&&index<bottomCut&&score>.20),2,3),rowRuns=flagRuns(rowFlags,Math.max(16,Math.round(scanHeight*.085))),boxes=[];
-    for(const initial of rowRuns){let [y1,y2]=initial;const colScores=Array.from({length:scanWidth},(_,x)=>{let sum=0;for(let y=y1;y<y2;y++)sum+=detail[y*scanWidth+x];return sum/Math.max(1,y2-y1)}),colRuns=flagRuns(smoothFlags(colScores.map(score=>score>.18),2,3),Math.max(30,Math.round(scanWidth*.18)));if(!colRuns.length)continue;let [x1,x2]=colRuns.reduce((best,item)=>item[1]-item[0]>best[1]-best[0]?item:best,colRuns[0]);
-      const refinedScores=Array.from({length:scanHeight},(_,y)=>{let sum=0;for(let x=x1;x<x2;x++)sum+=detail[y*scanWidth+x];return sum/Math.max(1,x2-x1)}),refinedRuns=flagRuns(refinedScores.map(score=>score>.18),Math.max(12,Math.round(scanHeight*.07))).filter(run=>run[1]>y1-scanHeight*.04&&run[0]<y2+scanHeight*.04);if(refinedRuns.length){const merged=[];for(const run of refinedRuns){const last=merged[merged.length-1];if(last&&run[0]-last[1]<=scanHeight*.065)last[1]=run[1];else merged.push(run.slice())}const matching=merged.filter(run=>run[1]>y1&&run[0]<y2);if(matching.length){const best=matching.reduce((a,b)=>Math.min(a[1],y2)-Math.max(a[0],y1)>=Math.min(b[1],y2)-Math.max(b[0],y1)?a:b);y1=best[0];y2=best[1]}}
-      const sx=canvas.width/scanWidth,sy=canvas.height/scanHeight,pad=2,box={x:Math.max(0,Math.round((x1-pad)*sx)),y:Math.max(0,Math.round((y1-pad)*sy)),w:Math.min(canvas.width,Math.round((x2+pad)*sx))-Math.max(0,Math.round((x1-pad)*sx)),h:Math.min(canvas.height,Math.round((y2+pad)*sy))-Math.max(0,Math.round((y1-pad)*sy))};if(box.w<canvas.width*.18||box.h<canvas.height*.07||box.w*box.h<canvas.width*canvas.height*.025)continue;if(boxes.some(existing=>photoBoxIou(existing,box)>.82))continue;boxes.push(box)
+    const topCut=Math.round(scanHeight*.04),bottomCut=Math.round(scanHeight*.97),rowFlags=smoothFlags(rowScores.map((score,index)=>index>=topCut&&index<bottomCut&&score>.035),2,2),rowRuns=flagRuns(rowFlags,Math.max(10,Math.round(scanHeight*.045))),boxes=[];
+    for(const [y1,y2] of rowRuns){const colScores=Array.from({length:scanWidth},(_,x)=>{let sum=0;for(let y=y1;y<y2;y++)sum+=detail[y*scanWidth+x];return sum/Math.max(1,y2-y1)}),colRuns=flagRuns(smoothFlags(colScores.map(score=>score>.035),2,2),Math.max(18,Math.round(scanWidth*.09)));if(!colRuns.length)continue;const [x1,x2]=colRuns.reduce((best,item)=>item[1]-item[0]>best[1]-best[0]?item:best,colRuns[0]);
+      const sx=canvas.width/scanWidth,sy=canvas.height/scanHeight,pad=3,box={x:Math.max(0,Math.round((x1-pad)*sx)),y:Math.max(0,Math.round((y1-pad)*sy)),w:Math.min(canvas.width,Math.round((x2+pad)*sx))-Math.max(0,Math.round((x1-pad)*sx)),h:Math.min(canvas.height,Math.round((y2+pad)*sy))-Math.max(0,Math.round((y1-pad)*sy))};if(box.w<canvas.width*.09||box.h<canvas.height*.04||box.w*box.h<canvas.width*canvas.height*.008)continue;if(boxes.some(existing=>photoBoxIou(existing,box)>.82))continue;boxes.push(box)
     }
     const photos=[];
-    for(const box of boxes){const crop=document.createElement('canvas');crop.width=box.w;crop.height=box.h;crop.getContext('2d').drawImage(canvas,box.x,box.y,box.w,box.h,0,0,box.w,box.h);const analysis=analyzeCanvas(crop);if(analysis.blank||analysis.variance<900||analysis.edgeRatio<.035)continue;const blob=await canvasBlob(crop,'image/png'),hash=await digestBlob(blob);photos.push({page:pageNumber,sourcePage:pageNumber,width:crop.width,height:crop.height,pixelWidth:crop.width,pixelHeight:crop.height,canvas:crop,blob,hash,ext:'png',mime:'image/png',thumbnail:assetThumbnail(crop),analysis:Object.assign({},analysis,{flattenedRegion:box})})}
+    for(const box of boxes){await yieldPdfWork();const crop=document.createElement('canvas');crop.width=box.w;crop.height=box.h;crop.getContext('2d').drawImage(canvas,box.x,box.y,box.w,box.h,0,0,box.w,box.h);const analysis=analyzeCanvas(crop);if(analysis.blank)continue;const blob=await canvasBlob(crop,'image/png'),hash=await digestBlob(blob);photos.push({page:pageNumber,sourcePage:pageNumber,width:crop.width,height:crop.height,pixelWidth:crop.width,pixelHeight:crop.height,canvas:crop,blob,hash,ext:'png',mime:'image/png',thumbnail:assetThumbnail(crop),analysis:Object.assign({},analysis,{flattenedRegion:box})});await yieldPdfWork()}
     return photos;
   }
   async function extractPagePhotosV54(page,pageNumber,textLength,pageRatio){
     const list=await page.getOperatorList(),ops=pdfjsLib.OPS||{},objects=[];
     for(let i=0;i<list.fnArray.length;i++){
+      if(i&&i%32===0)await yieldPdfWork();
       const fn=list.fnArray[i],args=list.argsArray[i]||[];
       if(fn===ops.paintImageMaskXObject||fn===ops.paintSolidColorImageMask)continue;
       if(fn===ops.paintInlineImageXObject){objects.push(args[0]);continue}
@@ -6411,6 +6418,7 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     let blank=0;
     for(const object of objects.filter(Boolean)){
       try{
+        await yieldPdfWork();
         const canvas=pdfObjectCanvas(object);
         if(!canvas)continue;
         const width=canvas.width,height=canvas.height,ratio=width/height;
@@ -6580,34 +6588,40 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     updateConvertButton();
   }
   async function loadPdfV54(file){
-    if(!file)return;
+    if(!file)return false;
     const before=captureProjectSnapshot(),token=(app.pdf.loadToken||0)+1,sourcePdfId='pdf-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
-    app.pdf.loadToken=token;app.pdf.processing=true;updateConvertButton();compactBase.setStep?.('pdf');setStatus('warn','Загрузка PDF…');window.NE58_setPdfProgress?.('Загрузка PDF',4,'Проверка файла');
+    app.pdf.loadToken=token;app.pdf.lastImportError=null;app.pdf.processing=true;window.NE72_PDF_IMPORT_RENDER_SUSPENDED=true;updateConvertButton();compactBase.setStep?.('pdf');setStatus('warn','Загрузка PDF…');window.NE58_setPdfProgress?.('Загрузка PDF',4,'Проверка файла');
     let documentPdf=null;
     try{
-      neValidatePdfFile(file);await window.neEnsurePdfJs();const buffer=await file.arrayBuffer();
+      neValidatePdfFile(file);await window.neEnsurePdfJs();await yieldPdfWork();const buffer=await file.arrayBuffer();assertPdfImportToken(token);
       documentPdf=await pdfjsLib.getDocument({data:new Uint8Array(buffer),isEvalSupported:false}).promise;neValidatePdfDocument(documentPdf);
       const pages=[],texts=[];let totalPixels=0;
       for(let number=1;number<=documentPdf.numPages;number++){
-        if(token!==app.pdf.loadToken)return;const percent=8+Math.round(number/documentPdf.numPages*34);setStatus('warn','Извлечение текста и страницы '+number+' из '+documentPdf.numPages+'…');window.NE58_setPdfProgress?.('Извлечение текста',percent,'Страница '+number+' из '+documentPdf.numPages);
-        const page=await documentPdf.getPage(number),text=await page.getTextContent(),plain=pdfTextLines(text),viewport=page.getViewport({scale:2}),canvas=document.createElement('canvas');texts.push(plain);canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);totalPixels=neAccumulateCanvasPixels(totalPixels,canvas.width,canvas.height);await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;pages.push({page:number,canvas,text:plain,ocrText:'',preview:window.NE55_makePagePreview?.(canvas)||null})
+        assertPdfImportToken(token);await yieldPdfWork();
+        const percent=8+Math.round(number/documentPdf.numPages*34);setStatus('warn','Извлечение текста и страницы '+number+' из '+documentPdf.numPages+'…');window.NE58_setPdfProgress?.('Извлечение текста',percent,'Страница '+number+' из '+documentPdf.numPages);
+        const page=await documentPdf.getPage(number);
+        try{
+          const text=await page.getTextContent(),plain=pdfTextLines(text),viewport=page.getViewport({scale:2}),canvas=document.createElement('canvas');texts.push(plain);canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);totalPixels=neAccumulateCanvasPixels(totalPixels,canvas.width,canvas.height);await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;assertPdfImportToken(token);await yieldPdfWork();const preview=window.NE55_makePagePreview?.(canvas)||null;pages.push({page:number,canvas,text:plain,ocrText:'',preview});
+        }finally{try{page.cleanup?.()}catch(_){}}
+        await yieldPdfWork();
       }
-      if(token!==app.pdf.loadToken)return;
+      assertPdfImportToken(token);
       const rawText=texts.join('\n\n--- СТРАНИЦА ---\n\n'),initialData=window.qdParseText(rawText)||{};
       Object.assign(app.pdf,{fileName:file.name,sourcePdfId,rawText,pageCount:documentPdf.numPages,sourcePages:pages,extractedPhotos:[],appendix:false,flattened:false,sourceBlob:new Blob([buffer],{type:'application/pdf'}),ocrText:'',fieldSources:{},ocrAccepted:false,stats:{extracted:0,blank:0,duplicates:0,errors:[]},processing:true});
       if(typeof quickDealParsed!=='undefined')quickDealParsed={data:initialData,raw:rawText,file:file.name,pages:documentPdf.numPages,ocr:false,sourcePdfId};renderPdfStateV54();
-      window.NE58_setPdfProgress?.('OCR',45,'Текстовый слой проверен');if(typeof window.NE55_afterPdfTextReady==='function')await window.NE55_afterPdfTextReady({file,pageCount:documentPdf.numPages,sourcePdfId});
+      window.NE58_setPdfProgress?.('OCR',45,'Текстовый слой проверен');await yieldPdfWork();if(typeof window.NE55_afterPdfTextReady==='function')await window.NE55_afterPdfTextReady({file,pageCount:documentPdf.numPages,sourcePdfId});assertPdfImportToken(token);
       const extracted=[],hashes=new Set();let flattened=false,blank=0,duplicates=0;window.NE58_setPdfProgress?.('Извлечение фотографий',70,'Поиск исходных изображений');
       for(let number=1;number<=documentPdf.numPages;number++){
-        if(token!==app.pdf.loadToken)return;setStatus('warn','Извлечение фотографий: страница '+number+' из '+documentPdf.numPages+'…');window.NE58_setPdfProgress?.('Извлечение фотографий',70+Math.round(number/documentPdf.numPages*20),'Страница '+number+' из '+documentPdf.numPages);
-        const page=await documentPdf.getPage(number),plain=pages[number-1]?.text||'',viewport=page.getViewport({scale:1});
-        try{const result=await extractPagePhotosV54(page,number,plain.trim().length,viewport.width/viewport.height);blank+=result.blank||0;flattened=flattened||result.flattened;for(const item of result.photos){if(hashes.has(item.hash)){duplicates++;continue}hashes.add(item.hash);item.assetId='asset-'+sourcePdfId+'-'+number+'-'+item.hash.slice(0,12);item.sourcePdfId=sourcePdfId;item.sourcePage=number;item.number=1+extracted.filter(photo=>photo.page===number).length;extracted.push(item)}}catch(error){console.warn('Embedded image extraction failed on page '+number,error);app.pdf.stats.errors.push('Страница '+number+': '+(error.message||error))}
+        assertPdfImportToken(token);await yieldPdfWork();setStatus('warn','Извлечение фотографий: страница '+number+' из '+documentPdf.numPages+'…');window.NE58_setPdfProgress?.('Извлечение фотографий',70+Math.round(number/documentPdf.numPages*20),'Страница '+number+' из '+documentPdf.numPages);
+        const sourcePage=pages[number-1],plain=sourcePage?.text||'',pageCanvas=sourcePage?.canvas;
+        try{const analysis=pageCanvas?analyzeCanvas(pageCanvas):{blank:true};if(analysis.blank){blank++;continue}const photos=await segmentFlattenedPage(pageCanvas,number);flattened=flattened||plain.trim().length<30;for(const item of photos){if(hashes.has(item.hash)){duplicates++;continue}hashes.add(item.hash);item.assetId='asset-'+sourcePdfId+'-'+number+'-'+item.hash.slice(0,12);item.sourcePdfId=sourcePdfId;item.sourcePage=number;item.number=1+extracted.filter(photo=>photo.page===number).length;extracted.push(item)}}catch(error){console.warn('Rendered page image extraction failed on page '+number,error);app.pdf.stats.errors.push('Страница '+number+': '+(error.message||error))}
+        await yieldPdfWork();
       }
-      if(token!==app.pdf.loadToken)return;Object.assign(app.pdf,{extractedPhotos:extracted,flattened:flattened&&extracted.length===0,stats:Object.assign({},app.pdf.stats,{extracted:extracted.length,blank,duplicates}),processing:false});pushSnapshot(before,'Загрузка PDF');renderPdfStateV54();
-      window.NE58_setPdfProgress?.('Обновление презентации',96,'Создание фотостраниц и предпросмотра');if(typeof window.NE55_afterPdfLoaded==='function')await window.NE55_afterPdfLoaded({file,pageCount:documentPdf.numPages,sourcePdfId,extracted:extracted.length});window.ne53QueuePreview?.();scheduleAutosave();
-      const recognized=Object.keys(quickDealParsed?.data||initialData).filter(key=>quickDealParsed?.data?.[key]!=null&&String(quickDealParsed.data[key]).trim()).length;setStatus('ok','PDF обработан: '+documentPdf.numPages+' стр. · найдено полей: '+recognized+' · извлечено фото: '+extracted.length+'.');window.NE58_setPdfProgress?.('Готово',100,'Обработано страниц: '+documentPdf.numPages+' · фото: '+extracted.length);setTimeout(()=>window.NE58_hidePdfProgress?.(),2200)
-    }catch(error){if(token!==app.pdf.loadToken)return;app.pdf.processing=false;updateConvertButton();console.error('Compact Studio PDF import',error);setStatus('err','Не удалось обработать PDF: '+(error.message||'неизвестная ошибка'));window.NE58_setPdfProgress?.('Ошибка',100,error.message||'Неизвестная ошибка');compactBase.setStep?.('pdf')}
-    finally{app.pdf.processing=false;updateConvertButton();try{await documentPdf?.destroy?.()}catch(_){}}
+      assertPdfImportToken(token);Object.assign(app.pdf,{extractedPhotos:extracted,flattened:flattened&&extracted.length===0,stats:Object.assign({},app.pdf.stats,{extracted:extracted.length,blank,duplicates}),processing:false});pushSnapshot(before,'Загрузка PDF');renderPdfStateV54();
+      window.NE58_setPdfProgress?.('Обновление презентации',96,'Создание фотостраниц и предпросмотра');if(typeof window.NE55_afterPdfLoaded==='function')await window.NE55_afterPdfLoaded({file,pageCount:documentPdf.numPages,sourcePdfId,extracted:extracted.length});scheduleAutosave();
+      const recognized=Object.keys(quickDealParsed?.data||initialData).filter(key=>quickDealParsed?.data?.[key]!=null&&String(quickDealParsed.data[key]).trim()).length;setStatus('ok','PDF обработан: '+documentPdf.numPages+' стр. · найдено полей: '+recognized+' · извлечено фото: '+extracted.length+'.');window.NE58_setPdfProgress?.('Готово',100,'Обработано страниц: '+documentPdf.numPages+' · фото: '+extracted.length);setTimeout(()=>window.NE58_hidePdfProgress?.(),2200);return true;
+    }catch(error){app.pdf.lastImportError=error;app.pdf.processing=false;updateConvertButton();if(error?.name!=='AbortError')console.error('Compact Studio PDF import',error);setStatus('err','Не удалось обработать PDF: '+(error.message||'неизвестная ошибка'));window.NE58_setPdfProgress?.('Ошибка',100,error.message||'Неизвестная ошибка');compactBase.setStep?.('pdf');return false}
+    finally{app.pdf.processing=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true){window.NE72_PDF_IMPORT_RENDER_SUSPENDED=false;window.ne53QueuePreview?.()}updateConvertButton();try{await documentPdf?.destroy?.()}catch(_){}}
   }
   function openPageV54(index){
     const page=app.pdf.sourcePages?.[index],lightbox=byId('ne53PageLightbox'),image=byId('ne53PageImage');
@@ -6952,14 +6966,24 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
   }
   async function serializeSnapshot(snapshot){
     const pdf=snapshot.pdf||{},mediaItems=snapshot.media?.items||[];
+    const sourcePages=[];
+    for(const item of pdf.sourcePages||[]){
+      await window.nePdfCooperativeYield?.();
+      sourcePages.push({page:item.page,text:item.text||'',ocrText:item.ocrText||'',blob:await canvasBlob(item.canvas,'image/png')});
+    }
+    const serializedMedia=[];
+    for(const item of mediaItems){
+      await window.nePdfCooperativeYield?.();
+      serializedMedia.push({type:item.type,blob:item.ne53OriginalBlob instanceof Blob?item.ne53OriginalBlob:await imageToBlob(item.image),ne53Hash:item.ne53Hash||'',ne53Name:item.ne53Name||'',ne53Type:item.ne53Type||'',neId:item.neId||'',neSourceKind:item.neSourceKind||'manual-upload',neSourcePdfId:item.neSourcePdfId||'',neSourcePage:Number(item.neSourcePage)||0,ne53Width:Number(item.ne53Width)||item.image?.naturalWidth||item.image?.width||0,ne53Height:Number(item.ne53Height)||item.image?.naturalHeight||item.image?.height||0,ne53Orientation:Number(item.ne53Orientation)||1});
+    }
     return {
       fields:snapshot.fields,settings:snapshot.settings||null,S:snapshot.S,adv:snapshot.adv,trust:snapshot.trust,metro:snapshot.metro,editor:snapshot.editor,design:snapshot.design,quick:snapshot.quick,step:snapshot.step,
       pdf:{
         fileName:pdf.fileName,sourcePdfId:pdf.sourcePdfId||'',rawText:pdf.rawText,pageCount:pdf.pageCount,appendix:pdf.appendix,flattened:pdf.flattened,sourceBlob:pdf.sourceBlob,ocrText:pdf.ocrText,fieldSources:pdf.fieldSources||{},ocrAccepted:!!pdf.ocrAccepted,stats:pdf.stats,
-        sourcePages:await Promise.all((pdf.sourcePages||[]).map(async item=>({page:item.page,text:item.text||'',ocrText:item.ocrText||'',blob:await canvasBlob(item.canvas,'image/png')}))),
+        sourcePages,
         extractedPhotos:(pdf.extractedPhotos||[]).map(item=>({assetId:item.assetId||'',sourcePdfId:item.sourcePdfId||pdf.sourcePdfId||'',sourcePage:item.sourcePage||item.page,page:item.page,number:item.number,width:item.width,height:item.height,pixelWidth:item.pixelWidth||item.width,pixelHeight:item.pixelHeight||item.height,blob:item.blob,thumbnail:item.thumbnail||'',hash:item.hash,ext:item.ext,mime:item.mime,transferred:!!item.transferred,analysis:item.analysis||null}))
       },
-      media:{items:await Promise.all(mediaItems.map(async item=>({type:item.type,blob:item.ne53OriginalBlob instanceof Blob?item.ne53OriginalBlob:await imageToBlob(item.image),ne53Hash:item.ne53Hash||'',ne53Name:item.ne53Name||'',ne53Type:item.ne53Type||'',neId:item.neId||'',neSourceKind:item.neSourceKind||'manual-upload',neSourcePdfId:item.neSourcePdfId||'',neSourcePage:Number(item.neSourcePage)||0,ne53Width:Number(item.ne53Width)||item.image?.naturalWidth||item.image?.width||0,ne53Height:Number(item.ne53Height)||item.image?.naturalHeight||item.image?.height||0,ne53Orientation:Number(item.ne53Orientation)||1})))},
+      media:{items:serializedMedia},
       broker:await imageToBlob(snapshot.broker)
     };
   }
@@ -7784,7 +7808,7 @@ async function buildCatalogPdf({download=true}={}){
 async function downloadCatalog(){try{await buildCatalogPdf({download:true})}catch(error){console.error('Catalog export',error);toastSafe('Каталог не создан: '+error.message,'err');const status=byId('nsCatalogTitle');if(status)status.textContent='PDF-каталог'}}
 
 function pdfErrorMessage(error){const text=cleanText(error?.message||error,500);if(/password|encrypted|шифр/i.test(text))return'PDF зашифрован или защищён паролем';if(/invalid|format|corrupt|повреж/i.test(text))return'PDF повреждён или имеет неподдерживаемую структуру';if(/memory|allocation|quota|out of/i.test(text))return'Недостаточно памяти или квоты браузера для обработки PDF';return text||'Неизвестная ошибка PDF'}
-async function processPdfRecord(record,file){record.status='processing';record.statusText='Проверка PDF…';record.sourceFile=file;await projectDb.put(record);await refreshProjects();try{await verifyPdfSignature(file);await ensureStudioShell();suppressAutosave=true;resetRuntimeState();currentRecord=record;currentSettings=normalizeSettings(record.settings);record.statusText='Извлечение текста, страниц и фотографий…';await projectDb.put(record);await refreshProjects();const loader=window.NEXESTATE_V54_TEST?.loadPdf||legacy.loadPdf;if(typeof loader!=='function')throw new Error('Модуль импорта PDF недоступен');window.NE55_IMPORTING_NEW_PROJECT=true;await loader(file);if(!window.NE53_STATE?.pdf?.pageCount)throw new Error('В PDF не найдено доступных страниц');const parsedData=typeof quickDealParsed!=='undefined'&&quickDealParsed?.data?quickDealParsed.data:{},recognizedData={};Object.keys(FIELD_BINDINGS).forEach(key=>{if(parsedData[key]!=null&&cleanText(parsedData[key]))recognizedData[key]=cleanText(parsedData[key])});['scenario','otype','metro'].forEach(key=>{if(parsedData[key]!=null&&cleanText(parsedData[key]))recognizedData[key]=cleanText(parsedData[key])});record.data={...dataFromForm(),...recognizedData};record.data.objName=record.data.objName||record.name;applyDataToForm(record.data);if(window.NE53_STATE?.pdf&&quickDealParsed?.sources)window.NE53_STATE.pdf.fieldSources={...(window.NE53_STATE.pdf.fieldSources||{}),...quickDealParsed.sources};record.settings=normalizeSettings(currentSettings);const snapshot=window.NEXESTATE_V54_TEST.captureProjectSnapshot();record.snapshot=await window.NEXESTATE_V54_TEST.serializeSnapshot(snapshot);record.thumbnail=await captureThumbnail();record.designName=DS.design;record.status='ready';record.statusText='Готова · PDF '+window.NE53_STATE.pdf.pageCount+' стр.';record.updatedAt=new Date().toISOString();record.sourceFile=null;await projectDb.put(record);return true}catch(error){record.status='error';record.statusText=pdfErrorMessage(error);record.updatedAt=new Date().toISOString();record.sourceFile=file;await projectDb.put(record);console.error('Bulk PDF import',record.name,error);return false}finally{delete window.NE55_IMPORTING_NEW_PROJECT;suppressAutosave=false;currentRecord=null;currentSettings=null}}
+async function processPdfRecord(record,file){record.status='processing';record.statusText='Проверка PDF…';record.sourceFile=file;await projectDb.put(record);await refreshProjects();try{await verifyPdfSignature(file);window.NE72_PDF_IMPORT_QUEUE_ACTIVE=true;window.NE72_PDF_IMPORT_RENDER_SUSPENDED=true;await ensureStudioShell();suppressAutosave=true;resetRuntimeState();currentRecord=record;currentSettings=normalizeSettings(record.settings);record.statusText='Извлечение текста, страниц и фотографий…';await projectDb.put(record);await refreshProjects();const loader=window.NEXESTATE_V54_TEST?.loadPdf||legacy.loadPdf;if(typeof loader!=='function')throw new Error('Модуль импорта PDF недоступен');window.NE55_IMPORTING_NEW_PROJECT=true;const loaded=await loader(file);if(loaded===false)throw(window.NE53_STATE?.pdf?.lastImportError||new Error('PDF не удалось обработать'));if(!window.NE53_STATE?.pdf?.pageCount)throw new Error('В PDF не найдено доступных страниц');const parsedData=typeof quickDealParsed!=='undefined'&&quickDealParsed?.data?quickDealParsed.data:{},recognizedData={};Object.keys(FIELD_BINDINGS).forEach(key=>{if(parsedData[key]!=null&&cleanText(parsedData[key]))recognizedData[key]=cleanText(parsedData[key])});['scenario','otype','metro'].forEach(key=>{if(parsedData[key]!=null&&cleanText(parsedData[key]))recognizedData[key]=cleanText(parsedData[key])});record.data={...dataFromForm(),...recognizedData};record.data.objName=record.data.objName||record.name;applyDataToForm(record.data);if(window.NE53_STATE?.pdf&&quickDealParsed?.sources)window.NE53_STATE.pdf.fieldSources={...(window.NE53_STATE.pdf.fieldSources||{}),...quickDealParsed.sources};record.settings=normalizeSettings(currentSettings);const snapshot=window.NEXESTATE_V54_TEST.captureProjectSnapshot();record.snapshot=await window.NEXESTATE_V54_TEST.serializeSnapshot(snapshot);record.thumbnail=await captureThumbnail();record.designName=DS.design;record.status='ready';record.statusText='Готова · PDF '+window.NE53_STATE.pdf.pageCount+' стр.';record.updatedAt=new Date().toISOString();record.sourceFile=null;await projectDb.put(record);return true}catch(error){record.status='error';record.statusText=pdfErrorMessage(error)+' · Повторите обработку из меню карточки';record.updatedAt=new Date().toISOString();record.sourceFile=file;await projectDb.put(record);console.error('Bulk PDF import',record.name,error);return false}finally{delete window.NE55_IMPORTING_NEW_PROJECT;delete window.NE72_PDF_IMPORT_QUEUE_ACTIVE;window.NE72_PDF_IMPORT_RENDER_SUSPENDED=false;suppressAutosave=false;currentRecord=null;currentSettings=null}}
 async function importPdfFiles(fileList){if(bulkBusy)return;const files=[...(fileList||[])];if(!files.length)return;window.NE55_BATCH_OCR_CHOICE=typeof window.NE55_confirmBatchOcr==='function'?await window.NE55_confirmBatchOcr(files.length):'no';bulkBusy=true;let ready=0,failed=0;setHomeStatus(`Подготовка ${files.length} PDF…`);try{for(let index=0;index<files.length;index++){const file=files[index],name=safeName((file.name||`Презентация ${index+1}`).replace(/\.pdf$/i,'')),record=projectDefaults(name);record.order=Math.max(Date.now(),...cachedProjects.map(item=>Number(item.order)||0))+index+1;record.status='processing';record.statusText=`Ожидает обработки · ${index+1}/${files.length}`;try{await projectDb.put(record);setHomeStatus(`PDF ${index+1}/${files.length}: ${file.name}`);if(await processPdfRecord(record,file))ready++;else failed++}catch(error){failed++;record.status='error';record.statusText=pdfErrorMessage(error);try{await projectDb.put(record)}catch(_){setHomeStatus('Не удалось сохранить карточку ошибки: '+error.message,'error')}}await refreshProjects()}setHomeStatus(`Обработка завершена: готово ${ready}, с ошибкой ${failed}`,failed?'error':'ok')}finally{delete window.NE55_BATCH_OCR_CHOICE;bulkBusy=false;currentRecord=null;currentSettings=null;try{resetRuntimeState()}catch(_){}byId('presentationStudio')?.classList.remove('show');byId('studioHome').hidden=false}}
 async function retryImport(id){if(bulkBusy)return;const record=await projectDb.get(id);if(!record?.sourceFile){setHomeStatus('Исходный PDF для повторной обработки не сохранён','error');return}bulkBusy=true;setHomeStatus('Повторная обработка «'+projectTitle(record)+'»…');try{const source=record.sourceFile instanceof File?record.sourceFile:new File([record.sourceFile],projectTitle(record)+'.pdf',{type:record.sourceFile.type||'application/pdf'});const ok=await processPdfRecord(record,source);setHomeStatus(ok?'PDF успешно обработан':'Повторная обработка завершилась ошибкой',ok?'ok':'error')}finally{bulkBusy=false;currentRecord=null;currentSettings=null;try{resetRuntimeState()}catch(_){}await refreshProjects()}}
 
@@ -7894,15 +7918,75 @@ function parseStructured(raw,fileName=''){
 function pageSourceFor(value,pages,fallbackSnippet=''){const needle=normalizeText(value).toLocaleLowerCase('ru-RU').replace(/\s/g,''),digits=needle.replace(/\D/g,''),sourcePdfId=window.NE53_STATE?.pdf?.sourcePdfId||'';for(const page of pages){const text=normalizeText([page.text,page.ocrText].filter(Boolean).join('\n')),flat=text.toLocaleLowerCase('ru-RU').replace(/\s/g,''),index=flat.indexOf(needle);if(index>=0||digits.length>=3&&flat.replace(/\D/g,'').includes(digits)){const lines=text.split('\n').filter(Boolean),snippet=lines.find(line=>{const norm=line.toLocaleLowerCase('ru-RU').replace(/\s/g,'');return norm.includes(needle)||digits.length>=3&&norm.replace(/\D/g,'').includes(digits)})||lines[0]||'';return{sourcePdfId,page:page.page||pages.indexOf(page)+1,snippet:snippet.slice(0,220)}}}return{sourcePdfId,page:0,snippet:normalizeText(fallbackSnippet).slice(0,220)}}
 function currentValue(key){if(key==='scenario')return clean(byId('studioScenario')?.value);if(key==='otype')return clean(byId('studioType')?.value);if(key==='metro')return clean(byId('studioMetro')?.value);return clean(byId(FIELD_IDS[key])?.value)}
 function applyRecognized(data,pages,fallbackSnippet=''){const patch={},sources={},conflicts=[],pdf=window.NE53_STATE?.pdf,previous=pdf?.fieldSources||{},sourcePdfId=pdf?.sourcePdfId||'';let found=0,changed=0;for(const [key,valueRaw] of Object.entries(data)){if(!FIELD_LABELS[key]&&key!=='scenario'&&key!=='otype'&&key!=='metro')continue;const value=clean(valueRaw);if(!value)continue;found++;const existing=currentValue(key),prior=previous[key],same=valueToCompare(existing)===valueToCompare(value),defaultReplace=(key==='scenario'||key==='otype')&&window.NE55_ALLOW_DEFAULT_RECOGNITION===true,priorAuto=prior&&prior.sourcePdfId===sourcePdfId&&prior.manual!==true&&valueToCompare(existing)===valueToCompare(prior.autoValue);if(existing&&!same&&!defaultReplace&&!priorAuto){conflicts.push(FIELD_LABELS[key]||key);continue}if(same)continue;patch[key]=value;sources[key]={...pageSourceFor(value,pages,fallbackSnippet),autoValue:value,manual:false};changed++}for(const [key,value] of Object.entries(patch)){const field=key==='scenario'?byId('studioScenario'):key==='otype'?byId('studioType'):key==='metro'?byId('studioMetro'):byId(FIELD_IDS[key]);if(field)field.value=value}window.NEXESTATE_STANDALONE_TEST?.setData?.(patch);if(pdf)pdf.fieldSources=Object.assign({},previous,sources);return{found,changed,conflicts,patch,sources}}
+function stageRecognized(data,pages,fallbackSnippet=''){const patch={},sources={};for(const [key,valueRaw] of Object.entries(data||{})){if(!FIELD_LABELS[key]&&key!=='scenario'&&key!=='otype'&&key!=='metro')continue;const value=clean(valueRaw);if(!value)continue;patch[key]=value;sources[key]={...pageSourceFor(value,pages,fallbackSnippet),autoValue:value,manual:false}}const found=Object.keys(patch).length;return{found,changed:found,conflicts:[],patch,sources}}
 function valueToCompare(value){return normalizeText(value).toLocaleLowerCase('ru-RU').replace(/\s+/g,' ').trim()}
 function inferredFeatures(data){const list=[],add=(type,value,label)=>{value=clean(value);if(value&&!list.some(item=>item.type===type)&&list.length<8)list.push({type,enabled:true,value,label,auto:true})};add('area',data.area&&(String(data.area).includes('м²')?data.area:data.area+' м²'),'Площадь');if(data.scenario==='Аренда')add('rent',data.rate,'Арендная ставка');else add('sale',data.price,'Цена продажи');add('map',data.map,'МАП');add('floor',data.floor,'Этаж');add('ceiling',data.ceil&&(String(data.ceil).includes('м')?data.ceil:data.ceil+' м'),'Потолки');add('power',data.power&&(String(data.power).toLocaleLowerCase('ru-RU').includes('квт')?data.power:data.power+' кВт'),'Мощность');add('layout',data.layout,'Планировка');const desc=clean(data.draft),entrance=(desc.match(/(\d+)\s+(?:отдельн[а-яё]*\s+)?вход/i)||[])[1];add('entrance',entrance,'Отдельные входы');return list}
 function showReport(result){const panel=ensureProgressPanel(),report=byId('ne58ProgressReport'),status=byId('studioPdfStatus');window.NE58_LAST_OCR_REPORT=result;if(report){const parts=result.error?[result.error]:[`${result.pages||0} стр.`,`полей найдено: ${result.found||0}`,`заполнено: ${result.changed||0}`,`OCR-страниц: ${result.ocrPages||0}`,`фото: ${result.extracted||0}`];if(result.errors?.length)parts.push('ошибок: '+result.errors.length);report.textContent=parts.join(' · ')}if(panel)panel.hidden=false;if(status&&result.error){status.className='ne53-status show err';status.textContent=result.error}}
 async function recognizeAndFill({automatic=false,save=true}={}){if(ocrBusy)return window.NE58_LAST_OCR_REPORT||false;const pdf=window.NE53_STATE?.pdf,pages=pdf?.sourcePages||[];if(!pages.length)return false;ocrBusy=true;const button=byId('ne53OcrButton'),status=byId('studioPdfStatus'),errors=[];if(button){button.disabled=true;button.textContent='Распознавание…'}let ocrPages=0;try{const missingPages=pages.filter(page=>!usefulText(page.text));if(missingPages.length){window.NE58_setPdfProgress?.('OCR',45,'Подготовка локального распознавания');if(status){status.className='ne53-status show warn';status.textContent='OCR: подготовка локального модуля…'}await window.neEnsureTesseract();for(let index=0;index<missingPages.length;index++){const page=missingPages[index],start=46,indexPart=(index+1)/missingPages.length;window.NE58_setPdfProgress?.('OCR',start+Math.round(indexPart*17),`Страница ${page.page||index+1} из ${pages.length}`);if(status)status.textContent=`OCR: страница ${page.page||index+1} · ${index+1} из ${missingPages.length}`;try{const result=await window.Tesseract.recognize(page.canvas,'rus+eng',{logger:message=>{if(message?.status==='recognizing text'&&Number.isFinite(message.progress))window.NE58_setPdfProgress?.('OCR',start+Math.round(((index+message.progress)/missingPages.length)*17),`Страница ${page.page||index+1} · ${Math.round(message.progress*100)}%`)}});page.ocrText=normalizeText(result?.data?.text||'');ocrPages++}catch(error){errors.push(`Страница ${page.page||index+1}: ${error.message||error}`);page.ocrText=''}}}window.NE58_setPdfProgress?.('Заполнение данных',65,'Нормализация и структурный разбор');const merged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[page.text,page.ocrText].filter(Boolean).join('\n')}`).join('\n\n'),data=parseStructured(merged,pdf.fileName),applied=applyRecognized(data,pages,pdf.fileName),expected=['objName','area','addr','metro','floor','ceil','power'],missing=expected.filter(key=>!data[key]).map(key=>FIELD_LABELS[key]);pdf.rawText=merged;pdf.ocrText=pages.map(page=>page.ocrText||'').filter(Boolean).join('\n\n');pdf.ocrAccepted=applied.found>0;if(typeof quickDealParsed!=='undefined')quickDealParsed={data,raw:merged,file:pdf.fileName,pages:pages.length,ocr:ocrPages>0,sources:applied.sources,sourcePdfId:pdf.sourcePdfId};if(applied.changed){window.NEXESTATE_STANDALONE_TEST?.setFeatures?.(inferredFeatures({...data,...applied.patch}));window.ne53QueuePreview?.();if(save&&!pdf.processing)await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false)}const report={pages:pages.length,ocrPages,found:applied.found,changed:applied.changed,missing,conflicts:applied.conflicts,errors,extracted:pdf.extractedPhotos?.length||0};if(status){status.className='ne53-status show '+(errors.length?'warn':'ok');status.textContent=`Распознавание: ${pages.length} стр. · найдено ${applied.found} · заполнено ${applied.changed}${errors.length?' · ошибок '+errors.length:''}.`}showReport(report);return report}catch(error){console.error('NexEstate OCR',error);const report={error:'OCR не завершён: '+(error.message||error),pages:pages.length,ocrPages,found:0,changed:0,missing:[],conflicts:[],errors:[String(error.message||error)]};showReport(report);return report}finally{ocrBusy=false;if(button){button.disabled=false;button.textContent='Распознать заново'}}}
 function clearRecognizedData({confirmUser=true,recordHistory=true,sourcePdfId}={}){const pdf=window.NE53_STATE?.pdf,sources=pdf?.fieldSources||{},target=sourcePdfId||pdf?.sourcePdfId||'';if(confirmUser&&!confirm('Очистить значения, автоматически заполненные из текущего PDF? Вручную изменённые значения, PDF и фотографии останутся.'))return false;const patch={},kept={};let cleared=0;for(const [key,source] of Object.entries(sources)){if(target&&source.sourcePdfId!==target){kept[key]=source;continue}const current=currentValue(key),unchanged=source.manual!==true&&valueToCompare(current)===valueToCompare(source.autoValue);if(!unchanged){kept[key]={...source,manual:true};continue}patch[key]=key==='scenario'?'Продажа':key==='otype'?'Торговое помещение':'';cleared++}if(!cleared)return false;if(recordHistory)window.ne54BeforeProjectMutation?.('Очистка распознанных данных');window.NEXESTATE_STANDALONE_TEST?.setData?.(patch);window.NEXESTATE_STANDALONE_TEST?.clearAutoFeatures?.();pdf.fieldSources=kept;pdf.ocrAccepted=false;showReport({pages:pdf.pageCount||0,ocrPages:0,found:0,changed:0,missing:[],conflicts:[],errors:[],extracted:pdf.extractedPhotos?.length||0});const status=byId('studioPdfStatus');if(status){status.className='ne53-status show ok';status.textContent='Очищено автоматически заполненных значений: '+cleared+'. Вручную изменённые значения сохранены.'}return true}
+recognizeAndFill=async function({automatic=false,save=true}={}){
+  if(ocrBusy)return window.NE58_LAST_OCR_REPORT||false;
+  const pdf=window.NE53_STATE?.pdf,pages=pdf?.sourcePages||[];
+  if(!pages.length)return false;
+  const importToken=pdf.loadToken,button=byId('ne53OcrButton'),status=byId('studioPdfStatus'),errors=[];
+  let ocrPages=0,worker=null;
+  const assertCurrent=()=>{if(importToken!==pdf.loadToken)throw new DOMException('Импорт PDF отменён','AbortError')};
+  ocrBusy=true;
+  if(button){button.disabled=true;button.textContent='Распознавание…'}
+  try{
+    const missingPages=pages.filter(page=>!usefulText(page.text));
+    if(missingPages.length){
+      window.NE58_setPdfProgress?.('OCR',45,'Подготовка локального распознавания');
+      if(status){status.className='ne53-status show warn';status.textContent='OCR: подготовка локального модуля…'}
+      await window.neEnsureTesseract();assertCurrent();await window.nePdfCooperativeYield?.();
+      let lastLoggedPercent=-1;
+      worker=await window.Tesseract.createWorker('rus+eng',undefined,{logger:message=>{
+        if(message?.status!=='recognizing text'||!Number.isFinite(message.progress))return;
+        const percent=Math.round(message.progress*100);
+        if(percent===lastLoggedPercent)return;
+        lastLoggedPercent=percent;
+        const current=Math.max(0,missingPages.findIndex(page=>page===window.NE72_ACTIVE_OCR_PAGE));
+        window.NE58_setPdfProgress?.('OCR',46+Math.round(((current+message.progress)/missingPages.length)*17),`Страница ${window.NE72_ACTIVE_OCR_PAGE?.page||current+1} · ${percent}%`);
+      }});
+      await worker.setParameters({tessedit_pageseg_mode:String(window.Tesseract.PSM?.SPARSE_TEXT||11),preserve_interword_spaces:'1'});assertCurrent();
+      for(let index=0;index<missingPages.length;index++){
+        assertCurrent();await window.nePdfCooperativeYield?.();
+        const page=missingPages[index],sourceCanvas=page.canvas,maxOcrEdge=1200,ocrScale=Math.min(1,maxOcrEdge/Math.max(sourceCanvas.width,sourceCanvas.height));let ocrCanvas=sourceCanvas;
+        if(ocrScale<.999){ocrCanvas=document.createElement('canvas');ocrCanvas.width=Math.max(1,Math.round(sourceCanvas.width*ocrScale));ocrCanvas.height=Math.max(1,Math.round(sourceCanvas.height*ocrScale));const context=ocrCanvas.getContext('2d',{alpha:false});context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(sourceCanvas,0,0,ocrCanvas.width,ocrCanvas.height)}
+        window.NE72_ACTIVE_OCR_PAGE=page;lastLoggedPercent=-1;
+        window.NE58_setPdfProgress?.('OCR',46+Math.round(index/missingPages.length*17),`Страница ${page.page||index+1} из ${pages.length}`);
+        if(status)status.textContent=`OCR: страница ${page.page||index+1} · ${index+1} из ${missingPages.length}`;
+        try{
+          const result=await worker.recognize(ocrCanvas);assertCurrent();
+          page.ocrText=normalizeText(result?.data?.text||'');ocrPages++;
+        }catch(error){
+          if(error?.name==='AbortError')throw error;
+          errors.push(`Страница ${page.page||index+1}: ${error.message||error}`);page.ocrText='';
+        }finally{if(ocrCanvas!==sourceCanvas){ocrCanvas.getContext('2d')?.clearRect(0,0,ocrCanvas.width,ocrCanvas.height);ocrCanvas.width=0;ocrCanvas.height=0}}
+        await window.nePdfCooperativeYield?.();
+      }
+    }
+    assertCurrent();window.NE58_setPdfProgress?.('Заполнение данных',65,'Нормализация и структурный разбор');await window.nePdfCooperativeYield?.();
+    const queuedImport=window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true,merged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[page.text,page.ocrText].filter(Boolean).join('\n')}`).join('\n\n'),data=parseStructured(merged,pdf.fileName),applied=queuedImport?stageRecognized(data,pages,pdf.fileName):applyRecognized(data,pages,pdf.fileName),expected=['objName','area','addr','metro','floor','ceil','power'],missing=expected.filter(key=>!data[key]).map(key=>FIELD_LABELS[key]);
+    pdf.rawText=merged;pdf.ocrText=pages.map(page=>page.ocrText||'').filter(Boolean).join('\n\n');pdf.ocrAccepted=applied.found>0;
+    if(typeof quickDealParsed!=='undefined')quickDealParsed={data,raw:merged,file:pdf.fileName,pages:pages.length,ocr:ocrPages>0,sources:applied.sources,sourcePdfId:pdf.sourcePdfId};
+    if(applied.changed&&!queuedImport){window.NEXESTATE_STANDALONE_TEST?.setFeatures?.(inferredFeatures({...data,...applied.patch}));window.ne53QueuePreview?.();if(save&&!pdf.processing)await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false)}
+    const report={pages:pages.length,ocrPages,found:applied.found,changed:applied.changed,missing,conflicts:applied.conflicts,errors,extracted:pdf.extractedPhotos?.length||0};
+    if(status){status.className='ne53-status show '+(errors.length?'warn':'ok');status.textContent=`Распознавание: ${pages.length} стр. · найдено ${applied.found} · заполнено ${applied.changed}${errors.length?' · ошибок '+errors.length:''}.`}
+    showReport(report);return report;
+  }catch(error){
+    if(error?.name==='AbortError')throw error;
+    console.error('NexEstate OCR',error);const report={error:'OCR не завершён: '+(error.message||error),pages:pages.length,ocrPages,found:0,changed:0,missing:[],conflicts:[],errors:[String(error.message||error)]};showReport(report);return report;
+  }finally{
+    window.NE72_ACTIVE_OCR_PAGE=null;
+    if(worker){try{await worker.terminate()}catch(error){console.warn('NexEstate OCR worker cleanup',error)}}
+    ocrBusy=false;if(button){button.disabled=false;button.textContent='Распознать заново'}
+  }
+};
 window.runImportedPdfOcr=()=>recognizeAndFill({automatic:false,save:true});
 window.NE58_clearRecognizedData=clearRecognizedData;
 window.NE55_afterPdfTextReady=async()=>{const state=window.NEXESTATE_STANDALONE_TEST?.getState?.(),meaningful=Object.entries(state?.data||{}).some(([key,value])=>!['scenario','otype','metro'].includes(key)&&clean(value));window.NE55_ALLOW_DEFAULT_RECOGNITION=window.NE55_IMPORTING_NEW_PROJECT===true||!meaningful;return recognizeAndFill({automatic:true,save:false})};
-window.NE55_afterPdfLoaded=async context=>{const api=window.NEXESTATE_STANDALONE_TEST,pdf=window.NE53_STATE?.pdf,last=window.NE58_LAST_OCR_REPORT||{pages:pdf?.pageCount||0,ocrPages:0,found:0,changed:0,missing:[],conflicts:[],errors:[]};api?.activateByNexEstate?.({restoreCover:true,automatic:true});const recognized=typeof quickDealParsed!=='undefined'&&quickDealParsed?.data?applyRecognized(quickDealParsed.data,pdf?.sourcePages||[],pdf?.fileName||''):{found:0,changed:0,conflicts:[]};if(recognized.changed){api?.setFeatures?.(inferredFeatures(quickDealParsed.data));window.applyManualPresentationData?.();window.ne53QueuePreview?.()}const report={...last,found:Math.max(Number(last.found)||0,Number(recognized.found)||0),changed:Math.max(Number(last.changed)||0,Number(recognized.changed)||0),conflicts:[...new Set([...(last.conflicts||[]),...(recognized.conflicts||[])])],extracted:Number(context?.extracted)||pdf?.extractedPhotos?.length||0};showReport(report);const status=byId('studioPdfStatus');if(status){status.className='ne53-status show '+(report.errors?.length?'warn':'ok');status.textContent=`PDF обработан: ${report.pages||pdf?.pageCount||0} стр. · найдено полей: ${report.found||0} · заполнено: ${report.changed||0} · фото: ${report.extracted||0}${report.errors?.length?' · ошибок: '+report.errors.length:''}.`}window.NexCompactStudio?.setStep?.('pdf');return report};
+window.NE55_afterPdfLoaded=async context=>{const api=window.NEXESTATE_STANDALONE_TEST,pdf=window.NE53_STATE?.pdf,last=window.NE58_LAST_OCR_REPORT||{pages:pdf?.pageCount||0,ocrPages:0,found:0,changed:0,missing:[],conflicts:[],errors:[]};if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true){const report={...last,extracted:Number(context?.extracted)||pdf?.extractedPhotos?.length||0};showReport(report);const status=byId('studioPdfStatus');if(status){status.className='ne53-status show '+(report.errors?.length?'warn':'ok');status.textContent=`PDF обработан: ${report.pages||pdf?.pageCount||0} стр. · найдено полей: ${report.found||0} · заполнено: ${report.changed||0} · фото: ${report.extracted||0}${report.errors?.length?' · ошибок: '+report.errors.length:''}.`}return report}api?.activateByNexEstate?.({restoreCover:true,automatic:true});const recognized=typeof quickDealParsed!=='undefined'&&quickDealParsed?.data?applyRecognized(quickDealParsed.data,pdf?.sourcePages||[],pdf?.fileName||''):{found:0,changed:0,conflicts:[]};if(recognized.changed){api?.setFeatures?.(inferredFeatures(quickDealParsed.data));window.applyManualPresentationData?.();window.ne53QueuePreview?.()}const report={...last,found:Math.max(Number(last.found)||0,Number(recognized.found)||0),changed:Math.max(Number(last.changed)||0,Number(recognized.changed)||0),conflicts:[...new Set([...(last.conflicts||[]),...(recognized.conflicts||[])])],extracted:Number(context?.extracted)||pdf?.extractedPhotos?.length||0};showReport(report);const status=byId('studioPdfStatus');if(status){status.className='ne53-status show '+(report.errors?.length?'warn':'ok');status.textContent=`PDF обработан: ${report.pages||pdf?.pageCount||0} стр. · найдено полей: ${report.found||0} · заполнено: ${report.changed||0} · фото: ${report.extracted||0}${report.errors?.length?' · ошибок: '+report.errors.length:''}.`}window.NexCompactStudio?.setStep?.('pdf');return report};
 async function updateStorageInfo(){const node=byId('nsStorageInfo');if(!node)return;try{const projects=await window.NEXESTATE_STANDALONE_TEST?.getProjects?.()||[],estimate=await navigator.storage?.estimate?.(),usage=Number(estimate?.usage)||0,quota=Number(estimate?.quota)||0,fmt=value=>value>=1073741824?(value/1073741824).toFixed(1)+' ГБ':(value/1048576).toFixed(1)+' МБ';node.textContent=`Проектов: ${projects.length}. ${quota?`Занято браузером примерно ${fmt(usage)} из ${fmt(quota)}.`:'Браузер не сообщил оценку квоты.'} Количество проектов не ограничено Studio; фактический объём зависит от свободного хранилища браузера.`}catch(error){node.textContent='Количество проектов не ограничено Studio; оценка квоты браузера недоступна.'}}
 function openCropEditorLegacy(index){const state=window.NEXESTATE_STANDALONE_TEST?.getState?.(),meta=state?.settings?.media?.[index],card=byId('ne53MediaGrid')?.querySelectorAll('.ns-media-card')[index],source=card?.querySelector('img')?.src;if(!meta||!source)return;let dialog=byId('ne55CropDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='ne55CropDialog';dialog.className='ne55-dialog ne55-crop-dialog';document.body.appendChild(dialog)}const width=meta.sourceWidth||card.querySelector('img').naturalWidth||1,height=meta.sourceHeight||card.querySelector('img').naturalHeight||1,targetW=state.settings.coverPhotoIds?.includes(meta.id)?713:1132,targetH=state.settings.coverPhotoIds?.includes(meta.id)?685:720,maxZoom=Math.max(1,Math.min(width/targetW,height/targetH)),start={focusX:meta.focusX||50,focusY:meta.focusY||50,scale:Math.min(meta.scale||1,maxZoom)};dialog.innerHTML=`<div class="ne55-dialog-head"><h2>Кадрирование фотографии</h2><button type="button" class="ne55-dialog-close" aria-label="Закрыть">×</button></div><div class="ne55-dialog-body"><div class="ne55-crop-grid"><section class="ne55-crop-pane"><h3>Полный исходный кадр</h3><div class="ne55-full-image"><img src="${source}" alt="Полная фотография"></div></section><section class="ne55-crop-pane"><h3>Будущая рамка PDF</h3><div class="ne55-target-frame"><img src="${source}" alt="Предпросмотр кадрирования"></div></section></div><div class="ne55-crop-controls"><label>Фокус X<input data-crop="focusX" type="range" min="0" max="100" value="${start.focusX}"></label><label>Фокус Y<input data-crop="focusY" type="range" min="0" max="100" value="${start.focusY}"></label><label>Масштаб<input data-crop="scale" type="range" min="1" max="${maxZoom.toFixed(3)}" step="0.01" value="${start.scale}"></label></div><div class="ne55-quality"></div></div><div class="ne55-dialog-actions"><button type="button" data-action="reset">Сбросить</button><button type="button" data-action="cancel">Отмена</button><button type="button" class="primary" data-action="apply">Применить</button></div>`;const frame=dialog.querySelector('.ne55-target-frame img'),quality=dialog.querySelector('.ne55-quality'),inputs=Object.fromEntries([...dialog.querySelectorAll('[data-crop]')].map(input=>[input.dataset.crop,input]));let draft={...start};const update=()=>{draft={focusX:Number(inputs.focusX.value),focusY:Number(inputs.focusY.value),scale:Number(inputs.scale.value)};frame.style.objectPosition=draft.focusX+'% '+draft.focusY+'%';frame.style.setProperty('--crop-scale',draft.scale);const effectiveW=Math.floor(width/draft.scale),effectiveH=Math.floor(height/draft.scale),atLimit=draft.scale>=maxZoom-.011;quality.textContent=`Эффективное разрешение кадра: ${effectiveW} × ${effectiveH} px; цель PDF: ${targetW} × ${targetH} px.${atLimit?' Недостаточно исходного разрешения для дальнейшего увеличения.':''}`;quality.classList.toggle('warn',atLimit)};Object.values(inputs).forEach(input=>input.oninput=update);dialog.querySelector('[data-action="reset"]').onclick=()=>{inputs.focusX.value=50;inputs.focusY.value=50;inputs.scale.value=1;update()};const close=()=>dialog.close();dialog.querySelector('[data-action="cancel"]').onclick=close;dialog.querySelector('.ne55-dialog-close').onclick=close;dialog.querySelector('[data-action="apply"]').onclick=()=>{window.NEXESTATE_STANDALONE_TEST.updateMediaMeta(index,draft);close()};dialog.oncancel=event=>{event.preventDefault();close()};update();dialog.showModal()}
 function openCropEditor(index,context={}){
@@ -7929,7 +8013,7 @@ function removeBrokerPhoto(){if(typeof studioBrokerPhoto==='undefined'||!studioB
 function enhanceBrokerControls(){const preview=byId('studioBrokerPhotoPreview'),loader=preview?.closest('.broker-photo-loader');if(!preview||!loader)return;const input=byId('studioBrokerPhoto');if(input)input.accept='image/jpeg,image/png,image/webp';preview.title='Выбрать фотографию брокера';let label=loader.querySelector('.ne58-broker-label');if(!label){label=document.createElement('strong');label.className='ne58-broker-label';label.textContent='Фотография брокера';loader.insertBefore(label,preview)}let controls=loader.querySelector('.ne58-broker-controls');if(!controls){controls=document.createElement('div');controls.className='ne58-broker-controls';const old=loader.querySelector('button');if(old)old.remove();controls.innerHTML='<button type="button" class="btn ghost ne58-broker-upload"></button><button type="button" class="btn ghost ne58-broker-remove">Удалить</button><div class="hint">JPEG, PNG или WebP. Исходный файл сохраняется без повторного сжатия.</div>';loader.appendChild(controls)}const hasImage=!!preview.querySelector('img'),upload=controls.querySelector('.ne58-broker-upload'),remove=controls.querySelector('.ne58-broker-remove'),uploadLabel=hasImage?'Заменить':'Загрузить фотографию';if(upload.textContent!==uploadLabel)upload.textContent=uploadLabel;upload.onclick=()=>byId('studioBrokerPhoto')?.click();remove.hidden=!hasImage;remove.onclick=removeBrokerPhoto}
 function enhanceOcrActions(){const button=byId('ne53OcrButton');if(!button)return;const label=ocrBusy?'Распознавание…':'Распознать заново';if(button.textContent!==label)button.textContent=label;button.dataset.tooltip='Повторно использует текстовый слой и запускает OCR только для страниц без пригодного текста.';if(!byId('ne58ClearOcr')){const clear=document.createElement('button');clear.id='ne58ClearOcr';clear.type='button';clear.className='ne53-btn';clear.textContent='Очистить распознанные данные';clear.dataset.tooltip='Удаляет значения, автоматически заполненные из текущего PDF. Исходный PDF, фотографии и значения, изменённые вручную, останутся.';clear.onclick=()=>clearRecognizedData({confirmUser:true,recordHistory:true});button.parentNode?.insertBefore(clear,button.nextSibling)}const clear=byId('ne58ClearOcr'),sources=window.NE53_STATE?.pdf?.fieldSources||{};if(clear)clear.disabled=!Object.keys(sources).length}
 function enhanceShell(){const shell=byId('presentationStudio')?.querySelector('.ne52-shell');if(!shell)return;shell.querySelector('.ne52-version')?.remove();shell.querySelector('.ne53-design-card[data-ds-val="byNexEstate"]')?.remove();const right=shell.querySelector('.ne53-exportbar .right');if(right&&!byId('nsExplicitSave')){const save=document.createElement('button');save.id='nsExplicitSave';save.type='button';save.className='ne55-action ne55-save';save.innerHTML=saveIcon+'<span>Сохранить</span>';save.dataset.tooltip='Сохраняет данные, медиапорядок, дизайн и настройки текущей презентации.';save.setAttribute('aria-label','Сохранить текущую презентацию');save.onclick=()=>window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(true);const by=document.createElement('button');by.id='ne55ByNexEstateAction';by.type='button';by.className='ne55-action ne55-by-action';by.textContent='by NexEstate';by.onclick=()=>runByAction(by);right.insertBefore(save,right.firstChild);right.insertBefore(by,right.firstChild)}enhanceOcrActions();enhanceBrokerControls();enhanceMedia();renderBrokerMeta();updateByAction()}
-function queueDom(){if(domQueued)return;domQueued=true;queueMicrotask(()=>{domQueued=false;enhanceShell()})}
+function queueDom(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||domQueued)return;domQueued=true;queueMicrotask(()=>{domQueued=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true)enhanceShell()})}
 function markFieldSourceManual(event){const field=event.target,key=Object.entries(FIELD_IDS).find(([,id])=>id===field?.id)?.[0]||({studioScenario:'scenario',studioType:'otype',studioMetro:'metro'}[field?.id]),source=key&&window.NE53_STATE?.pdf?.fieldSources?.[key];if(!source)return;source.manual=valueToCompare(currentValue(key))!==valueToCompare(source.autoValue);enhanceOcrActions()}
 const observer=new MutationObserver(queueDom);observer.observe(document.documentElement,{childList:true,subtree:true});document.addEventListener('input',markFieldSourceManual,true);document.addEventListener('change',markFieldSourceManual,true);document.addEventListener('click',event=>{if(event.target.closest('.ne52-close'))window.NE55_ALLOW_DEFAULT_RECOGNITION=false},true);document.addEventListener('DOMContentLoaded',()=>{updateStorageInfo();queueDom()},{once:true});if(document.readyState!=='loading'){updateStorageInfo();queueDom()}setInterval(()=>{if(!document.hidden)updateStorageInfo()},45000);
 window.NEXESTATE_V55_TEST={makePagePreview,normalizeText,parseStructured,recognizeAndFill,openCropEditor,updateStorageInfo,enhanceShell};
@@ -9566,6 +9650,7 @@ function waitForPreviewImageV64(image){
   });
 }
 async function renderPreviewFrameV64(generation,startedAt){
+  if(window.NE72_PDF_IMPORT_RENDER_SUSPENDED===true)return false;
   const host=byId('studioPresoDeck');
   if(!host||!currentRecord||!byId('presentationStudio')?.classList.contains('show'))return false;
   previewPipelineV64.started++;publishPreviewStateV64();
@@ -9603,6 +9688,7 @@ async function renderPreviewFrameV64(generation,startedAt){
   }
 }
 function requestPreviewFrameV64(){
+  if(window.NE72_PDF_IMPORT_RENDER_SUSPENDED===true)return previewPipelineV64.requested;
   const generation=++previewPipelineV64.requested,startedAt=performance.now();
   if(previewPipelineV64.frame)cancelAnimationFrame(previewPipelineV64.frame);
   previewPipelineV64.frame=requestAnimationFrame(function(){previewPipelineV64.frame=0;void renderPreviewFrameV64(generation,startedAt)});
@@ -9921,7 +10007,7 @@ function refreshModeUiV65(){
   const advantages=byId('ne62AdvantagesEditor');if(advantages)advantages.hidden=mode!==BRAND_SINGLE_V65;
   refreshCustomControlsV65();
 }
-let modeUiQueuedV65=false;function queueModeUiV65(){if(modeUiQueuedV65)return;modeUiQueuedV65=true;queueMicrotask(function(){modeUiQueuedV65=false;refreshModeUiV65()})}
+let modeUiQueuedV65=false;function queueModeUiV65(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||modeUiQueuedV65)return;modeUiQueuedV65=true;queueMicrotask(function(){modeUiQueuedV65=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true)refreshModeUiV65()})}
 const observerV65=new MutationObserver(function(records){if(records.some(function(record){return record.addedNodes.length}))queueModeUiV65()});observerV65.observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){applyActiveModeV65();renderFeatureEditor();refreshModeUiV65()},0)},{once:true});if(document.readyState!=='loading')setTimeout(function(){applyActiveModeV65();refreshModeUiV65()},0);
 
@@ -10257,7 +10343,7 @@ const style=document.createElement('style');style.id='nexestate-cover-characteri
 `;
 document.head.appendChild(style);
 
-let uiQueuedV66=false;function queueUiV66(){if(uiQueuedV66)return;uiQueuedV66=true;queueMicrotask(function(){uiQueuedV66=false;refreshBottomControlsV66();refreshBrandDataV66()})}
+let uiQueuedV66=false;function queueUiV66(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||uiQueuedV66)return;uiQueuedV66=true;queueMicrotask(function(){uiQueuedV66=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true){refreshBottomControlsV66();refreshBrandDataV66()}})}
 const observerV66=new MutationObserver(function(records){if(records.some(function(record){return record.addedNodes.length}))queueUiV66()});observerV66.observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if(currentSettings)currentSettings=normalizeSettings(currentSettings);bridgeLegacyFeaturesV66({autoSelect:false});renderFeatureEditor(true);refreshBrandDataV66();refreshBottomControlsV66();scheduleRender()},0)},{once:true});
 if(document.readyState!=='loading')setTimeout(function(){if(currentSettings)currentSettings=normalizeSettings(currentSettings);bridgeLegacyFeaturesV66({autoSelect:false});renderFeatureEditor(true);refreshBrandDataV66();refreshBottomControlsV66();scheduleRender()},0);
@@ -10519,7 +10605,7 @@ exportCurrentHtml=async function(openOnly){validateByAdvantagesV67();return expo
 
 function refreshThemeLabelsV67(){const select=byId('ne65ByTheme');if(!select||!currentSettings)return;currentSettings.byNexEstateTheme=THEME_MIGRATION_V67[currentSettings.byNexEstateTheme]||currentSettings.byNexEstateTheme;if(!BY_THEME_KEYS_V67.has(currentSettings.byNexEstateTheme))currentSettings.byNexEstateTheme='original';for(const option of select.options){const theme=BY_THEMES_V67[option.value];if(theme&&option.textContent!==theme.name)option.textContent=theme.name}select.value=currentSettings.byNexEstateTheme;select.title='Тема by NexEstate';const singleTheme=byId('ne62SingleTheme');if(singleTheme)singleTheme.setAttribute('aria-label','Тема одностраничной презентации')}
 function setByThemeV67(value){const mapped=THEME_MIGRATION_V67[value]||value,select=byId('ne65ByTheme');if(!select||!BY_THEME_KEYS_V67.has(mapped))return false;if(select.value===mapped&&currentSettings?.byNexEstateTheme===mapped){refreshThemeLabelsV67();return false}select.value=mapped;select.dispatchEvent(new Event('change',{bubbles:true}));refreshThemeLabelsV67();return true}
-let uiEnhanceQueuedV67=false;function queueUiEnhanceV67(){if(uiEnhanceQueuedV67)return;uiEnhanceQueuedV67=true;queueMicrotask(function(){uiEnhanceQueuedV67=false;refreshThemeLabelsV67();enhanceClearMenuV67();updateLayoutWarningsV67()})}
+let uiEnhanceQueuedV67=false;function queueUiEnhanceV67(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||uiEnhanceQueuedV67)return;uiEnhanceQueuedV67=true;queueMicrotask(function(){uiEnhanceQueuedV67=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true){refreshThemeLabelsV67();enhanceClearMenuV67();updateLayoutWarningsV67()}})}
 const observerV67=new MutationObserver(function(records){if(records.some(record=>record.addedNodes.length))queueUiEnhanceV67()});observerV67.observe(document.documentElement,{childList:true,subtree:true});
 
 if(window.NEXESTATE_V61_MEDIA_TEST)Object.assign(window.NEXESTATE_V61_MEDIA_TEST,{syncMediaSettings:()=>syncMediaSettings(),removeAsset:(id,confirmUser=false)=>removeAssetById(id,{confirmUser:confirmUser}),clearCover:runClearCoverV67,deleteAll:runDeleteAllV67,placementCount:placementCount});
@@ -10680,32 +10766,40 @@ function releaseRuntimePdfResourcesV68(){
 function mapProgressStateV68(stage){const value=String(stage||'').toLocaleLowerCase('ru-RU');if(/извлечени.*фот|извлечени.*изображ/.test(value))return'extracting_images';if(/извлечени.*текст|ocr|распознав/.test(value))return'extracting_text';if(/обновлени.*презентац|предпросмотр/.test(value))return'building_preview';if(/загрузк.*pdf|провер/.test(value))return'reading_pdf';return''}
 function pdfErrorMessageV68(error){if(isQuotaErrorV68(error))return QUOTA_MESSAGE_V68;const text=cleanText(error?.message||error,500);if(/password|encrypted|шифр/i.test(text))return'PDF зашифрован или защищён паролем';if(/invalid|format|corrupt|повреж|header|xref/i.test(text))return'PDF повреждён или имеет неподдерживаемую структуру';if(/memory|allocation|out of/i.test(text))return'Недостаточно памяти браузера для обработки PDF';return text||'Неизвестная ошибка PDF'}
 pdfErrorMessage=pdfErrorMessageV68;
+function inferredFeaturesV68(data){
+  const list=[],add=(type,value,label)=>{value=cleanText(value,160);if(value&&!list.some(item=>item.type===type)&&list.length<8)list.push({type,enabled:true,value,label,auto:true})};
+  add('area',data.area&&(String(data.area).includes('м²')?data.area:data.area+' м²'),'Площадь');
+  if(data.scenario==='Аренда')add('rent',data.rate,'Арендная ставка');else add('sale',data.price,'Цена продажи');
+  add('map',data.map,'МАП');add('floor',data.floor,'Этаж');add('ceiling',data.ceil&&(String(data.ceil).includes('м')?data.ceil:data.ceil+' м'),'Потолки');add('power',data.power&&(String(data.power).toLocaleLowerCase('ru-RU').includes('квт')?data.power:data.power+' кВт'),'Мощность');add('layout',data.layout,'Планировка');
+  const entrance=(cleanText(data.draft,2400).match(/(\d+)\s+(?:отдельн[а-яё]*\s+)?вход/i)||[])[1];add('entrance',entrance,'Отдельные входы');return list;
+}
 
 processPdfRecord=async function(record,file,job={}){
   let progressBefore=window.NE58_setPdfProgress,progressHook=null,stageWrites=Promise.resolve(),consoleErrorBefore=console.error,consoleErrorHook=null;
   try{
     await setImportStateV68(record,'reading_pdf','Проверка структуры PDF…');
-    await assertStorageCapacityV68(file);await verifyPdfSignature(file);await ensureStudioShell();suppressAutosave=true;releaseRuntimePdfResourcesV68();currentRecord=record;currentSettings=normalizeSettings(record.settings);
+    await assertStorageCapacityV68(file);await verifyPdfSignature(file);window.NE72_PDF_IMPORT_QUEUE_ACTIVE=true;window.NE72_PDF_IMPORT_RENDER_SUSPENDED=true;await ensureStudioShell();suppressAutosave=true;releaseRuntimePdfResourcesV68();currentRecord=record;currentSettings=normalizeSettings(record.settings);
     await setImportStateV68(record,'extracting_text','Извлечение текста и страниц…');
     let lastProgressState='extracting_text';
     progressHook=function(stage,percent,detail){progressBefore?.(stage,percent,detail);const mapped=mapProgressStateV68(stage);if(!mapped||mapped===lastProgressState||TERMINAL_IMPORT_STATES_V68.has(record.status))return;lastProgressState=mapped;const label=detail?`${IMPORT_LABELS_V68[mapped]} · ${cleanText(detail,160)}`:IMPORT_LABELS_V68[mapped],snapshot=Object.assign({},record,{status:mapped,importState:mapped,statusText:label,updatedAt:new Date().toISOString()});record.status=mapped;record.importState=mapped;record.statusText=label;record.updatedAt=snapshot.updatedAt;updateCachedImportCardV68(record);stageWrites=stageWrites.then(()=>putProjectV68(snapshot)).catch(error=>{if(isQuotaErrorV68(error))throw quotaErrorV68();console.warn('Import stage status',error)})};
     window.NE58_setPdfProgress=progressHook;consoleErrorHook=function(){const args=[...arguments];if(String(args[0]||'').includes('Compact Studio PDF import'))console.warn(...args);else consoleErrorBefore.apply(console,args)};console.error=consoleErrorHook;
-    const loader=window.NEXESTATE_V54_TEST?.loadPdf||legacy.loadPdf;if(typeof loader!=='function')throw new Error('Модуль импорта PDF недоступен');window.NE55_IMPORTING_NEW_PROJECT=true;await loader(file);await stageWrites;
+    const loader=window.NEXESTATE_V54_TEST?.loadPdf||legacy.loadPdf;if(typeof loader!=='function')throw new Error('Модуль импорта PDF недоступен');window.NE55_IMPORTING_NEW_PROJECT=true;const loaded=await loader(file);await stageWrites;
+    if(loaded===false)throw window.NE53_STATE?.pdf?.lastImportError||new Error('Обработка PDF завершилась с ошибкой');
     if(!window.NE53_STATE?.pdf?.pageCount)throw new Error('PDF повреждён или не содержит доступных страниц');
     await setImportStateV68(record,'building_preview','Формирование презентации и обложки…');
     const parsedData=typeof quickDealParsed!=='undefined'&&quickDealParsed?.data?quickDealParsed.data:{},recognizedData={};
     Object.keys(FIELD_BINDINGS).forEach(key=>{if(parsedData[key]!=null&&cleanText(parsedData[key]))recognizedData[key]=cleanText(parsedData[key])});
     ['scenario','otype','metro'].forEach(key=>{if(parsedData[key]!=null&&cleanText(parsedData[key]))recognizedData[key]=cleanText(parsedData[key])});
-    record.data={...dataFromForm(),...recognizedData};record.data.objName=record.data.objName||record.name;applyDataToForm(record.data);
+    record.data={...dataFromForm(),...recognizedData};record.data.objName=record.data.objName||record.name;applyDataToForm(record.data);currentSettings=normalizeSettings({...currentSettings,features:inferredFeaturesV68(record.data)});if(DS.design!=='byNexEstate')currentSettings.previousDesign=DS_DESIGNS[DS.design]?DS.design:(currentSettings.previousDesign||'editorial');DS.design='byNexEstate';currentSettings.byNexEstateSeen=true;currentSettings.coverEnabled=true;currentSettings.hiddenPages=(currentSettings.hiddenPages||[]).filter(key=>key!=='cover');syncPageOrder();
     if(window.NE53_STATE?.pdf&&quickDealParsed?.sources)window.NE53_STATE.pdf.fieldSources={...(window.NE53_STATE.pdf.fieldSources||{}),...quickDealParsed.sources};
     record.settings=normalizeSettings(currentSettings);await setImportStateV68(record,'saving','Сохранение проекта и предпросмотра…');
     const snapshot=window.NEXESTATE_V54_TEST.captureProjectSnapshot();record.snapshot=await window.NEXESTATE_V54_TEST.serializeSnapshot(snapshot);record.thumbnail=await captureThumbnail();record.designName=DS.design;record.status='ready';record.importState='ready';record.statusText='Готова · PDF '+window.NE53_STATE.pdf.pageCount+' стр.';record.updatedAt=new Date().toISOString();record.sourceFile=null;await putProjectV68(record);return true;
   }catch(error){
-    const cancelled=error?.name==='AbortError'||job.cancelled===true;record.status=cancelled?'cancelled':'error';record.importState=record.status;record.statusText=cancelled?'Импорт отменён':pdfErrorMessageV68(error);record.updatedAt=new Date().toISOString();record.sourceFile=cancelled?null:file;
+    const failedStage=record.importState||record.status,cancelled=error?.name==='AbortError'||job.cancelled===true;record.status=cancelled?'cancelled':'error';record.importState=record.status;record.statusText=cancelled?'Импорт отменён':`${pdfErrorMessageV68(error)} · Этап: ${IMPORT_LABELS_V68[failedStage]||failedStage} · Можно повторить сохранённый PDF`;record.updatedAt=new Date().toISOString();record.sourceFile=cancelled?null:file;
     try{await putProjectV68(record)}catch(saveError){if(isQuotaErrorV68(saveError))setHomeStatus(QUOTA_MESSAGE_V68,'error');else console.error('Import error state save',saveError)}
     if(!cancelled)console.warn('Queued PDF import',record.name,error);return false;
   }finally{
-    if(progressHook&&window.NE58_setPdfProgress===progressHook)window.NE58_setPdfProgress=progressBefore;if(consoleErrorHook&&console.error===consoleErrorHook)console.error=consoleErrorBefore;delete window.NE55_IMPORTING_NEW_PROJECT;suppressAutosave=false;currentRecord=null;currentSettings=null;releaseRuntimePdfResourcesV68();
+    if(progressHook&&window.NE58_setPdfProgress===progressHook)window.NE58_setPdfProgress=progressBefore;if(consoleErrorHook&&console.error===consoleErrorHook)console.error=consoleErrorBefore;delete window.NE55_IMPORTING_NEW_PROJECT;suppressAutosave=false;currentRecord=null;currentSettings=null;releaseRuntimePdfResourcesV68();delete window.NE72_PDF_IMPORT_QUEUE_ACTIVE;window.NE72_PDF_IMPORT_RENDER_SUSPENDED=false;
   }
 };
 
@@ -11337,7 +11431,7 @@ document.addEventListener('focusout',event=>{if(event.target?.closest?.('#presen
 document.addEventListener('change',handleFeatureChangeV70,true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!byIdV70('ne70AvatarOverlay')?.hidden)closeAvatarPickerV70()},true);
 let uiQueuedV70=false;
-function queueStudioUiV70(){if(uiQueuedV70)return;uiQueuedV70=true;queueMicrotask(function(){uiQueuedV70=false;ensureStudioUiV70()})}
+function queueStudioUiV70(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||uiQueuedV70)return;uiQueuedV70=true;queueMicrotask(function(){uiQueuedV70=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true)ensureStudioUiV70()})}
 function isOwnUiNodeV70(node){
   if(node?.nodeType!==1)return true;
   const id=String(node.id||''),classes=[...(node.classList||[])];
@@ -11481,21 +11575,23 @@ ensureStudioUiV70();scheduleRender?.();
 
 const STAGE3_VERSION_V71='71.0';
 const BRAND_BY_V71='byNexEstate',BRAND_SINGLE_V71='singlePage';
-const BY_THEME_ORDER_V71=['original','deepSapphire','emeraldGraphite','lightSteel','burgundyGraphite','darkJade'];
+const BY_THEME_ORDER_V71=['original','deepSapphire','emeraldGraphite','lightSteel','burgundyGraphite','darkJade','brandGreen'];
 const BY_THEME_NAMES_V71={
   original:'Оригинальная',
   deepSapphire:'Глубокий сапфир',
   emeraldGraphite:'Аметистовый тёмный',
   lightSteel:'Светлый стальной',
   burgundyGraphite:'Мягкий антрацит',
-  darkJade:'Тёмный нефрит'
+  darkJade:'Тёмный нефрит',
+  brandGreen:'Фирменный зелёный'
 };
 const BY_PALETTES_V71={
   deepSapphire:{coverTop:'#061827',coverDeep:'#0A2238',coverBottom:'#03111D',pageBg:'#03111D',pageSurface:'#0B263D',header:'#061827',accent:'#4C9FE8',accent2:'#4C9FE8',text:'#F3F7FB',soft:'#AFC1D1',line:'#2F668F',wordmark:'#F3F7FB',caption:'#0B263D',photoDivider:'#03111D',glow:'rgba(76,159,232,.09)'},
   emeraldGraphite:{coverTop:'#151321',coverDeep:'#211B31',coverBottom:'#0D0C15',pageBg:'#0D0C15',pageSurface:'#241E34',header:'#151321',accent:'#A98DCE',accent2:'#D4D5DD',text:'#F5F2F8',soft:'#C2B9CD',line:'#66557F',wordmark:'#F5F2F8',caption:'#241E34',photoDivider:'#0D0C15',glow:'rgba(169,141,206,.08)'},
   lightSteel:{coverTop:'#DCE3EA',coverDeep:'#C9D3DD',coverBottom:'#B8C6D3',pageBg:'#B8C6D3',pageSurface:'#E8EDF2',header:'#C9D3DD',accent:'#2E78A7',accent2:'#2E78A7',text:'#142332',soft:'#52687A',line:'#879DAD',wordmark:'#142332',caption:'#E8EDF2',photoDivider:'#B8C6D3',glow:'rgba(46,120,167,.06)'},
   burgundyGraphite:{coverTop:'#151A1F',coverDeep:'#20272E',coverBottom:'#0F1317',pageBg:'#0F1317',pageSurface:'#242C33',header:'#151A1F',accent:'#95B5C8',accent2:'#95B5C8',text:'#F2F4F5',soft:'#B4BEC6',line:'#566672',wordmark:'#F2F4F5',caption:'#242C33',photoDivider:'#0F1317',glow:'rgba(149,181,200,.07)'},
-  darkJade:{coverTop:'#08241E',coverDeep:'#0D3128',coverBottom:'#051713',pageBg:'#051713',pageSurface:'#10372D',header:'#08241E',accent:'#4EAE87',accent2:'#82C7AA',text:'#F0F7F4',soft:'#B1C8BF',line:'#397C64',wordmark:'#F0F7F4',caption:'#10372D',photoDivider:'#051713',glow:'rgba(78,174,135,.08)'}
+  darkJade:{coverTop:'#08241E',coverDeep:'#0D3128',coverBottom:'#051713',pageBg:'#051713',pageSurface:'#10372D',header:'#08241E',accent:'#4EAE87',accent2:'#82C7AA',text:'#F0F7F4',soft:'#B1C8BF',line:'#397C64',wordmark:'#F0F7F4',caption:'#10372D',photoDivider:'#051713',glow:'rgba(78,174,135,.08)'},
+  brandGreen:{coverTop:'#0A2A21',coverDeep:'#124536',coverBottom:'#061B15',pageBg:'#071F18',pageSurface:'#123B2F',header:'#0A2A21',accent:'#B89A5E',accent2:'#D5BC82',text:'#F8F4EA',soft:'#CBD6CF',line:'#8E7649',wordmark:'#F8F4EA',caption:'#123B2F',photoDivider:'#061B15',glow:'rgba(184,154,94,.08)'}
 };
 const OLD_PALETTES_V71={
   original:[{coverTop:'#020D1A',coverDeep:'#041124',coverBottom:'#06172A',pageBg:'#081827',pageSurface:'#0F2B3F',header:'#071521',accent:'#4C92ED',accent2:'#77BFE8',text:'#F6F7F9',soft:'#AEB8C7',line:'rgba(120,148,176,.42)',wordmark:'#F6F7F9',caption:'rgba(10,28,43,.96)',photoDivider:'rgba(3,17,33,.96)'}],
@@ -11510,20 +11606,22 @@ const OLD_PALETTES_V71={
     {coverTop:'#1B1116',coverDeep:'#29151E',coverBottom:'#321B24',pageBg:'#24151C',pageSurface:'#351D28',header:'#1C1016',accent:'#8E3D59',accent2:'#B56B83',text:'#F7F1F3',soft:'#CBB9C0',line:'rgba(166,92,118,.36)',wordmark:'#F7F1F3',caption:'rgba(34,17,25,.96)',photoDivider:'rgba(25,12,18,.97)'}
   ]
 };
-const SINGLE_JADE_V71={name:'Тёмный нефрит',bg:'#071B17',panel:'#10372D',panel2:'#163F35',text:'#F0F7F4',muted:'#B1C8BF',accent:'#4EAE87',accent2:'#82C7AA',line:'#397C64',overlay:'rgba(5,23,19,.05)'};
+const SINGLE_JADE_V71={name:'Тёмный нефрит',bg:'#071B17',panel:'#10372D',panel2:'#163F35',text:'#F0F7F4',muted:'#B1C8BF',accent:'#4EAE87',accent2:'#82C7AA',line:'#397C64',overlay:'rgba(5,23,19,.05)',overlayRgb:'5,23,19'};
+const SINGLE_BRAND_GREEN_V71={name:'Фирменный зелёный',bg:'#071F18',panel:'#10382B',panel2:'#164534',text:'#F8F4EA',muted:'#CBD6CF',accent:'#B89A5E',accent2:'#D5BC82',line:'#8E7649',overlay:'rgba(6,27,21,.05)',overlayRgb:'6,27,21'};
 const singleThemesV71=window.NEXESTATE_V61_SINGLEPAGE_TEST?.themes;
-if(singleThemesV71)singleThemesV71.darkJade=Object.assign({},SINGLE_JADE_V71);
+if(singleThemesV71){singleThemesV71.darkJade=Object.assign({},SINGLE_JADE_V71);singleThemesV71.brandGreen=Object.assign({},SINGLE_BRAND_GREEN_V71)}
 
 function colorKeyV71(value){return String(value||'').trim().toLowerCase().replace(/\s+/g,'')}
 function colorMapV71(theme){
   if(theme==='original')return null;
   const target=BY_PALETTES_V71[theme];if(!target)return null;
-  const map=new Map(),sources=theme==='darkJade'?OLD_PALETTES_V71.original:(OLD_PALETTES_V71[theme]||[]),keys=['coverTop','coverDeep','coverBottom','pageBg','pageSurface','header','accent','accent2','text','soft','line','wordmark','caption','photoDivider'];
+  const map=new Map(),sources=theme==='darkJade'||theme==='brandGreen'?OLD_PALETTES_V71.original:(OLD_PALETTES_V71[theme]||[]),keys=['coverTop','coverDeep','coverBottom','pageBg','pageSurface','header','accent','accent2','text','soft','line','wordmark','caption','photoDivider'];
   sources.forEach(function(source){keys.forEach(function(key){if(source[key]&&target[key])map.set(colorKeyV71(source[key]),target[key])})});
   ['rgba(170,184,204,.10)','rgba(90,150,230,.12)','rgba(255,255,255,.18)'].forEach(function(value){map.set(colorKeyV71(value),target.glow)});
   return map;
 }
 function mapColorV71(value,map){if(!map||typeof value!=='string')return value;return map.get(colorKeyV71(value))||value}
+function singleThemeMapV71(palette){return palette?new Map([[colorKeyV71('#f7f4ed'),palette.text],[colorKeyV71('#d1d5d8'),palette.muted],[colorKeyV71('rgba(4,14,20,.70)'),palette.panel],[colorKeyV71('rgba(209,213,216,.62)'),palette.muted]]):null}
 function selectedFontV71(){const key=currentSettings?.selectedFont||DS.font||'inter';return DS_FONTS[key]?key:'inter'}
 function selectedFontStackV71(){return DS_FONTS[selectedFontV71()]?.canvas||DS_FONTS.inter.canvas}
 function rewriteFontV71(value,stack){
@@ -11532,18 +11630,18 @@ function rewriteFontV71(value,stack){
 }
 function canvasOverridesV71(options){
   const proto=window.CanvasRenderingContext2D?.prototype,gradientProto=window.CanvasGradient?.prototype;if(!proto)return function(){};
-  const restores=[],map=options?.map||null,stack=options?.fontStack||'',singleJade=options?.singleJade===true,gradientMeta=new WeakMap();
+  const restores=[],map=options?.map||null,stack=options?.fontStack||'',singlePalette=options?.singlePalette||null,gradientMeta=new WeakMap();
   function patchProperty(name,transform){const descriptor=Object.getOwnPropertyDescriptor(proto,name);if(!descriptor?.set||!descriptor.configurable)return;Object.defineProperty(proto,name,Object.assign({},descriptor,{set:function(value){return descriptor.set.call(this,transform(value))}}));restores.push(function(){Object.defineProperty(proto,name,descriptor)})}
   if(stack)patchProperty('font',function(value){return rewriteFontV71(value,stack)});
   if(map){patchProperty('fillStyle',function(value){return mapColorV71(value,map)});patchProperty('strokeStyle',function(value){return mapColorV71(value,map)})}
-  if((map||singleJade)&&typeof proto.createLinearGradient==='function'&&gradientProto&&typeof gradientProto.addColorStop==='function'){
+  if((map||singlePalette)&&typeof proto.createLinearGradient==='function'&&gradientProto&&typeof gradientProto.addColorStop==='function'){
     const create=proto.createLinearGradient,add=gradientProto.addColorStop;
     proto.createLinearGradient=function(){const args=[...arguments],gradient=create.apply(this,args);gradientMeta.set(gradient,args);return gradient};
     gradientProto.addColorStop=function(offset,color){
-      const args=gradientMeta.get(this)||[],horizontal=singleJade&&args.length===4&&args[0]===0&&args[1]===0&&args[2]===650&&args[3]===0,vertical=singleJade&&args.length===4&&args[0]===0&&args[1]===530&&args[2]===0&&args[3]>=700;
+      const args=gradientMeta.get(this)||[],horizontal=singlePalette&&args.length===4&&args[0]===0&&args[1]===0&&args[2]===650&&args[3]===0,vertical=singlePalette&&args.length===4&&args[0]===0&&args[1]===530&&args[2]===0&&args[3]>=700,rgb=singlePalette?.overlayRgb||'5,23,19';
       let next=mapColorV71(color,map);
-      if(horizontal){const alpha=Number(offset)<=0?.05:Number(offset)<1?.035:.01;next='rgba(5,23,19,'+alpha+')'}
-      else if(vertical){next='rgba(5,23,19,'+(Number(offset)<=0?0:.05)+')'}
+      if(horizontal){const alpha=Number(offset)<=0?.05:Number(offset)<1?.035:.01;next='rgba('+rgb+','+alpha+')'}
+      else if(vertical){next='rgba('+rgb+','+(Number(offset)<=0?0:.05)+')'}
       return add.call(this,offset,next);
     };
     restores.push(function(){proto.createLinearGradient=create;gradientProto.addColorStop=add});
@@ -11557,8 +11655,8 @@ settingsDefaults=function(){return Object.assign(settingsDefaultsBeforeV71(),{se
 const normalizeSettingsBeforeV71=normalizeSettings;
 normalizeSettings=function(value){
   const source=value&&typeof value==='object'?value:{},requestedTheme=source.byNexEstateThemeV71||source.byNexEstateTheme||'original',safeTheme=BY_THEME_ORDER_V71.includes(requestedTheme)?requestedTheme:'original',requestedSingle=source.singlePageThemeV71||source.singlePageTheme||'warmGold',safeSingle=singleThemesV71?.[requestedSingle]?requestedSingle:'warmGold';
-  let safeSource=safeTheme==='darkJade'?Object.assign({},source,{byNexEstateTheme:'original'}):source;
-  if(safeSingle==='darkJade')safeSource=Object.assign({},safeSource,{singlePageTheme:'warmGold'});
+  let safeSource=safeTheme==='darkJade'||safeTheme==='brandGreen'?Object.assign({},source,{byNexEstateTheme:'original'}):source;
+  if(safeSingle==='darkJade'||safeSingle==='brandGreen')safeSource=Object.assign({},safeSource,{singlePageTheme:'warmGold'});
   const base=normalizeSettingsBeforeV71(safeSource),font=DS_FONTS[source.selectedFont]?source.selectedFont:(DS_FONTS[DS.font]?DS.font:'inter');
   base.selectedFont=font;base.byNexEstateThemeV71=safeTheme;base.byNexEstateTheme=safeTheme;base.singlePageThemeV71=safeSingle;base.singlePageTheme=safeSingle;return base;
 };
@@ -11592,10 +11690,10 @@ function requestedLayoutV71(config){
 }
 const buildCanonicalSlidesBeforeV71=buildCanonicalSlides;
 buildCanonicalSlides=function(config){
-  const options=config||{},layout=requestedLayoutV71(options),font=selectedFontV71(),byTheme=options.byNexEstateTheme||currentSettings?.byNexEstateThemeV71||currentSettings?.byNexEstateTheme||'original',singleTheme=options.singlePageTheme||currentSettings?.singlePageThemeV71||currentSettings?.singlePageTheme||'warmGold',applyFont=layout!=='custom'&&font!=='inter',applyColor=layout===BRAND_BY_V71&&byTheme!=='original',singleJade=layout===BRAND_SINGLE_V71&&singleTheme==='darkJade',priorTheme=currentSettings?.byNexEstateTheme,priorSingleTheme=currentSettings?.singlePageTheme;
+  const options=config||{},layout=requestedLayoutV71(options),font=selectedFontV71(),byTheme=options.byNexEstateTheme||currentSettings?.byNexEstateThemeV71||currentSettings?.byNexEstateTheme||'original',singleTheme=options.singlePageTheme||currentSettings?.singlePageThemeV71||currentSettings?.singlePageTheme||'warmGold',applyFont=layout!=='custom'&&font!=='inter',applyColor=layout===BRAND_BY_V71&&byTheme!=='original',singlePalette=layout===BRAND_SINGLE_V71?(singleTheme==='darkJade'?SINGLE_JADE_V71:singleTheme==='brandGreen'?SINGLE_BRAND_GREEN_V71:null):null,priorTheme=currentSettings?.byNexEstateTheme,priorSingleTheme=currentSettings?.singlePageTheme;
   if(currentSettings&&layout===BRAND_BY_V71)currentSettings.byNexEstateTheme=byTheme;
   if(currentSettings&&layout===BRAND_SINGLE_V71)currentSettings.singlePageTheme=singleTheme;
-  const restore=canvasOverridesV71({fontStack:applyFont?DS_FONTS[font].canvas:'',map:applyColor?colorMapV71(byTheme):(singleJade?new Map([[colorKeyV71('#f7f4ed'),SINGLE_JADE_V71.text],[colorKeyV71('#d1d5d8'),SINGLE_JADE_V71.muted],[colorKeyV71('rgba(4,14,20,.70)'),'rgba(16,55,45,.88)'],[colorKeyV71('rgba(209,213,216,.62)'),'rgba(177,200,191,.62)']]):null),singleJade:singleJade});
+  const restore=canvasOverridesV71({fontStack:applyFont?DS_FONTS[font].canvas:'',map:applyColor?colorMapV71(byTheme):singleThemeMapV71(singlePalette),singlePalette:singlePalette});
   try{
     const effective=layout===BRAND_BY_V71?Object.assign({},options,{byNexEstateTheme:byTheme}):options,slides=buildCanonicalSlidesBeforeV71(effective)||[];
     slides.forEach(function(canvas){canvas.neSelectedFont=font;canvas.neBrandLayout=layout;canvas.neBrandTheme=layout===BRAND_BY_V71?byTheme:singleTheme});lastBuildV71={layout:layout,font:font,theme:layout===BRAND_BY_V71?byTheme:singleTheme,count:slides.length,at:Date.now()};return slides;
@@ -11650,7 +11748,7 @@ function syncUiV71(){
   layout.dataset.ne71Order='brand-toggle,by-layout,by-theme,single-layout,single-theme,photo,floor';return true;
 }
 let uiQueuedV71=false;
-function queueUiV71(){if(uiQueuedV71)return;uiQueuedV71=true;queueMicrotask(function(){uiQueuedV71=false;syncUiV71()})}
+function queueUiV71(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||uiQueuedV71)return;uiQueuedV71=true;queueMicrotask(function(){uiQueuedV71=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true)syncUiV71()})}
 document.addEventListener('click',function(event){if(event.target.closest?.('#ne62LayoutBy,#ne62LayoutSingle'))queueMicrotask(syncUiV71)},true);
 document.addEventListener('change',function(event){if(event.target?.id==='ne65BrandMode')queueMicrotask(syncUiV71)},true);
 
