@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'nex-estate-media-studio-';
-const CACHE_NAME = `${CACHE_PREFIX}unified-v1`;
+const CACHE_NAME = `${CACHE_PREFIX}unified-v2`;
 const APP_SHELL = [
   './',
   './index.html',
