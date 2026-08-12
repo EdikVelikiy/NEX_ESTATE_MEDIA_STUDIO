@@ -6535,7 +6535,10 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
         button.setAttribute('aria-label','Открыть страницу '+(index+1));
         const image=document.createElement('img');
         image.alt='Исходная страница PDF '+(index+1);
-        image.src=page.preview?.dataUrl||page.canvas.toDataURL('image/jpeg',.76);
+        image.loading='lazy';image.decoding='async';
+        if(page.preview?.dataUrl)image.src=page.preview.dataUrl;
+        else if(page.blob instanceof Blob)assignBlobImageV72(image,page.blob);
+        else if(page.canvas instanceof HTMLCanvasElement)image.src=page.canvas.toDataURL('image/jpeg',.76);
         image.dataset.previewKind=page.preview?.blank?'blank':'content';
         const caption=document.createElement('figcaption');
         caption.textContent='Страница '+(index+1)+' из '+pdf.pageCount;
@@ -6552,7 +6555,10 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
         preview.className='ne53-extracted-preview';
         const image=document.createElement('img');
         image.alt='Извлечённая фотография '+(index+1);
-        image.src=photo.thumbnail||photo.canvas.toDataURL('image/jpeg',.82);
+        image.loading='lazy';image.decoding='async';
+        if(photo.thumbnail)image.src=photo.thumbnail;
+        else if(photo.blob instanceof Blob)assignBlobImageV72(image,photo.blob);
+        else if(photo.canvas instanceof HTMLCanvasElement)image.src=photo.canvas.toDataURL('image/jpeg',.82);
         preview.appendChild(image);
         if(photo.transferred){
           const badge=document.createElement('span');badge.className='ne54-transferred';badge.textContent='В Медиа';preview.appendChild(badge);
@@ -6623,10 +6629,12 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     }catch(error){app.pdf.lastImportError=error;app.pdf.processing=false;updateConvertButton();if(error?.name!=='AbortError')console.error('Compact Studio PDF import',error);setStatus('err','Не удалось обработать PDF: '+(error.message||'неизвестная ошибка'));window.NE58_setPdfProgress?.('Ошибка',100,error.message||'Неизвестная ошибка');compactBase.setStep?.('pdf');return false}
     finally{app.pdf.processing=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true){window.NE72_PDF_IMPORT_RENDER_SUSPENDED=false;window.ne53QueuePreview?.()}updateConvertButton();try{await documentPdf?.destroy?.()}catch(_){}}
   }
-  function openPageV54(index){
+  async function openPageV54(index){
     const page=app.pdf.sourcePages?.[index],lightbox=byId('ne53PageLightbox'),image=byId('ne53PageImage');
     if(!page||!lightbox||!image)return;
-    image.src=page.canvas.toDataURL('image/png');lightbox.classList.add('show');lightbox.setAttribute('aria-hidden','false');
+    if(page.blob instanceof Blob)assignBlobImageV72(image,page.blob);
+    else{const canvas=await ensureSnapshotCanvasV72(page);if(canvas)image.src=canvas.toDataURL('image/png')}
+    lightbox.classList.add('show');lightbox.setAttribute('aria-hidden','false');
   }
   function downloadOneExtracted(index){
     const photo=app.pdf.extractedPhotos?.[index];
@@ -6946,30 +6954,46 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     canvas.width=width;canvas.height=height;canvas.getContext('2d').drawImage(image,0,0,width,height);
     return canvasBlob(canvas,'image/png');
   }
-  async function blobToImage(blob){
+  function assertSnapshotActiveV72(options){
+    if(options?.signal?.aborted)throw new DOMException('Открытие презентации отменено','AbortError');
+    if(typeof options?.check==='function')options.check();
+  }
+  function assignBlobImageV72(image,blob){
+    if(!image||!(blob instanceof Blob))return false;
+    const url=URL.createObjectURL(blob),release=()=>{try{URL.revokeObjectURL(url)}catch(_){}};
+    image.addEventListener('load',release,{once:true});image.addEventListener('error',release,{once:true});image.src=url;return true;
+  }
+  async function blobToImage(blob,options={}){
     if(!blob)return null;
+    assertSnapshotActiveV72(options);
     return new Promise((resolve,reject)=>{
-      const reader=new FileReader();
-      reader.onerror=()=>reject(new Error('Не удалось прочитать сохранённое изображение'));
-      reader.onload=()=>{
-        const image=new Image();
-        image.onload=()=>resolve(image);
-        image.onerror=()=>reject(new Error('Не удалось восстановить изображение'));
-        image.src=String(reader.result||'');
-      };
-      reader.readAsDataURL(blob);
+      const url=URL.createObjectURL(blob),image=new Image();let settled=false;
+      const finish=(error)=>{if(settled)return;settled=true;options.signal?.removeEventListener?.('abort',onAbort);try{URL.revokeObjectURL(url)}catch(_){}if(error)reject(error);else resolve(image)};
+      const onAbort=()=>finish(new DOMException('Открытие презентации отменено','AbortError'));
+      image.onload=()=>{try{assertSnapshotActiveV72(options);finish()}catch(error){finish(error)}};
+      image.onerror=()=>finish(new Error('Не удалось восстановить изображение'));
+      options.signal?.addEventListener?.('abort',onAbort,{once:true});image.decoding='async';image.src=url;
     });
   }
-  async function blobToCanvas(blob){
-    const image=await blobToImage(blob),canvas=document.createElement('canvas');
+  async function blobToCanvas(blob,options={}){
+    const image=await blobToImage(blob,options);assertSnapshotActiveV72(options);const canvas=document.createElement('canvas');
     canvas.width=image.naturalWidth||image.width;canvas.height=image.naturalHeight||image.height;canvas.getContext('2d').drawImage(image,0,0);return canvas;
   }
+  async function ensureSnapshotCanvasV72(item,options={}){
+    if(item?.canvas instanceof HTMLCanvasElement&&item.canvas.width>1&&item.canvas.height>1)return item.canvas;
+    if(!(item?.blob instanceof Blob))return null;
+    assertSnapshotActiveV72(options);const canvas=await blobToCanvas(item.blob,options);assertSnapshotActiveV72(options);item.canvas=canvas;
+    if(options.preview===true)item.preview=window.NE55_makePagePreview?.(canvas)||null;
+    return canvas;
+  }
+  window.NE72_ensureSnapshotCanvas=ensureSnapshotCanvasV72;
   async function serializeSnapshot(snapshot){
     const pdf=snapshot.pdf||{},mediaItems=snapshot.media?.items||[];
     const sourcePages=[];
     for(const item of pdf.sourcePages||[]){
       await window.nePdfCooperativeYield?.();
-      sourcePages.push({page:item.page,text:item.text||'',ocrText:item.ocrText||'',blob:await canvasBlob(item.canvas,'image/png')});
+      const blob=item.blob instanceof Blob?item.blob:(item.canvas instanceof HTMLCanvasElement?await canvasBlob(item.canvas,'image/png'):null);
+      sourcePages.push({page:item.page,text:item.text||'',ocrText:item.ocrText||'',blob});
     }
     const serializedMedia=[];
     for(const item of mediaItems){
@@ -6987,21 +7011,20 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
       broker:await imageToBlob(snapshot.broker)
     };
   }
-  async function deserializeSnapshot(payload){
+  async function deserializeSnapshot(payload,options={}){
     const pdf=payload.pdf||{},sourcePages=[],extractedPhotos=[];
-    for(const item of pdf.sourcePages||[]){const canvas=await blobToCanvas(item.blob);sourcePages.push({page:item.page,text:item.text||'',ocrText:item.ocrText||'',canvas,preview:window.NE55_makePagePreview?.(canvas)||null})}
-    for(const item of pdf.extractedPhotos||[]){
-      extractedPhotos.push(Object.assign({},item,{canvas:await blobToCanvas(item.blob)}));
-    }
+    for(const item of pdf.sourcePages||[]){assertSnapshotActiveV72(options);sourcePages.push({page:item.page,text:item.text||'',ocrText:item.ocrText||'',blob:item.blob||null,canvas:null,preview:null})}
+    for(const item of pdf.extractedPhotos||[]){assertSnapshotActiveV72(options);extractedPhotos.push(Object.assign({},item,{canvas:null}))}
     const mediaItems=[];
     for(const item of payload.media?.items||[]){
-      const image=await blobToImage(item.blob);
+      assertSnapshotActiveV72(options);await window.nePdfCooperativeYield?.();const image=await blobToImage(item.blob,options);assertSnapshotActiveV72(options);
       mediaItems.push({type:item.type,image,ne53Hash:item.ne53Hash||'',ne53Name:item.ne53Name||'',ne53Type:item.ne53Type||item.blob?.type||'',neId:item.neId||'',neSourceKind:item.neSourceKind||'manual-upload',neSourcePdfId:item.neSourcePdfId||'',neSourcePage:Number(item.neSourcePage)||0,ne53OriginalBlob:item.blob||null,ne53Width:Number(item.ne53Width)||image.naturalWidth||image.width||0,ne53Height:Number(item.ne53Height)||image.naturalHeight||image.height||0,ne53Orientation:Number(item.ne53Orientation)||1});
     }
+    assertSnapshotActiveV72(options);const broker=payload.broker?await blobToImage(payload.broker,options):null;assertSnapshotActiveV72(options);
     return {
       fields:payload.fields||{},settings:payload.settings||null,S:payload.S||{},adv:payload.adv||{},trust:payload.trust||{},metro:payload.metro||[{s:'',m:''}],editor:payload.editor||{},design:payload.design||{},quick:payload.quick||null,step:payload.step||'pdf',
       pdf:{fileName:pdf.fileName||'',sourcePdfId:pdf.sourcePdfId||'',rawText:pdf.rawText||'',pageCount:pdf.pageCount||0,appendix:!!pdf.appendix,flattened:!!pdf.flattened,sourceBlob:pdf.sourceBlob||null,ocrText:pdf.ocrText||'',fieldSources:pdf.fieldSources||{},ocrAccepted:!!pdf.ocrAccepted,stats:pdf.stats||{},sourcePages,extractedPhotos},
-      media:{items:mediaItems},broker:payload.broker?await blobToImage(payload.broker):null
+      media:{items:mediaItems},broker
     };
   }
   async function putRecord(record){return withStore('readwrite',store=>store.put(record))}
@@ -7951,7 +7974,7 @@ recognizeAndFill=async function({automatic=false,save=true}={}){
       await worker.setParameters({tessedit_pageseg_mode:String(window.Tesseract.PSM?.SPARSE_TEXT||11),preserve_interword_spaces:'1'});assertCurrent();
       for(let index=0;index<missingPages.length;index++){
         assertCurrent();await window.nePdfCooperativeYield?.();
-        const page=missingPages[index],sourceCanvas=page.canvas,maxOcrEdge=1200,ocrScale=Math.min(1,maxOcrEdge/Math.max(sourceCanvas.width,sourceCanvas.height));let ocrCanvas=sourceCanvas;
+        const page=missingPages[index],sourceCanvas=page.canvas||await window.NE72_ensureSnapshotCanvas?.(page,{check:assertCurrent}),maxOcrEdge=1200,ocrScale=Math.min(1,maxOcrEdge/Math.max(sourceCanvas.width,sourceCanvas.height));let ocrCanvas=sourceCanvas;
         if(ocrScale<.999){ocrCanvas=document.createElement('canvas');ocrCanvas.width=Math.max(1,Math.round(sourceCanvas.width*ocrScale));ocrCanvas.height=Math.max(1,Math.round(sourceCanvas.height*ocrScale));const context=ocrCanvas.getContext('2d',{alpha:false});context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(sourceCanvas,0,0,ocrCanvas.width,ocrCanvas.height)}
         window.NE72_ACTIVE_OCR_PAGE=page;lastLoggedPercent=-1;
         window.NE58_setPdfProgress?.('OCR',46+Math.round(index/missingPages.length*17),`Страница ${page.page||index+1} из ${pages.length}`);
@@ -9651,7 +9674,7 @@ function waitForPreviewImageV64(image){
 }
 async function renderPreviewFrameV64(generation,startedAt){
   if(window.NE72_PDF_IMPORT_RENDER_SUSPENDED===true)return false;
-  const host=byId('studioPresoDeck');
+  const host=byId('studioPresoDeck'),projectGeneration=Number(window.NE72_ACTIVE_PROJECT_GENERATION)||0;
   if(!host||!currentRecord||!byId('presentationStudio')?.classList.contains('show'))return false;
   previewPipelineV64.started++;publishPreviewStateV64();
   host.setAttribute('aria-busy','true');
@@ -9659,14 +9682,16 @@ async function renderPreviewFrameV64(generation,startedAt){
   try{
     slides=buildCanonicalSlides();
     if(!slides.length)throw new Error('В презентации нет страниц для предпросмотра');
-    const pages=slides.map(function(canvas,index){
-      const image=new Image();image.alt='Презентация NexEstate — страница '+(index+1);image.width=canvas.width;image.height=canvas.height;image.loading='eager';image.decoding='async';
-      image.src=DS.design==='byNexEstate'&&index===0?canvas.toDataURL('image/png'):canvas.toDataURL('image/jpeg',.84);
-      return{image:image,width:canvas.width,height:canvas.height};
-    });
-    releasePreviewSlidesV64(slides);slides=[];
-    await Promise.all(pages.map(function(page){return waitForPreviewImageV64(page.image)}));
-    if(generation!==previewPipelineV64.requested){previewPipelineV64.staleDiscarded++;publishPreviewStateV64();return false}
+    const pages=[];
+    for(let index=0;index<slides.length;index++){
+      if(generation!==previewPipelineV64.requested||projectGeneration!==(Number(window.NE72_ACTIVE_PROJECT_GENERATION)||0)){previewPipelineV64.staleDiscarded++;releasePreviewSlidesV64(slides.slice(index));publishPreviewStateV64();return false}
+      const canvas=slides[index],width=canvas.width,height=canvas.height,type=DS.design==='byNexEstate'&&index===0?'image/png':'image/jpeg',quality=type==='image/png'?undefined:.84,blob=await canvasBlob(canvas,type,quality),url=URL.createObjectURL(blob),image=new Image();
+      image.alt='Презентация NexEstate — страница '+(index+1);image.width=width;image.height=height;image.loading='eager';image.decoding='async';image.src=url;
+      try{await waitForPreviewImageV64(image)}finally{URL.revokeObjectURL(url);canvas.width=1;canvas.height=1}
+      pages.push({image:image,width:width,height:height});await window.nePdfCooperativeYield?.();
+    }
+    slides=[];
+    if(generation!==previewPipelineV64.requested||projectGeneration!==(Number(window.NE72_ACTIVE_PROJECT_GENERATION)||0)){previewPipelineV64.staleDiscarded++;publishPreviewStateV64();return false}
     const currentPages=Array.from(host.children),canReuse=currentPages.length===pages.length&&currentPages.every(function(page){return page.classList.contains('ps-canvas-page')&&!!page.querySelector('img')});
     if(canReuse){
       pages.forEach(function(page,index){currentPages[index].querySelector('img').replaceWith(page.image);previewPipelineV64.imageSwaps++});
@@ -10910,7 +10935,7 @@ async function recoverInterruptedImportsV68(){
   const records=await projectDb.all()||[];let recovered=0,selectionChanged=0,selected=0;records.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));for(const record of records){if(ACTIVE_IMPORT_STATES_V68.has(record.status)||ACTIVE_IMPORT_STATES_V68.has(record.importState)){record.status='error';record.importState='error';record.statusText='Импорт был прерван. Нажмите «Повторить».';record.updatedAt=new Date().toISOString();await putProjectV68(record);recovered++}if(record.catalogSelected&&record.status==='ready'){selected++;if(selected>MAX_CATALOG_V68){record.catalogSelected=false;await putProjectV68(record);selectionChanged++}}}await refreshProjects();installCatalogSelectionGuardV68();updateCatalogSelectionUiV68();if(recovered)setHomeStatus(`Восстановлено после прерывания: ${recovered}. Незавершённые проекты отмечены ошибкой и доступны для повтора.`,'error');else if(selectionChanged)setHomeStatus(CATALOG_LIMIT_MESSAGE_V68,'error')
 }
 if(window.NEXESTATE_STANDALONE_TEST)Object.assign(window.NEXESTATE_STANDALONE_TEST,{importPdfFiles,retryImport,buildCatalogPdf,openCatalogScreen,queueState:()=>({running:queueRunningV68,active:activeImportJobV68?{importJobId:activeImportJobV68.importJobId,projectId:activeImportJobV68.projectId}:null,queued:importQueueV68.map(job=>({importJobId:job.importJobId,projectId:job.projectId})),released:lastReleaseV68}),cancelImport:cancelQueuedImportV68});
-window.NEXESTATE_MULTI_IMPORT_PDF_CATALOG_TEST={version:'68.0',maxCatalog:MAX_CATALOG_V68,states:[...ACTIVE_IMPORT_STATES_V68,'ready','error','cancelled'],quotaMessage:QUOTA_MESSAGE_V68,limitMessage:CATALOG_LIMIT_MESSAGE_V68,queue:()=>({running:queueRunningV68,active:activeImportJobV68?.importJobId||null,queued:importQueueV68.map(job=>job.importJobId)}),lastRelease:()=>({...lastReleaseV68}),catalogEntries:()=>catalogEntries.map((entry,index)=>({index,id:entry.record.id,title:entry.title,included:entry.included}))};
+window.NEXESTATE_MULTI_IMPORT_PDF_CATALOG_TEST={version:'68.0',maxCatalog:MAX_CATALOG_V68,states:[...ACTIVE_IMPORT_STATES_V68,'ready','error','cancelled'],quotaMessage:QUOTA_MESSAGE_V68,limitMessage:CATALOG_LIMIT_MESSAGE_V68,queue:()=>({running:queueRunningV68,active:activeImportJobV68?.importJobId||null,queued:importQueueV68.map(job=>job.importJobId)}),lastRelease:()=>({...lastReleaseV68}),releaseRuntime:releaseRuntimePdfResourcesV68,catalogEntries:()=>catalogEntries.map((entry,index)=>({index,id:entry.record.id,title:entry.title,included:entry.included}))};
 function initializeV68(){ensureCatalogSelectionStatusV68();installCatalogSelectionGuardV68();recoverInterruptedImportsV68().catch(error=>{console.error('Import recovery',error);setHomeStatus('Не удалось проверить незавершённые импорты: '+error.message,'error')})}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(initializeV68,40),{once:true});if(document.readyState!=='loading')setTimeout(initializeV68,40);
 })();
@@ -11767,6 +11792,131 @@ waitForFontV71(selectedFontV71()).then(function(){syncUiV71();scheduleRender?.()
   const source=document.getElementById('nexestate-brand-themes-fonts-bottom-bar-v71')?.textContent||'';
   if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
   try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_STAGE3_LOADED=true;delete window.NEXESTATE_STAGE3_LOAD_ERROR}catch(error){window.NEXESTATE_STAGE3_LOADED=false;window.NEXESTATE_STAGE3_LOAD_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
+<style id="nexestate-open-lifecycle-v72-style">
+#presentationStudio{position:fixed!important}
+#presentationStudio .ne72-open-overlay{position:absolute;inset:0;z-index:14000;display:grid;place-items:center;padding:24px;background:color-mix(in srgb,var(--ns-bg) 92%,transparent);backdrop-filter:blur(8px);color:var(--ns-text)}
+#presentationStudio .ne72-open-card{width:min(460px,calc(100vw - 40px));padding:28px;border:1px solid color-mix(in srgb,var(--ns-accent) 38%,var(--ns-line));border-radius:18px;background:var(--ns-surface);box-shadow:0 24px 72px rgba(0,0,0,.42);text-align:center}
+#presentationStudio .ne72-open-spinner{width:38px;height:38px;margin:0 auto 18px;border:3px solid color-mix(in srgb,var(--ns-accent) 22%,transparent);border-top-color:var(--ns-accent);border-radius:50%;animation:ne72-open-spin .8s linear infinite}
+#presentationStudio .ne72-open-card h2{margin:0 0 8px;font:700 20px/1.25 "Segoe UI",sans-serif}
+#presentationStudio .ne72-open-card p{margin:0;color:var(--ns-muted);font:500 13px/1.55 "Segoe UI",sans-serif;overflow-wrap:anywhere}
+#presentationStudio .ne72-open-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}
+#presentationStudio .ne72-open-actions button{min-height:38px;padding:0 16px;border:1px solid var(--ns-line);border-radius:10px;background:var(--ns-surface-2);color:var(--ns-text);font-weight:700;cursor:pointer}
+#presentationStudio .ne72-open-actions .primary{border-color:var(--ns-accent);background:var(--ns-accent);color:#06131c}
+@keyframes ne72-open-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#presentationStudio .ne72-open-spinner{animation-duration:1.8s}}
+</style>
+<script type="text/plain" id="nexestate-open-lifecycle-v72">
+(()=>{
+'use strict';
+const STAGE_OPEN_V72='72.0';
+const openMetricsV72={requested:0,committed:0,cancelled:0,errors:0,retries:0,lastLatencyMs:0,lastProjectId:'',lastRelease:null};
+let activeOpenV72=null,openGenerationV72=0,failNextReadV72=false;
+
+function abortErrorV72(){return new DOMException('Открытие презентации отменено','AbortError')}
+function isOpenCurrentV72(session){return !!session&&activeOpenV72===session&&!session.controller.signal.aborted&&session.generation===openGenerationV72}
+function assertOpenCurrentV72(session){if(!isOpenCurrentV72(session))throw abortErrorV72()}
+function beginOpenV72(id,title){
+  if(activeOpenV72&&!activeOpenV72.controller.signal.aborted){activeOpenV72.controller.abort();openMetricsV72.cancelled++}
+  const session={id:String(id),title:String(title||'Презентация'),generation:++openGenerationV72,controller:new AbortController(),startedAt:performance.now()};
+  activeOpenV72=session;window.NE72_ACTIVE_PROJECT_GENERATION=session.generation;openMetricsV72.requested++;return session;
+}
+function invalidateOpenV72(){
+  if(activeOpenV72&&!activeOpenV72.controller.signal.aborted)activeOpenV72.controller.abort();activeOpenV72=null;window.NE72_ACTIVE_PROJECT_GENERATION=++openGenerationV72;
+}
+function openOverlayV72(){let overlay=byId('ne72OpenOverlay');if(!overlay){overlay=document.createElement('div');overlay.id='ne72OpenOverlay';overlay.className='ne72-open-overlay';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');byId('presentationStudio')?.appendChild(overlay)}return overlay}
+function showOpeningV72(session){const overlay=openOverlayV72();if(!overlay)return;overlay.hidden=false;overlay.innerHTML='<div class="ne72-open-card"><div class="ne72-open-spinner" aria-hidden="true"></div><h2>Открываем презентацию…</h2><p></p></div>';overlay.querySelector('p').textContent=session.title}
+function showOpenErrorV72(session,error){
+  const overlay=openOverlayV72();if(!overlay)return;overlay.hidden=false;overlay.setAttribute('role','alert');overlay.innerHTML='<div class="ne72-open-card"><h2>Не удалось открыть презентацию</h2><p></p><div class="ne72-open-actions"><button type="button" data-action="back">К презентациям</button><button type="button" class="primary" data-action="retry">Повторить</button></div></div>';
+  overlay.querySelector('p').textContent=String(error?.message||error||'Неизвестная ошибка');overlay.querySelector('[data-action="back"]').onclick=()=>closePresentationV72({save:false});overlay.querySelector('[data-action="retry"]').onclick=()=>{openMetricsV72.retries++;void openProject(session.id)};
+}
+function hideOpenOverlayV72(session){if(session&&!isOpenCurrentV72(session))return;const overlay=byId('ne72OpenOverlay');if(overlay){overlay.hidden=true;overlay.replaceChildren();overlay.setAttribute('role','status')}}
+function clearVisibleProjectV72(){
+  clearTimeout(renderTimer);renderTimer=0;
+  const deck=byId('studioPresoDeck');if(deck){deck.replaceChildren();deck.removeAttribute('aria-busy')}
+  byId('ne53SourcePages')?.replaceChildren();byId('ne53ExtractedPhotos')?.replaceChildren();
+  try{openMetricsV72.lastRelease=window.NEXESTATE_MULTI_IMPORT_PDF_CATALOG_TEST?.releaseRuntime?.()||null}catch(_){try{resetRuntimeState()}catch(__){}}
+  currentRecord=null;currentSettings=null;
+}
+function disposeDecodedSnapshotV72(snapshot){
+  for(const page of snapshot?.pdf?.sourcePages||[]){if(page.canvas instanceof HTMLCanvasElement){page.canvas.width=1;page.canvas.height=1}}
+  for(const photo of snapshot?.pdf?.extractedPhotos||[]){if(photo.canvas instanceof HTMLCanvasElement){photo.canvas.width=1;photo.canvas.height=1}}
+  for(const item of snapshot?.media?.items||[]){try{if(item.image)item.image.src=''}catch(_){}}
+  try{if(snapshot?.broker)snapshot.broker.src=''}catch(_){}
+}
+async function cooperativeV72(session){assertOpenCurrentV72(session);await window.nePdfCooperativeYield?.();assertOpenCurrentV72(session)}
+async function hydrateSourcePagesV72(options={}){
+  const pages=window.NE53_STATE?.pdf?.sourcePages||[],signal=options.signal,check=options.check;
+  for(const page of pages){if(signal?.aborted)throw abortErrorV72();if(typeof check==='function')check();if(!(page.canvas instanceof HTMLCanvasElement))await window.NE72_ensureSnapshotCanvas?.(page,{signal,check});await window.nePdfCooperativeYield?.()}
+  return pages.length;
+}
+async function waitForFirstFrameV72(session){
+  const deadline=performance.now()+12000;
+  while(performance.now()<deadline){
+    assertOpenCurrentV72(session);const deck=byId('studioPresoDeck'),image=deck?.querySelector('.ps-canvas-page img');
+    if(image?.complete&&image.naturalWidth>0&&deck.children.length>0)return true;
+    const error=deck?.querySelector('.ne53-status.err');if(error)throw new Error(error.textContent||'Ошибка предпросмотра');
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+  }
+  throw new Error('Предпросмотр не был подготовлен вовремя. Повторите открытие презентации.');
+}
+
+const restoreRecordBeforeV72=restoreRecord;
+restoreRecord=async function(record,options){
+  const session=options?.session;
+  if(!session){const result=await restoreRecordBeforeV72(record);await hydrateSourcePagesV72();return result}
+  const canonicalData=deepClone(record?.data&&typeof record.data==='object'?record.data:{});let snapshot=null;
+  suppressAutosave=true;
+  try{
+    assertOpenCurrentV72(session);
+    if(record.snapshot&&window.NEXESTATE_V54_TEST?.deserializeSnapshot)snapshot=await window.NEXESTATE_V54_TEST.deserializeSnapshot(record.snapshot,{signal:session.controller.signal,check:()=>assertOpenCurrentV72(session)});
+    await cooperativeV72(session);assertOpenCurrentV72(session);
+    currentRecord=record;currentSettings=normalizeSettings(snapshot?.settings||record.settings);
+    resetRuntimeState();assertOpenCurrentV72(session);
+    if(snapshot){
+      Object.assign(S,snapshot.S||{});Object.assign(advState,snapshot.adv||{});Object.assign(trustState,snapshot.trust||{});metroList=Array.isArray(snapshot.metro)?snapshot.metro:[{s:'',m:''}];Object.assign(DS,snapshot.design||{});Object.assign(window.NE53_STATE.pdf,snapshot.pdf||{});window.ne53UnifiedMedia?.restore?.(snapshot.media||{items:[]});studioBrokerPhoto=snapshot.broker||null;
+      Object.entries(snapshot.fields||{}).forEach(([id,state])=>{const field=byId(id);if(field&&state&&'value' in state)field.value=String(state.value||'')});
+    }
+    applyDataToForm(canonicalData);await cooperativeV72(session);syncMediaSettings();renderExtendedMedia();await cooperativeV72(session);renderFeatureEditor();window.NEXESTATE_V54_TEST?.renderPdfState?.();window.ne53UnifiedMedia?.refresh?.();window.dsRefreshControls?.();window.NexCompactStudio?.setStep?.('pdf');applyDataToForm(canonicalData);
+    const persistedFont=record?.settings?.selectedFont,font=DS_FONTS[persistedFont]?persistedFont:(DS_FONTS[DS.font]?DS.font:'inter');currentSettings=normalizeSettings(Object.assign({},currentSettings,{selectedFont:font}));DS.font=font;await window.NEXESTATE_STAGE3_TEST?.waitForFont?.(font);assertOpenCurrentV72(session);window.NEXESTATE_STAGE3_TEST?.sync?.();scheduleRender?.();return true;
+  }catch(error){if(error?.name==='AbortError'||!isOpenCurrentV72(session))disposeDecodedSnapshotV72(snapshot);throw error}
+  finally{if(isOpenCurrentV72(session))suppressAutosave=false}
+};
+
+openProject=async function(id){
+  const cached=cachedProjects.find(item=>item.id===id),session=beginOpenV72(id,cached?projectTitle(cached):'Презентация');
+  try{
+    await ensureStudioShell();assertOpenCurrentV72(session);const modal=byId('presentationStudio');byId('studioHome').hidden=true;byId('nsCatalogScreen').hidden=true;modal.classList.add('show');modal.setAttribute('aria-hidden','false');document.body.classList.add('ne53-no-scroll');clearVisibleProjectV72();showOpeningV72(session);setHomeStatus('Открываю «'+session.title+'»…');await frame();assertOpenCurrentV72(session);
+    if(failNextReadV72){failNextReadV72=false;throw new Error('Тестовая ошибка чтения проекта')}
+    const record=await projectDb.get(id);assertOpenCurrentV72(session);if(!record||record.status!=='ready')throw new Error('Проект не найден или ещё не готов');session.title=projectTitle(record);showOpeningV72(session);
+    await restoreRecord(record,{session});assertOpenCurrentV72(session);await waitForFirstFrameV72(session);assertOpenCurrentV72(session);hideOpenOverlayV72(session);modal.querySelector('.ne52-step[data-step="pdf"]')?.focus();setHomeStatus('');openMetricsV72.committed++;openMetricsV72.lastProjectId=record.id;openMetricsV72.lastLatencyMs=Math.round((performance.now()-session.startedAt)*10)/10;return true;
+  }catch(error){
+    if(error?.name==='AbortError'||!isOpenCurrentV72(session))return false;
+    openMetricsV72.errors++;currentRecord=null;currentSettings=null;showOpenErrorV72(session,error);setHomeStatus('Не удалось открыть презентацию: '+String(error?.message||error),'error');return false;
+  }finally{if(isOpenCurrentV72(session))suppressAutosave=false}
+};
+
+async function closePresentationV72({save=true}={}){
+  const record=currentRecord;if(save&&record){const ok=await saveCurrent(false);if(!ok)return false}
+  invalidateOpenV72();hideOpenOverlayV72();try{legacyClose?.()}catch(_){}clearVisibleProjectV72();const modal=byId('presentationStudio');modal?.classList.remove('show');modal?.setAttribute('aria-hidden','true');document.body.classList.remove('ne53-no-scroll');byId('nsCatalogScreen').hidden=true;byId('studioHome').hidden=false;await refreshProjects();byId('studioHome')?.focus();return true;
+}
+window.closePresentationStudio=()=>closePresentationV72({save:true});
+
+const exportCurrentPdfBeforeV72=exportCurrentPdf,exportCurrentPngBeforeV72=exportCurrentPng,exportCurrentHtmlBeforeV72=exportCurrentHtml;
+exportCurrentPdf=async function(){await hydrateSourcePagesV72();return exportCurrentPdfBeforeV72()};
+exportCurrentPng=async function(){await hydrateSourcePagesV72();return exportCurrentPngBeforeV72()};
+exportCurrentHtml=async function(openOnly){await hydrateSourcePagesV72();return exportCurrentHtmlBeforeV72(openOnly)};
+
+if(window.NEXESTATE_STANDALONE_TEST){window.NEXESTATE_STANDALONE_TEST.openProject=openProject;window.NEXESTATE_STANDALONE_TEST.closeProject=()=>closePresentationV72({save:true});window.NEXESTATE_STANDALONE_TEST.hydrateSourcePages=hydrateSourcePagesV72}
+window.NEXESTATE_OPEN_LIFECYCLE_TEST={version:STAGE_OPEN_V72,inspect:()=>Object.assign({},openMetricsV72,{active:activeOpenV72?{id:activeOpenV72.id,generation:activeOpenV72.generation,aborted:activeOpenV72.controller.signal.aborted}:null,overlayVisible:!byId('ne72OpenOverlay')?.hidden,projectId:currentRecord?.id||null,sourceCanvases:(window.NE53_STATE?.pdf?.sourcePages||[]).filter(page=>page.canvas instanceof HTMLCanvasElement&&page.canvas.width>1).length}),failNextRead:()=>{failNextReadV72=true;return true},open:id=>openProject(id),close:options=>closePresentationV72(options||{save:false}),hydrate:hydrateSourcePagesV72};
+})();
+</script>
+<script id="nexestate-open-lifecycle-v72-loader">
+(()=>{
+  const source=document.getElementById('nexestate-open-lifecycle-v72')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_OPEN_LIFECYCLE_LOADED=true;delete window.NEXESTATE_OPEN_LIFECYCLE_LOAD_ERROR}catch(error){window.NEXESTATE_OPEN_LIFECYCLE_LOADED=false;window.NEXESTATE_OPEN_LIFECYCLE_LOAD_ERROR=String(error?.stack||error);throw error}
 })();
 </script>
 <script src="../../pwa-shell.js"></script>
