@@ -1540,18 +1540,20 @@ summary:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 24%,tr
 .status.load,.status.warn{background:#FFF5DF;color:#765112;border-color:#EBD59F}
 .app-toast{
   position:fixed;
-  inset:auto 18px 18px auto;
-  z-index:var(--z-toast);
+  left:50%;
+  right:auto;
+  bottom:76px;
+  z-index:16000;
   display:block;
   max-width:min(380px,calc(100vw - 36px));
   padding:11px 14px;
   opacity:0;
   pointer-events:none;
-  transform:translateY(8px);
+  transform:translate(-50%,8px);
   box-shadow:0 8px 12px rgba(15,43,35,.16);
   transition:opacity 180ms var(--ease-out),transform 180ms var(--ease-out);
 }
-.app-toast.show{opacity:1;transform:translateY(0)}
+.app-toast.show{opacity:1;transform:translate(-50%,0)}
 .mobile-workbar{display:none}
 body.ds-no-scroll .mobile-workbar{display:none!important}
 .foot{
@@ -2234,7 +2236,7 @@ html[data-theme="blue"] .mobile-workbar button{color:#CEDFE8}
   .miniadd{min-width:44px}
   .cp{min-height:44px}
   .metrorow{grid-template-columns:minmax(0,1fr) 76px 44px}
-  .app-toast{inset:auto 10px 10px}
+  .app-toast{left:50%;right:auto;bottom:72px}
   #presentationStudio .ps-head{min-height:62px;padding:10px 12px!important}
   #presentationStudio .ps-head h2{font-size:0!important}
   #presentationStudio .ps-sidebar{padding:14px!important}
@@ -3301,7 +3303,7 @@ function copyDesc(){copyText(document.getElementById('draft').value);}
 function copyAll(){const t=getTitle(),d=document.getElementById('draft').value;copyText(S.platform==='avito'?(t+'\n\n'+d):d);}
 function downloadDraft(){const blob=new Blob([document.getElementById('draft').value],{type:'text/plain;charset=utf-8'}),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=(val('objName')||'nex-estate-объявление')+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function resetAll(){if(!confirm('Очистить все поля, включая API-ключ?'))return;const keep=['aiModel','aiEndpoint','aiFolder','aiProvider'];document.querySelectorAll('input,textarea,select').forEach(el=>{if(!keep.includes(el.id)&&el.type!=='file'){if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';}});Object.keys(advState).forEach(k=>advState[k]=false);Object.keys(trustState).forEach(k=>trustState[k]=false);metroList=[{s:'',m:''}];userEdited=false;titleTyped=false;renderAdv();renderTrust();renderMetros();build(true);neQueueAutosave?.(0);}
-function toast(m,type='ok'){const s=document.getElementById('appLiveRegion')||document.getElementById('ppStatus');show(s,type,m);clearTimeout(window.neToastTimer);window.neToastTimer=setTimeout(()=>s.classList.remove('show'),3200);}
+function toast(m,type='ok'){const s=document.getElementById('appLiveRegion')||document.getElementById('ppStatus');show(s,type,m);s.classList.add('app-toast');clearTimeout(window.neToastTimer);window.neToastTimer=setTimeout(()=>s.classList.remove('show'),5200);}
 
 // ---------- save/load ----------
 const NE_STATE_FIELD_IDS=['title','objName','area','addr','district','anchors','use','price','tax','rate','map','indx','contract','deposit','secpay','freem','floor','ceil','power','finish','layout','tenant','extra','mgr','mgrx','mgrPhone','mgrWa','mgrTg','mgrEmail','presoUrl','draft'];
@@ -8091,7 +8093,8 @@ const STAGE1_ADVANTAGE_RULES=Object.freeze([
   {id:'anchorTenants',label:'Якорный арендатор',test:(data,text)=>/\bякорн[а-яё]*\s+арендатор/i.test(text)||STAGE1_ANCHOR_BRANDS.some(pattern=>pattern.test(text))}
 ]);
 let stage1ParseMeta={};
-function stage1TitleValid(value){const title=normalizeText(value).replace(/^[-–—:;,.\s]+|[-–—:;,.\s]+$/g,'');if(title.length<4||title.length>120)return false;if(/^\d+(?:[.,]\d+)?$/.test(title)||/^(?:стр(?:аница)?\.?\s*)?\d+\s*(?:из|\/)?\s*\d*$/i.test(title))return false;if(/(?:₽|руб|м²|\+?\d[\d\s()\-]{8,}\d)/i.test(title))return false;if((title.match(/\d/g)||[]).length>12||/\d{7,}/.test(title))return false;const letters=(title.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;return letters>=3&&letters/Math.max(1,title.length)>.22}
+function stage1TitleValid(value){const title=normalizeText(value).replace(/^[-–—:;,.\s]+|[-–—:;,.\s]+$/g,'');if(title.length<4||title.length>120)return false;if(/^(?:(?:цена|стоимость)(?:\s+(?:за\s+)?(?:м(?:²|2)|кв\.?\s*м(?:етр)?|объекта|продажи|аренды))?|(?:площадь|адрес|метро|описание|объект|назначение|контакты|характеристики|фотографии|фотогалерея)(?:\s+(?:объекта|помещения|здания|презентации))?|презентация\s+объекта|(?:об|о)\s+(?:объекте|здании|парковке)|тип\s+(?:объекта|сделки)|этаж(?:ность)?|мощность|сумма\s+залога|аренда|продажа)$/i.test(title))return false;if(/^\d+(?:[.,]\d+)?$/.test(title)||/^(?:стр(?:аница)?\.?\s*)?\d+\s*(?:из|\/)?\s*\d*$/i.test(title))return false;if(/(?:₽|руб|м²|\+?\d[\d\s()\-]{8,}\d)/i.test(title))return false;if((title.match(/\d/g)||[]).length>12||/\d{7,}/.test(title))return false;const letters=(title.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;return letters>=3&&letters/Math.max(1,title.length)>.22}
+function stage1TitleMeaningful(value){const title=normalizeText(value);return stage1TitleValid(title)&&(/^(?:продажа|аренда|покупка)\s+/i.test(title)||/(?:офис|помещени|склад|здани|особняк|бизнес[- ]?центр|торгов|ритейл|псн|магазин|отел|гостиниц|земельн[а-яё]*\s+участ|участок|комплекс|недвижимост|готов[а-яё]*\s+бизнес|свободн[а-яё]*\s+назначени|апартамент|паркинг|автосалон|мфк|тц|трц)/i.test(title))}
 function stage1Money(match){if(!match)return'';let value=Number(numeric(match[1]))||0;const unit=clean(match[2]).toLocaleLowerCase('ru-RU');if(unit.includes('млрд'))value*=1e9;else if(unit.includes('млн'))value*=1e6;else if(unit.includes('тыс'))value*=1e3;return value?String(Math.round(value)):''}
 function stage1ParseStructured(raw,fileName=''){
   const fileContext=normalizeText(clean(fileName).replace(/\.[^.]+$/,'').replace(/[_]+/g,' ')),text=normalizeText(raw),combined=normalizeText([fileContext,text].filter(Boolean).join('\n')),base=typeof window.qdParseText==='function'?(window.qdParseText(combined)||{}):{},out={},meta={};
@@ -8099,30 +8102,30 @@ function stage1ParseStructured(raw,fileName=''){
   const baseKeys=['scenario','otype','area','price','rate','map','tax','addr','district','metro','floor','ceil','power','use','tenant','contract','indx','finish','layout','draft'];baseKeys.forEach(key=>put(key,base[key],.63,'существующий структурный разбор'));
   const lines=text.split('\n').map(line=>clean(line)).filter(line=>line&&!/^---\s*СТРАНИЦА/i.test(line));
   const explicitTitle=combined.match(/(?:название\s+объекта|заголовок|наименование\s+объекта)\s*[:\-]\s*([^\n]{4,120})/i)?.[1]||combined.match(/(?:^|\n)([^\n]{4,120}?)\s+(?:Фотогалерея|Презентация\s+объекта)(?:\s|$)/i)?.[1]||'';
-  const fileTitle=fileContext.replace(/\b(?:final|fixed|presentation|презентац[а-яё]*)\b/gi,' ').replace(/\s+/g,' ').trim();
-  const lineTitle=lines.find(line=>stage1TitleValid(line)&&!/^NEX\s*ESTATE$/i.test(line)&&!/(?:описание|характеристики|контакты|фотографии)/i.test(line))||'';
-  if(stage1TitleValid(explicitTitle))put('objName',explicitTitle,.96,'явная подпись заголовка');else if(stage1TitleValid(fileTitle))put('objName',fileTitle,.78,'имя PDF');else if(stage1TitleValid(lineTitle))put('objName',lineTitle,.58,'первая содержательная строка');
-  const area=combined.match(/(?:общая\s+)?площад[а-яё]*\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*м²/i)||combined.match(/\b([1-9]\d{0,5}(?:[.,]\d+)?)\s*м²\b/i);if(area)put('area',numeric(area[1]),.94,'площадь с единицей м²');
+  const fileTitle=fileContext.replace(/\s*[,;#]\s*\d[\s\S]*$/,'').replace(/\b(?:final|fixed|presentation|презентац[а-яё]*)\b/gi,' ').replace(/\s+/g,' ').trim();
+  const lineTitle=lines.find(line=>stage1TitleMeaningful(line)&&!/^NEX\s*ESTATE$/i.test(line)&&!/(?:описание|характеристики|контакты|фотографии)/i.test(line))||'';
+  if(stage1TitleValid(explicitTitle))put('objName',explicitTitle,.96,'явная подпись заголовка');else if(stage1TitleMeaningful(fileTitle))put('objName',fileTitle,.92,'содержательное имя PDF');else if(stage1TitleValid(lineTitle))put('objName',lineTitle,.9,'первая содержательная строка');else if(stage1TitleValid(fileTitle))put('objName',fileTitle,.58,'имя PDF');
+  const area=combined.match(/(?:общая\s+)?площад[а-яё]*\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*м(?:²|2|\?)/i)||combined.match(/\b([1-9]\d{0,5}(?:[.,]\d+)?)\s*м²\b/i);if(area)put('area',numeric(area[1]),.94,'площадь с единицей м²');
   const land=combined.match(/(?:площад[а-яё]*\s+участк[а-яё]*|земельн[а-яё]*\s+участок)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(м²|га|сот(?:ок|ки)?)/i);if(land)put('landArea',numeric(land[1])+' '+land[2],.94,'площадь участка');
-  const rate=combined.match(/(?:арендная\s+ставка|аренда\s+в\s+месяц|ставка\s+аренды|МАП\s*\/\s*мес)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб)/i)||combined.match(/([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб)[^\n]{0,24}(?:в\s+месяц|\/\s*мес)/i);if(rate)put('rate',stage1Money(rate),.94,'арендная ставка с валютой');
-  const price=combined.match(/(?:цена(?:\s+продажи)?|стоимость(?:\s+продажи|\s+объекта)?)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб)/i);if(price)put('price',stage1Money(price),.95,'цена с валютой');
-  const map=combined.match(/(?:\bМАП\b|месячн[а-яё]*\s+арендн[а-яё]*\s+плат[а-яё]*)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб)?/i);if(map)put('map',stage1Money(map)||numeric(map[1]),.92,'контекст МАП');
-  const gap=combined.match(/\bГАП\b\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб)?/i);if(gap)put('gap',stage1Money(gap)||numeric(gap[1]),.92,'контекст ГАП');
+  const rate=combined.match(/(?:арендная\s+ставка|аренда\s+в\s+месяц|ставка\s+аренды|МАП\s*\/\s*мес)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб|р\.?(?=$|[\s/]))/i)||combined.match(/([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб|р\.?(?=$|[\s/]))[^\n]{0,24}(?:в\s+месяц|\/\s*мес)/i);if(rate)put('rate',stage1Money(rate),.94,'арендная ставка с валютой');
+  const price=combined.match(/(?:цена(?:\s+продажи)?|стоимость(?:\s+продажи|\s+объекта)?)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб|р\.?(?=$|[\s/]))/i);if(price)put('price',stage1Money(price),.95,'цена с валютой');
+  const map=combined.match(/(?:МАП|месячн[а-яё]*\s+арендн[а-яё]*\s+плат[а-яё]*)\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб|р\.?(?=$|[\s/]))?/i);if(map)put('map',stage1Money(map)||numeric(map[1]),.92,'контекст МАП');
+  const gap=combined.match(/(?:^|[^А-Яа-яЁё])ГАП(?=$|[^А-Яа-яЁё])\s*[:\-]?\s*([\d\s]+(?:[.,]\d+)?)\s*(млрд|млн|тыс)?\s*(?:₽|руб|р\.?(?=$|[\s/]))?/i);if(gap)put('gap',stage1Money(gap)||numeric(gap[1]),.92,'контекст ГАП');
   const payback=combined.match(/окупаемост[а-яё]*\s*[:\-]?\s*([\d.,]+)\s*(?:лет|года?)/i);if(payback)put('payback',numeric(payback[1])+' лет',.9,'срок окупаемости');
   const address=combined.match(/(?:адрес(?:\s+объекта)?|местоположение)\s*[:\-]\s*([^\n]{5,180})/i)?.[1]||combined.match(/((?:г\.?\s*)?(?:Москва|Санкт-Петербург|[А-ЯЁ][а-яё]+)\s*[,·]\s*(?:ул\.?|улица|пер\.?|переулок|пр-т|проспект|ш\.?|шоссе|наб\.?|набережная|тупик|б-р|бульвар)[^\n]{3,150})/i)?.[1];if(address){put('addr',address,.94,'явный адрес');const city=address.match(/(?:г\.?\s*)?([А-ЯЁ][А-Яа-яЁё-]+)(?=\s*[,·])/i)?.[1];if(city)put('city',city,.9,'город из адреса')}
   const district=combined.match(/(?:район|округ)\s*[:\-]\s*([^\n]{2,80})/i)?.[1];if(district)put('district',district,.86,'явный район или округ');
-  const metro=combined.match(/(?:^|[\n;,])\s*(?:метро|м\.)\s*[:\-]?\s*([А-ЯЁA-Z][А-Яа-яЁёA-Za-z .-]{1,42}?)(?:\s*[—-]\s*(\d{1,2})\s*мин(?:ут[ыа]?)?)?(?=$|[\n,;])/im)||combined.match(/([А-ЯЁA-Z][А-Яа-яЁёA-Za-z .-]{1,42}?)\s*[—-]\s*(\d{1,2})\s*мин(?:ут[ыа]?)?\s+(?:пешком\s+)?(?:до\s+)?метро/i);if(metro){const station=normalizeText(metro[1]).replace(/^[\s:.-]+|[\s:.-]+$/g,'');if(station&&!/^(?:площадь|цена|адрес|описание)$/i.test(station)){put('metro',station,.9,'явный контекст метро');if(metro[2])put('metroMinutes',metro[2],.92,'время до метро')}}
+  const metro=combined.match(/(?:^|[\n;,])\s*(?:метро|м\.)\s*[:\-]?\s*([А-ЯЁA-Z][А-Яа-яЁёA-Za-z .-]{1,42}?)(?:\s*[—-]\s*(\d{1,2})\s*мин(?:ут[ыа]?)?(?:\s+пешком)?)?(?=$|[\n,;])/im)||combined.match(/([А-ЯЁA-Z][А-Яа-яЁёA-Za-z .-]{1,42}?)\s*[—-]\s*(\d{1,2})\s*мин(?:ут[ыа]?)?\s+(?:пешком\s+)?(?:до\s+)?метро/i);if(metro){const station=normalizeText(metro[1]).replace(/^[\s:.-]+|[\s:.-]+$/g,'');if(station&&!/^(?:площадь|цена|адрес|описание)$/i.test(station)){put('metro',station,.9,'явный контекст метро');if(metro[2])put('metroMinutes',metro[2],.92,'время до метро')}}
   const floor=combined.match(/(?:этаж\s*\/\s*этажность|этажи?|этажность)\s*[:\-]?\s*([0-9]+(?:\s*(?:из|\/|,|и|\-|–)\s*[0-9]+)?)/i);if(floor){put('floor',clean(floor[1]),.9,'этаж');const total=clean(floor[1]).match(/(?:из|\/)\s*(\d+)/)?.[1];if(total)put('floors',total,.9,'этажность')}
   const floors=combined.match(/\b(\d{1,2})\s*(?:этажей|этажное|этажный)\b/i);if(floors)put('floors',floors[1],.87,'этажность');
   const ceil=combined.match(/(?:высота\s+потолков|потолки)\s*[:\-]?\s*([\d]+(?:[.,]\d+)?)\s*м\b/i);if(ceil)put('ceil',numeric(ceil[1]),.92,'высота потолков');const power=combined.match(/(?:мощность|электричество|электрическая\s+мощность)\s*[:\-]?\s*([\d]+(?:[.,]\d+)?)\s*квт/i);if(power)put('power',numeric(power[1]),.92,'электрическая мощность');
   const parking=combined.match(/(?:парковк[а-яё]*|машиномест[а-яё]*)\s*[:\-]?\s*(\d{1,4})/i)||combined.match(/\b(\d{1,4})\s*(?:машино-?мест|м\/м)\b/i);if(parking)put('parking',parking[1]+' машиномест',.9,'количество машиномест');
-  const entrance=combined.match(/\b(\d+)\s+(?:отдельн[а-яё]*\s+)?вход/i);if(entrance)put('entrance',entrance[1],.86,'отдельные входы');else if(/\bотдельн[а-яё]*\s+вход\b/i.test(combined))put('entrance','1',.8,'отдельный вход');
+  const entrance=combined.match(/\b(\d+)\s+(?:отдельн[а-яё]*\s+)?вход/i);if(entrance)put('entrance',entrance[1],.86,'отдельные входы');else if(/(?:^|[^А-Яа-яЁё])отдельн[а-яё]*\s+вход(?=$|[^А-Яа-яЁё])/i.test(combined))put('entrance','1',.8,'отдельный вход');
   const use=combined.match(/(?:назначение|разреш[её]нное\s+использование|подходит\s+под)\s*[:\-]\s*([^\n]{3,180})/i)?.[1];if(use)put('use',use,.86,'назначение объекта');const tenant=combined.match(/арендатор\s*[:\-]\s*([^\n]{2,120})/i)?.[1];if(tenant)put('tenant',tenant,.86,'явный арендатор');
-  if(STAGE1_ANCHOR_BRANDS.some(pattern=>pattern.test(combined))||/\bякорн[а-яё]*\s+арендатор/i.test(combined))put('anchorTenant',tenant||'Якорный арендатор',.84,'подтверждённый якорный контекст');
-  const layout=combined.match(/планировк[а-яё]*\s*[:\-]\s*([^\n]{2,100})/i)?.[1]||(/\b(?:открытая|свободная)\s+планировка\b/i.exec(combined)||[])[0];if(layout)put('layout',layout,.86,'планировка');
-  const description=combined.match(/(?:ОПИСАНИЕ(?:\s+ОБЪЕКТА)?|ОБ\s+ОБЪЕКТЕ)\s*[:\-]?\s*([\s\S]{35,6000}?)(?=\n(?:NEX\s*ESTATE|---\s*СТРАНИЦА|ХАРАКТЕРИСТИКИ|ФОТОГРАФИИ|КОНТАКТЫ|$))/i)?.[1];if(description)put('draft',normalizeText(description).replace(/^[-•]\s*/gm,'').replace(/\n+/g,' '),.88,'секция описания');
-  const scenario=rate||map||/\bаренд[а-яё]*\b/i.test(combined)?'Аренда':price||/\bпродаж[а-яё]*\b/i.test(combined)?'Продажа':out.scenario;if(scenario)put('scenario',scenario,.9,'контекст сделки');
-  const objectType=/\bофис/i.test(combined)?'Офис':/\b(?:торгов|стрит[ -]?ритейл|псн|свободн[а-яё]*\s+назначени)/i.test(combined)?'Торговое помещение':/\bздани[ея]\b/i.test(combined)?'Здание':out.otype;if(objectType)put('otype',objectType,.82,'тип объекта');
+  if(STAGE1_ANCHOR_BRANDS.some(pattern=>pattern.test(combined))||/(?:^|[^А-Яа-яЁё])якорн[а-яё]*\s+арендатор/i.test(combined))put('anchorTenant',tenant||'Якорный арендатор',.84,'подтверждённый якорный контекст');
+  const layout=combined.match(/планировк[а-яё]*\s*[:\-]\s*([^\n]{2,100})/i)?.[1]||(/(?:^|[^А-Яа-яЁё])(?:открытая|свободная)\s+планировка(?=$|[^А-Яа-яЁё])/i.exec(combined)||[])[0];if(layout)put('layout',layout,.86,'планировка');
+  const description=combined.match(/(?:ОПИСАНИЕ(?:\s+ОБЪЕКТА)?|ОБ\s+ОБЪЕКТЕ)\s*[:\-]?\s*([\s\S]{35,6000}?)(?=\n(?:NEX\s*ESTATE|---\s*СТРАНИЦА|ХАРАКТЕРИСТИКИ|ПРЕИМУЩЕСТВА|ФОТОГРАФИИ|КОНТАКТЫ)|\s*$)/i)?.[1];if(description)put('draft',normalizeText(description).replace(/^[-•]\s*/gm,'').replace(/\n+/g,' '),.88,'секция описания');
+  const topContext=lines.slice(0,8).join('\n'),explicitScenario=topContext.match(/(?:^|[^А-Яа-яЁё])(продаж[а-яё]*|аренд[а-яё]*)(?=$|[^А-Яа-яЁё])/i)?.[1]||'',scenario=/^продаж/i.test(explicitScenario)?'Продажа':/^аренд/i.test(explicitScenario)?'Аренда':rate||map||/(?:^|[^А-Яа-яЁё])аренд[а-яё]*(?=$|[^А-Яа-яЁё])/i.test(combined)?'Аренда':price||/(?:^|[^А-Яа-яЁё])продаж[а-яё]*(?=$|[^А-Яа-яЁё])/i.test(combined)?'Продажа':out.scenario;if(scenario)put('scenario',scenario,.9,'контекст сделки');
+  const typeContext=topContext||combined,objectType=/(?:^|[^А-Яа-яЁё])офис(?:[^А-Яа-яЁё]|$)/i.test(typeContext)||/(?:^|[^А-Яа-яЁё])офис(?:[^А-Яа-яЁё]|$)/i.test(combined)?'Офис':/(?:^|[^А-Яа-яЁё])(?:торгов[а-яё]*|стрит[ -]?ритейл|псн|свободн[а-яё]*\s+назначени[а-яё]*)(?=$|[^А-Яа-яЁё])/i.test(typeContext)||/(?:^|[^А-Яа-яЁё])(?:торгов[а-яё]*|стрит[ -]?ритейл|псн|свободн[а-яё]*\s+назначени[а-яё]*)(?=$|[^А-Яа-яЁё])/i.test(combined)?'Торговое помещение':/(?:^|[^А-Яа-яЁё])здани[ея](?=$|[^А-Яа-яЁё])/i.test(combined)?'Здание':out.otype;if(objectType)put('otype',objectType,.82,'тип объекта');
   if(out.objName&&!stage1TitleValid(out.objName)){delete out.objName;delete meta.objName}
   stage1ParseMeta=meta;window.NE55_LAST_PARSE_META=cloneValueStage1(meta);return out;
 }
@@ -12929,8 +12932,6 @@ const buildCanonicalSlidesBeforeV75=buildCanonicalSlides;
 buildCanonicalSlides=function(config={}){const options=config||{};if(!requestedSingleV75(options))return buildCanonicalSlidesBeforeV75(options);const canvas=buildSingleV75(options);return canvas?[canvas]:[]};
 window.ne53BuildSlides=buildCanonicalSlides;window.neBuildUnifiedSlides=buildCanonicalSlides;window.dsCanvasSet=buildCanonicalSlides;if(window.NEXESTATE_STANDALONE_TEST)window.NEXESTATE_STANDALONE_TEST.buildSlides=buildCanonicalSlides;
 function syncPrimaryExportNameV75(){const main=byId('ne62DownloadMain');if(!main)return;const label=main.textContent.trim();if(label)main.setAttribute('aria-label',label)}
-const refreshBottomBarBeforeV75=refreshBottomBarV62;
-refreshBottomBarV62=function(){const result=refreshBottomBarBeforeV75();syncPrimaryExportNameV75();return result};
 function singlePrimaryPngV75(){if((currentSettings?.activeBrandedLayout||currentSettings?.brandLayout||currentSettings?.presentationLayout)!==SINGLE_LAYOUT_V75)return;if(currentSettings)currentSettings.exportType='png';window.NEXESTATE_V62_TEST?.selectExport?.('png');const main=byId('ne62DownloadMain');if(main)main.textContent='Скачать PNG';syncPrimaryExportNameV75();scheduleSave?.()}
 const setBrandLayoutBeforeV75=window.NEXESTATE_MODE_ISOLATION_TEST?.setBrandLayout;if(setBrandLayoutBeforeV75)window.NEXESTATE_MODE_ISOLATION_TEST.setBrandLayout=function(value){const result=setBrandLayoutBeforeV75(value);if(value===SINGLE_LAYOUT_V75)setTimeout(singlePrimaryPngV75,0);return result};
 document.addEventListener('click',function(event){if(event.target.closest?.('#ne62LayoutSingle'))setTimeout(singlePrimaryPngV75,100)},true);
