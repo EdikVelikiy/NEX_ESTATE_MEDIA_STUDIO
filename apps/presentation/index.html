@@ -12163,6 +12163,387 @@ window.NEXESTATE_OPEN_LIFECYCLE_TEST={version:STAGE_OPEN_V72,inspect:()=>Object.
   try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_OPEN_LIFECYCLE_LOADED=true;delete window.NEXESTATE_OPEN_LIFECYCLE_LOAD_ERROR}catch(error){window.NEXESTATE_OPEN_LIFECYCLE_LOADED=false;window.NEXESTATE_OPEN_LIFECYCLE_LOAD_ERROR=String(error?.stack||error);throw error}
 })();
 </script>
+<style id="nexestate-compact-editor-contacts-templates-v73-style">
+#presentationStudio .ne52-step[data-step="design"],
+#presentationStudio .ne52-panel[data-panel="design"],
+#presentationStudio .ne65-brand-toggle,
+#presentationStudio #ne65ByTheme,
+#presentationStudio #ne71ByTheme,
+#presentationStudio #ne62SingleTheme{display:none!important}
+#presentationStudio .ne73-settings-trigger{min-height:38px;padding:0 13px;border:1px solid var(--ns-line);border-radius:10px;background:var(--ns-surface-2);color:var(--ns-text);font-weight:700;cursor:pointer}
+#presentationStudio .ne73-settings-trigger:hover,#presentationStudio .ne73-settings-trigger:focus-visible{border-color:var(--ns-accent);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--ns-accent) 18%,transparent)}
+#presentationStudio .ne73-settings-drawer{position:fixed;z-index:14500;top:78px;right:16px;width:min(390px,calc(100vw - 32px));max-height:calc(100vh - 96px);overflow:auto;padding:18px;border:1px solid color-mix(in srgb,var(--ns-accent) 34%,var(--ns-line));border-radius:16px;background:var(--ns-surface);box-shadow:0 26px 76px rgba(0,0,0,.48);color:var(--ns-text)}
+#presentationStudio .ne73-settings-drawer[hidden]{display:none}
+#presentationStudio .ne73-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+#presentationStudio .ne73-drawer-head h3{margin:0;font-size:18px}
+#presentationStudio .ne73-icon-btn{display:inline-grid;place-items:center;min-width:44px;min-height:44px;border:1px solid var(--ns-line);border-radius:10px;background:var(--ns-surface-2);color:var(--ns-text);cursor:pointer}
+#presentationStudio .ne73-settings-grid{display:grid;gap:13px}
+#presentationStudio .ne73-settings-grid>label{display:grid;gap:6px;color:var(--ns-muted);font-size:12px;font-weight:700}
+#presentationStudio .ne73-settings-grid select{width:100%;min-height:44px;border:1px solid var(--ns-line);border-radius:10px;background:var(--ns-surface-2);color:var(--ns-text);padding:0 11px}
+#presentationStudio .ne73-settings-grid .ds-auto{width:100%;min-height:44px}
+#presentationStudio .ne73-setting-check{display:flex!important;grid-template-columns:none!important;align-items:center;gap:10px;color:var(--ns-text)!important}
+#presentationStudio .ne73-setting-check input{width:18px;height:18px}
+#presentationStudio .ne73-setting-hint{margin:0;color:var(--ns-muted);font-size:12px;line-height:1.45}
+#presentationStudio .ne73-data-summary{display:grid;gap:8px;margin:0 0 14px;padding:12px;border:1px solid var(--ns-line);border-radius:12px;background:color-mix(in srgb,var(--ns-surface-2) 86%,transparent)}
+#presentationStudio .ne73-data-summary strong{font-size:13px}
+#presentationStudio .ne73-data-summary ul{display:grid;gap:4px;margin:0;padding-left:18px;color:var(--ns-muted);font-size:12px}
+#presentationStudio .ne73-data-summary[data-ok="true"]{border-color:color-mix(in srgb,#45d39a 45%,var(--ns-line))}
+#presentationStudio .ne73-contact-toggle{display:flex;align-items:center;gap:9px;margin:12px 0;padding:10px;border:1px solid var(--ns-line);border-radius:10px;background:var(--ns-surface-2);color:var(--ns-text);font-weight:700}
+#presentationStudio .ne73-contact-toggle input{width:18px;height:18px}
+#presentationStudio .ne73-contact-off-note{margin:0 0 10px;color:var(--ns-muted);font-size:12px}
+#presentationStudio .ne73-company-socials{margin-top:12px!important;border:1px solid var(--ns-line)!important;border-radius:11px!important;background:var(--ns-surface-2)!important}
+#presentationStudio .ne73-company-socials summary{padding:11px 12px;cursor:pointer;font-weight:700}
+#presentationStudio .ne73-social-body{display:grid;gap:10px;padding:0 12px 12px}
+#presentationStudio .ne73-social-body label{display:grid;gap:5px;color:var(--ns-muted);font-size:11px;font-weight:700}
+#presentationStudio .ne73-social-body input[type="url"]{min-height:42px;width:100%;border:1px solid var(--ns-line);border-radius:9px;background:var(--ns-bg);color:var(--ns-text);padding:0 10px}
+#presentationStudio .ne73-wa-hidden{display:none!important}
+#presentationStudio .ne73-site-hidden{display:none!important}
+#presentationStudio .ne73-contact-disabled{opacity:.72}
+#presentationStudio .ne73-contact-disabled .ne73-contact-off-note{opacity:1}
+#presentationStudio .ne53-exportbar.ne62-compactbar{height:64px!important;min-height:64px!important;max-height:64px!important;overflow:visible!important;flex-wrap:nowrap!important}
+#presentationStudio .ne62-layout-switch{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:nowrap!important}
+#presentationStudio .ne73-custom-theme,#presentationStudio .ne73-brand-theme{min-width:142px;max-width:190px;height:38px;border:1px solid var(--ns-line);border-radius:9px;background:var(--ns-surface-2);color:var(--ns-text);padding:0 9px;font-weight:700}
+#presentationStudio .ne73-mode-pair{display:inline-flex;align-items:stretch;gap:0}
+#presentationStudio .ne73-mode-pair>#ne62LayoutBy{border-radius:9px 0 0 9px!important;margin:0!important}
+#presentationStudio .ne73-mode-pair>#ne62LayoutSingle{border-radius:0 9px 9px 0!important;margin:0!important;border-left-width:0!important}
+#presentationStudio .ne73-bar-toggle{display:none;min-width:44px;min-height:44px}
+#presentationStudio #dsPresetSelect{display:inline-block!important;min-width:150px;max-width:210px;height:38px;padding:0 30px 0 9px}
+#presentationStudio #ne73TemplateDeleteButton{min-width:44px;height:38px;padding-inline:10px;color:#ff9b9b}
+#presentationStudio .ne73-template-picker{display:none!important}
+#presentationStudio .ne73-template-picker{position:relative;display:inline-flex;min-width:150px}
+#presentationStudio .ne73-template-picker>button{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#presentationStudio .ne73-template-menu{position:absolute;z-index:14600;left:0;bottom:calc(100% + 10px);width:min(330px,calc(100vw - 28px));max-height:320px;overflow:auto;padding:8px;border:1px solid var(--ns-line);border-radius:12px;background:var(--ns-surface);box-shadow:0 22px 58px rgba(0,0,0,.45)}
+#presentationStudio .ne73-template-menu[hidden]{display:none}
+#presentationStudio .ne73-template-empty{padding:12px;color:var(--ns-muted);font-size:12px}
+#presentationStudio .ne73-template-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:6px;align-items:center}
+#presentationStudio .ne73-template-row+ .ne73-template-row{margin-top:6px}
+#presentationStudio .ne73-template-row .ne73-template-apply{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#presentationStudio .ne73-template-row .ne73-template-delete{display:grid;place-items:center;min-width:44px;min-height:44px;color:#ff9b9b}
+#presentationStudio .ne73-dialog-overlay,#presentationStudio .ne73-crop-overlay{position:fixed;z-index:14700;inset:0;display:grid;place-items:center;padding:20px;background:rgba(2,10,17,.78);backdrop-filter:blur(7px)}
+#presentationStudio .ne73-dialog-overlay[hidden],#presentationStudio .ne73-crop-overlay[hidden]{display:none}
+#presentationStudio .ne73-dialog{width:min(430px,100%);padding:20px;border:1px solid var(--ns-line);border-radius:16px;background:var(--ns-surface);box-shadow:0 26px 80px rgba(0,0,0,.55)}
+#presentationStudio .ne73-dialog h3{margin:0 0 14px}
+#presentationStudio .ne73-dialog label{display:grid;gap:6px;color:var(--ns-muted);font-size:12px;font-weight:700}
+#presentationStudio .ne73-dialog input[type="text"]{min-height:44px;border:1px solid var(--ns-line);border-radius:10px;background:var(--ns-bg);color:var(--ns-text);padding:0 11px}
+#presentationStudio .ne73-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#presentationStudio .ne73-dialog-actions button{min-height:44px;padding:0 15px}
+#presentationStudio .ne73-crop-dialog{width:min(510px,100%);max-height:calc(100vh - 36px);overflow:auto;padding:20px;border:1px solid var(--ns-line);border-radius:18px;background:var(--ns-surface);box-shadow:0 26px 84px rgba(0,0,0,.58)}
+#presentationStudio .ne73-crop-dialog h3{margin:0 0 4px}
+#presentationStudio .ne73-crop-dialog>p{margin:0 0 15px;color:var(--ns-muted);font-size:12px}
+#presentationStudio .ne73-crop-viewport{position:relative;width:min(300px,72vw);aspect-ratio:1;margin:0 auto;overflow:hidden;border:2px solid var(--ns-accent);border-radius:50%;background:#07131e;touch-action:none;cursor:grab;box-shadow:0 0 0 999px rgba(3,10,17,.52) inset}
+#presentationStudio .ne73-crop-viewport:active{cursor:grabbing}
+#presentationStudio .ne73-crop-viewport img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(var(--ne73-crop-scale,1));transform-origin:center;pointer-events:none;user-select:none}
+#presentationStudio .ne73-crop-zoom{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin:18px 0 4px}
+#presentationStudio .ne73-crop-zoom input{width:100%}
+#presentationStudio .ne73-crop-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:16px}
+#presentationStudio .ne73-crop-actions button{min-height:44px}
+#presentationStudio .ne73-focus-notice{position:fixed;z-index:14350;left:calc(var(--ne73-preview-left,50vw) + var(--ne73-preview-width,0px)/2);top:50%;transform:translate(-50%,-50%);max-width:min(320px,70vw);padding:9px 13px;border:1px solid color-mix(in srgb,var(--ns-accent) 55%,var(--ns-line));border-radius:999px;background:color-mix(in srgb,var(--ns-bg) 92%,transparent);color:var(--ns-text);font-size:12px;font-weight:700;box-shadow:0 12px 40px rgba(0,0,0,.38);pointer-events:none}
+#presentationStudio .ne73-preview-focus{animation:ne70FocusPulse 1s ease both}
+#presentationStudio .ne73-closed-sale-badge{display:none}
+#presentationStudio .ne53-extracted-card .ne73-transfer-photo{min-height:44px!important;padding:7px 10px!important;background:var(--ns-accent)!important;color:#05131d!important;font-weight:800!important}
+#presentationStudio .ne53-extracted-card .ne73-download-photo{min-height:44px!important;padding:7px 10px!important}
+@media(max-width:980px){
+  #presentationStudio .ne73-settings-drawer{top:70px;right:10px;width:calc(100vw - 20px);max-height:calc(100vh - 82px)}
+  #presentationStudio .ne53-exportbar.ne62-compactbar{height:56px!important;min-height:56px!important;max-height:56px!important;padding:6px 8px!important}
+  #presentationStudio .ne73-bar-toggle{display:inline-grid!important;place-items:center}
+  #presentationStudio .ne53-exportbar.ne62-compactbar:not(.ne73-expanded) .ne61-work-save,
+  #presentationStudio .ne53-exportbar.ne62-compactbar:not(.ne73-expanded) .ne61-final-actions{display:none!important}
+  #presentationStudio .ne53-exportbar.ne62-compactbar.ne73-expanded{height:auto!important;max-height:min(60vh,420px)!important;overflow:auto!important;align-items:stretch!important;flex-direction:column!important;padding:10px!important}
+  #presentationStudio .ne53-exportbar.ne62-compactbar.ne73-expanded .ne61-bar-group{width:100%;padding:8px 0!important;border-left:0!important;border-top:1px solid var(--ns-line)}
+  #presentationStudio .ne53-exportbar.ne62-compactbar.ne73-expanded .ne62-layout-switch{flex-wrap:wrap!important}
+  #presentationStudio .ne73-custom-theme,#presentationStudio .ne73-brand-theme{min-width:128px;max-width:100%;flex:1 1 150px}
+  #presentationStudio .ne53-exportbar button,#presentationStudio .ne53-exportbar select{min-height:44px!important}
+}
+@media(max-width:620px){
+  #presentationStudio .ne52-top-actions{gap:6px}
+  #presentationStudio .ne73-settings-trigger{width:44px;padding:0;font-size:0}
+  #presentationStudio .ne73-settings-trigger::before{content:'⚙';font-size:18px}
+  #presentationStudio .ne73-dialog-overlay,#presentationStudio .ne73-crop-overlay{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){#presentationStudio .ne73-preview-focus{animation:none}}
+</style>
+<script type="text/plain" id="nexestate-compact-editor-contacts-templates-v73">
+(()=>{
+'use strict';
+const STAGE3_COMPACT_V73='73.0';
+const CONTACT_PAGE_V73='contact';
+const BY_LAYOUT_V73='byNexEstate';
+const SINGLE_LAYOUT_V73='singlePage';
+const BY_THEME_ORDER_V73=['original','deepSapphire','emeraldGraphite','lightSteel','burgundyGraphite','darkJade','brandGreen'];
+const BY_THEME_NAMES_V73={original:'Оригинальная',deepSapphire:'Глубокий сапфир',emeraldGraphite:'Аметистовый тёмный',lightSteel:'Светлый стальной',burgundyGraphite:'Мягкий антрацит',darkJade:'Тёмный нефрит',brandGreen:'Фирменный зелёный'};
+const SINGLE_THEME_NAMES_V73={warmGold:'Тёплый золотой',lightBlue:'Светло-синий',premiumDark:'Премиальный тёмный',darkJade:'Тёмный нефрит',brandGreen:'Фирменный зелёный'};
+const SAFE_LINK_V73=/^https:\/\/[A-Za-z0-9.-]+(?:[\/:?#][^\s]*)?$/i;
+const TEMPLATE_SAFE_KEYS_V73=['brandModeEnabled','activeBrandedLayout','brandLayout','presentationLayout','byNexEstateTheme','byNexEstateThemeV71','singlePageTheme','singlePageThemeV71','userDesign','userTheme','customThemeKey','selectedFont','showContactPage','companyTelegram','companyTelegramLabel','companyInstagram','companyInstagramLabel','showSite','siteUrl','closedSale','galleryMode','galleryTitles','galleryPages','pageOrder','hiddenPages','coverEnabled','features','userCharacteristicIds','byNexEstateCharacteristicIds','singlePageCharacteristicIds','brokerPhotoChoice','broker'];
+let cropDraftV73=null,cropPointerV73=null,focusNoticeTimerV73=0,focusCloneTimerV73=0,templateDeleteTimerV73=0,pendingTemplateDeleteV73='',syncingUiV73=false;
+
+function ownV73(object,key){return !!object&&Object.prototype.hasOwnProperty.call(object,key)}
+function normalizeWebV73(value,fallback=''){
+  let raw=String(value??'').trim();if(!raw)raw=fallback;if(!raw)return'';
+  if(/^@/.test(raw))raw='https://t.me/'+raw.replace(/^@+/, '');
+  else if(!/^https?:\/\//i.test(raw))raw='https://'+raw.replace(/^\/+/, '');
+  try{const url=new URL(raw);if(url.protocol!=='https:'&&url.protocol!=='http:')return'';url.protocol='https:';return url.href.replace(/\/$/,'')}catch(_){return''}
+}
+function normalizeCompanySettingsV73(base,source){
+  base.showContactPage=ownV73(source,'showContactPage')?source.showContactPage===true:(Array.isArray(source.pageOrder)&&source.pageOrder.includes(CONTACT_PAGE_V73)&&!(source.hiddenPages||[]).includes(CONTACT_PAGE_V73));
+  base.companyTelegram=normalizeWebV73(source.companyTelegram,'https://t.me/Nex_Estate');
+  base.companyTelegramLabel=cleanText(source.companyTelegramLabel||'Мы в Telegram',60).trim()||'Мы в Telegram';
+  base.companyInstagram=normalizeWebV73(source.companyInstagram,'https://www.instagram.com/nex_estate_moscow/');
+  base.companyInstagramLabel=cleanText(source.companyInstagramLabel||'Мы в Instagram',60).trim()||'Мы в Instagram';
+  base.showSite=ownV73(source,'showSite')?source.showSite!==false:true;
+  base.siteUrl=normalizeWebV73(source.siteUrl||source.presoUrl||'https://nexestate.ru','https://nexestate.ru');
+  base.closedSale=source.closedSale===true;
+  base.customThemeKey=DS_THEMES[source.customThemeKey]?source.customThemeKey:(DS_THEMES[source.userTheme]?source.userTheme:'soft');
+  const explicitBy=ownV73(source,'byNexEstateThemeV71')||ownV73(source,'byNexEstateTheme');
+  const explicitSingle=ownV73(source,'singlePageThemeV71')||ownV73(source,'singlePageTheme');
+  if(!explicitBy){base.byNexEstateTheme='brandGreen';base.byNexEstateThemeV71='brandGreen'}
+  if(!explicitSingle){base.singlePageTheme='brandGreen';base.singlePageThemeV71='brandGreen'}
+  return base;
+}
+const settingsDefaultsBeforeV73=settingsDefaults;
+settingsDefaults=function(){return normalizeCompanySettingsV73(Object.assign(settingsDefaultsBeforeV73(),{showContactPage:false,companyTelegram:'https://t.me/Nex_Estate',companyTelegramLabel:'Мы в Telegram',companyInstagram:'https://www.instagram.com/nex_estate_moscow/',companyInstagramLabel:'Мы в Instagram',showSite:true,siteUrl:'https://nexestate.ru',closedSale:false,customThemeKey:'soft',byNexEstateTheme:'brandGreen',byNexEstateThemeV71:'brandGreen',singlePageTheme:'brandGreen',singlePageThemeV71:'brandGreen'}),{showContactPage:false,byNexEstateTheme:'brandGreen',byNexEstateThemeV71:'brandGreen',singlePageTheme:'brandGreen',singlePageThemeV71:'brandGreen'})};
+const normalizeSettingsBeforeV73=normalizeSettings;
+normalizeSettings=function(value){const source=value&&typeof value==='object'?value:{},base=normalizeSettingsBeforeV73(source);return normalizeCompanySettingsV73(base,source)};
+if(currentSettings)currentSettings=normalizeSettings(currentSettings);
+
+const syncPageOrderBeforeV73=syncPageOrder;
+syncPageOrder=function(){
+  if(!currentSettings)return;const hidden=new Set(currentSettings.hiddenPages||[]);
+  if(currentSettings.showContactPage)hidden.delete(CONTACT_PAGE_V73);else hidden.add(CONTACT_PAGE_V73);
+  currentSettings.hiddenPages=[...hidden];syncPageOrderBeforeV73();
+  const without=(currentSettings.pageOrder||[]).filter(key=>key!==CONTACT_PAGE_V73);
+  currentSettings.pageOrder=currentSettings.showContactPage?without.concat(CONTACT_PAGE_V73):without;
+  const finalHidden=new Set(currentSettings.hiddenPages||[]);if(currentSettings.showContactPage)finalHidden.delete(CONTACT_PAGE_V73);else finalHidden.add(CONTACT_PAGE_V73);currentSettings.hiddenPages=[...finalHidden];
+};
+
+function currentLayoutV73(){
+  if(currentSettings?.brandModeEnabled!==true)return'custom';
+  return(currentSettings.activeBrandedLayout||currentSettings.brandLayout||currentSettings.presentationLayout)===SINGLE_LAYOUT_V73?SINGLE_LAYOUT_V73:BY_LAYOUT_V73;
+}
+function setCustomModeV73(theme){
+  if(!currentSettings)return;const safe=DS_THEMES[theme]?theme:'soft';historyPoint?.('Изменение обычного оформления');
+  currentSettings.brandModeEnabled=false;currentSettings.customThemeKey=safe;currentSettings.userTheme=safe;DS.theme=safe;
+  if(DS.design==='byNexEstate')DS.design=currentSettings.userDesign&&DS_DESIGNS[currentSettings.userDesign]?currentSettings.userDesign:'editorial';
+  try{window.NEXESTATE_MODE_ISOLATION_TEST?.setBrandMode?.(false)}catch(_){try{dsApply?.()}catch(__){}}
+  scheduleSave?.();scheduleRender?.();queueUiV73();
+}
+function setBrandThemeV73(value){const layout=currentLayoutV73();if(layout===SINGLE_LAYOUT_V73)window.NEXESTATE_STAGE3_TEST?.setSingleTheme?.(value);else window.NEXESTATE_STAGE3_TEST?.setByTheme?.(value);queueUiV73()}
+function activateBrandLayoutV73(layout){
+  if(!currentSettings)return;const next=layout===SINGLE_LAYOUT_V73?SINGLE_LAYOUT_V73:BY_LAYOUT_V73;
+  if(currentSettings.brandModeEnabled!==true)window.NEXESTATE_MODE_ISOLATION_TEST?.setBrandMode?.(true);
+  currentSettings.activeBrandedLayout=next;currentSettings.brandLayout=next;currentSettings.presentationLayout=next;
+  window.NEXESTATE_MODE_ISOLATION_TEST?.setBrandLayout?.(next);scheduleSave?.();scheduleRender?.();setTimeout(syncAllV73,0);
+}
+function replaceOptionsV73(select,entries,value){
+  const signature=entries.map(pair=>pair.join(':')).join('|');if(select.dataset.signature!==signature){select.replaceChildren(...entries.map(([key,label])=>{const option=document.createElement('option');option.value=key;option.textContent=label;return option}));select.dataset.signature=signature}select.value=value;
+}
+function customThemeEntriesV73(){return Object.entries(DS_THEMES).map(([key,item])=>[key,key==='soft'?'Оригинальная':item.name||key])}
+function brandThemeEntriesV73(layout){
+  if(layout===SINGLE_LAYOUT_V73){const entries=[...byId('ne62SingleTheme')?.options||[]].map(option=>[option.value,option.textContent]);return entries.length?entries:Object.entries(SINGLE_THEME_NAMES_V73)}
+  const keys=Array.isArray(window.NEXESTATE_STAGE3_TEST?.themes)?window.NEXESTATE_STAGE3_TEST.themes:BY_THEME_ORDER_V73;return keys.map(key=>[key,BY_THEME_NAMES_V73[key]||key]);
+}
+
+function ensureSettingsDrawerV73(){
+  const host=document.querySelector('#presentationStudio .ne52-top-actions');if(!host)return;
+  let trigger=byId('ne73SettingsTrigger');if(!trigger){trigger=document.createElement('button');trigger.type='button';trigger.id='ne73SettingsTrigger';trigger.className='ne73-settings-trigger';trigger.textContent='⚙ Настройки презентации';trigger.setAttribute('aria-controls','ne73SettingsDrawer');trigger.setAttribute('aria-expanded','false');trigger.onclick=()=>toggleSettingsDrawerV73();host.prepend(trigger)}
+  let drawer=byId('ne73SettingsDrawer');if(!drawer){
+    drawer=document.createElement('aside');drawer.id='ne73SettingsDrawer';drawer.className='ne73-settings-drawer';drawer.hidden=true;drawer.setAttribute('aria-label','Настройки презентации');
+    const head=document.createElement('div');head.className='ne73-drawer-head';const title=document.createElement('h3');title.textContent='Настройки презентации';const close=document.createElement('button');close.type='button';close.className='ne73-icon-btn';close.setAttribute('aria-label','Закрыть настройки');close.textContent='×';close.onclick=()=>toggleSettingsDrawerV73(false);head.append(title,close);
+    const grid=document.createElement('div');grid.className='ne73-settings-grid';grid.id='ne73SettingsGrid';
+    const closed=document.createElement('label');closed.className='ne73-setting-check';closed.innerHTML='<input id="ne73ClosedSale" type="checkbox"> Закрытая продажа';closed.querySelector('input').onchange=function(){if(!currentSettings)return;historyPoint?.('Закрытая продажа');currentSettings.closedSale=this.checked;scheduleSave?.();scheduleRender?.()};
+    const hint=document.createElement('p');hint.className='ne73-setting-hint';hint.textContent='Шрифт, сценарий и автоподбор перенесены сюда из прежнего шага «Дизайн».';
+    grid.append(closed,hint);drawer.append(head,grid);byId('presentationStudio')?.appendChild(drawer);
+  }
+  moveDesignControlsV73();
+}
+function wrapControlV73(control,label){if(!control)return null;let wrap=control.closest('.ne73-control-wrap');if(wrap)return wrap;wrap=document.createElement('label');wrap.className='ne73-control-wrap';const caption=document.createElement('span');caption.textContent=label;control.parentNode?.insertBefore(wrap,control);wrap.append(caption,control);return wrap}
+function moveDesignControlsV73(){
+  const grid=byId('ne73SettingsGrid');if(!grid)return;
+  const font=byId('dsFontSelect'),scenario=byId('ne53ScenarioSelect'),auto=document.querySelector('#presentationStudio [data-panel="design"] .ds-auto, #presentationStudio [data-panel="design"] button[onclick*="dsAutoSelect"]'),rec=byId('dsRecommendation');
+  const fontWrap=wrapControlV73(font,'Шрифт презентации'),scenarioWrap=wrapControlV73(scenario,'Сценарий презентации');
+  [fontWrap,scenarioWrap,auto,rec].filter(Boolean).forEach(node=>{if(node.parentElement!==grid)grid.insertBefore(node,grid.querySelector('.ne73-setting-check'))});
+}
+function toggleSettingsDrawerV73(force){
+  const drawer=byId('ne73SettingsDrawer'),trigger=byId('ne73SettingsTrigger');if(!drawer)return;
+  const open=typeof force==='boolean'?force:drawer.hidden;drawer.hidden=!open;trigger?.setAttribute('aria-expanded',String(open));if(open){syncDrawerV73();drawer.querySelector('select,button,input')?.focus()}else trigger?.focus();
+}
+function syncDrawerV73(){const checkbox=byId('ne73ClosedSale');if(checkbox)checkbox.checked=!!currentSettings?.closedSale;const font=byId('dsFontSelect');if(font&&currentSettings)font.value=currentSettings.selectedFont||DS.font;const scenario=byId('ne53ScenarioSelect');if(scenario)scenario.value=DS.scenario}
+
+function ensureBottomOrderV73(){
+  const layout=document.querySelector('#presentationStudio .ne62-layout-switch'),photo=byId('ne62HeroTrigger'),floor=byId('ne62FloorTrigger');if(!layout||!currentSettings)return;
+  let by=byId('ne62LayoutBy');if(!by){by=document.createElement('button');by.type='button';by.id='ne62LayoutBy';by.textContent='by NexEstate';by.onclick=()=>activateBrandLayoutV73(BY_LAYOUT_V73)}
+  let single=byId('ne62LayoutSingle');if(!single){single=document.createElement('button');single.type='button';single.id='ne62LayoutSingle';single.textContent='Одностраничная презентация';single.onclick=()=>activateBrandLayoutV73(SINGLE_LAYOUT_V73)}
+  by.onclick=()=>activateBrandLayoutV73(BY_LAYOUT_V73);single.onclick=()=>activateBrandLayoutV73(SINGLE_LAYOUT_V73);
+  unlockModeButtonsV73(by,single);
+  let custom=byId('ne73CustomTheme');if(!custom){custom=document.createElement('select');custom.id='ne73CustomTheme';custom.className='ne73-custom-theme';custom.setAttribute('aria-label','Тема обычного режима');custom.onchange=()=>setCustomModeV73(custom.value)}
+  let pair=byId('ne73ModePair');if(!pair){pair=document.createElement('span');pair.id='ne73ModePair';pair.className='ne73-mode-pair'}pair.append(by,single);
+  let brand=byId('ne73BrandTheme');if(!brand){brand=document.createElement('select');brand.id='ne73BrandTheme';brand.className='ne73-brand-theme';brand.setAttribute('aria-label','Тема активного фирменного режима');brand.onchange=()=>setBrandThemeV73(brand.value)}
+  const customValue=DS_THEMES[currentSettings.customThemeKey]?currentSettings.customThemeKey:(DS_THEMES[currentSettings.userTheme]?currentSettings.userTheme:'soft');replaceOptionsV73(custom,customThemeEntriesV73(),customValue);
+  const active=currentLayoutV73(),brandValue=active===SINGLE_LAYOUT_V73?(currentSettings.singlePageThemeV71||currentSettings.singlePageTheme||'brandGreen'):(currentSettings.byNexEstateThemeV71||currentSettings.byNexEstateTheme||'brandGreen');replaceOptionsV73(brand,brandThemeEntriesV73(active),brandValue);
+  brand.disabled=active==='custom';brand.hidden=active==='custom';custom.classList.toggle('active',active==='custom');
+  const expected=[custom,pair,brand,photo,floor].filter(Boolean),current=[...layout.children].filter(node=>expected.includes(node));
+  if(expected.some((node,index)=>current[index]!==node))expected.forEach(node=>layout.appendChild(node));
+  layout.dataset.ne73Order='custom-theme,by-and-single,context-theme,photo,floor';
+  let bar=layout.closest('.ne53-exportbar');if(bar&&!byId('ne73BarToggle')){const toggle=document.createElement('button');toggle.type='button';toggle.id='ne73BarToggle';toggle.className='ne73-bar-toggle';toggle.textContent='☰';toggle.setAttribute('aria-label','Показать или скрыть нижнюю панель');toggle.onclick=()=>bar.classList.toggle('ne73-expanded');bar.prepend(toggle)}
+}
+
+function unlockModeButtonsV73(){
+  const buttons=arguments.length?[...arguments]:[byId('ne62LayoutBy'),byId('ne62LayoutSingle')];
+  buttons.filter(Boolean).forEach(button=>{if(button.disabled)button.disabled=false;if(button.hasAttribute('aria-disabled'))button.removeAttribute('aria-disabled')});
+}
+
+function dataErrorsV73(){const checks=[['studioName','заголовок'],['studioAddr','адрес'],['studioDescription','описание']];return checks.filter(([id])=>!String(byId(id)?.value||'').trim()).map(([,label])=>'Не заполнено: '+label)}
+function updateDataSummaryV73(){
+  const host=byId('ne73DataSummary');if(!host)return;const errors=dataErrorsV73();host.dataset.ok=String(!errors.length);host.replaceChildren();const strong=document.createElement('strong');strong.textContent=errors.length?'Проверьте обязательные данные':'Основные данные заполнены';host.appendChild(strong);if(errors.length){const list=document.createElement('ul');errors.forEach(text=>{const item=document.createElement('li');item.textContent=text;list.appendChild(item)});host.appendChild(list)}
+  document.querySelectorAll('#ne53DataForm>details').forEach(details=>{const summary=details.querySelector(':scope>summary');if(!summary)return;if(!summary.dataset.ne73Base)summary.dataset.ne73Base=summary.textContent.replace(/\s+·\s+\d+\/\d+$/,'');const fields=[...details.querySelectorAll('input:not([type="checkbox"]),textarea,select')].filter(field=>!field.closest('.ne73-company-socials')&&!field.closest('.ne73-crop-overlay'));const filled=fields.filter(field=>String(field.value||'').trim()).length;summary.textContent=summary.dataset.ne73Base+(fields.length?' · '+filled+'/'+fields.length:'')});
+}
+function contactDetailsV73(){return byId('studioMgr')?.closest('details')||null}
+function updateContactUiV73(){
+  const details=contactDetailsV73(),toggle=byId('ne73ShowContact'),note=byId('ne73ContactOffNote');if(!details||!currentSettings)return;
+  if(toggle)toggle.checked=!!currentSettings.showContactPage;if(note)note.hidden=!!currentSettings.showContactPage;details.classList.toggle('ne73-contact-disabled',!currentSettings.showContactPage);
+  const showSite=byId('ne73ShowSite');if(showSite)showSite.checked=currentSettings.showSite!==false;const site=byId('studioSite');if(site){if(!site.value&&currentSettings.siteUrl)site.value=currentSettings.siteUrl;site.closest('label')?.classList.toggle('ne73-site-hidden',currentSettings.showSite===false)}
+  const tg=byId('ne73CompanyTelegram'),ig=byId('ne73CompanyInstagram');if(tg&&document.activeElement!==tg)tg.value=currentSettings.companyTelegram||'https://t.me/Nex_Estate';if(ig&&document.activeElement!==ig)ig.value=currentSettings.companyInstagram||'https://www.instagram.com/nex_estate_moscow/';
+}
+function ensureContactUiV73(){
+  const details=contactDetailsV73();if(!details)return;details.hidden=false;details.style.removeProperty('display');const summary=details.querySelector(':scope>summary');if(summary&&!summary.dataset.ne73Named){summary.textContent='Контакт брокера';summary.dataset.ne73Named='1'}
+  let toggle=byId('ne73ShowContact');if(!toggle){const label=document.createElement('label');label.className='ne73-contact-toggle';toggle=document.createElement('input');toggle.type='checkbox';toggle.id='ne73ShowContact';toggle.onchange=function(){if(!currentSettings)return;historyPoint?.('Видимость контактной страницы');currentSettings.showContactPage=this.checked;syncPageOrder();scheduleSave?.();scheduleRender?.();updateContactUiV73()};label.append(toggle,document.createTextNode('Показать страницу контактов'));summary.insertAdjacentElement('afterend',label);const note=document.createElement('p');note.id='ne73ContactOffNote';note.className='ne73-contact-off-note';note.textContent='Контактные данные сохранены, но страница не входит в предпросмотр и экспорт.';label.insertAdjacentElement('afterend',note)}
+  const wa=byId('studioWa')?.closest('label');if(wa){wa.classList.add('ne73-wa-hidden');wa.setAttribute('aria-hidden','true')}
+  byId('studioTg')?.closest('.ne61-telegram-row')?.querySelector('.ne61-telegram-open,.ne70-telegram-open')?.remove();
+  let socials=byId('ne73CompanySocials');if(!socials){
+    socials=document.createElement('details');socials.id='ne73CompanySocials';socials.className='ne73-company-socials';socials.innerHTML='<summary>Соцсети компании</summary><div class="ne73-social-body"><label>Telegram компании<input id="ne73CompanyTelegram" type="url" inputmode="url"></label><label>Instagram компании<input id="ne73CompanyInstagram" type="url" inputmode="url"></label><label class="ne73-setting-check"><input id="ne73ShowSite" type="checkbox"> Показывать сайт</label></div>';details.appendChild(socials);
+    byId('ne73CompanyTelegram').onchange=function(){if(currentSettings){currentSettings.companyTelegram=normalizeWebV73(this.value,'https://t.me/Nex_Estate');this.value=currentSettings.companyTelegram;scheduleSave?.();scheduleRender?.()}};
+    byId('ne73CompanyInstagram').onchange=function(){if(currentSettings){currentSettings.companyInstagram=normalizeWebV73(this.value,'https://www.instagram.com/nex_estate_moscow/');this.value=currentSettings.companyInstagram;scheduleSave?.();scheduleRender?.()}};
+    byId('ne73ShowSite').onchange=function(){if(currentSettings){currentSettings.showSite=this.checked;scheduleSave?.();scheduleRender?.();updateContactUiV73()}};
+  }
+  const site=byId('studioSite');if(site&&site.dataset.ne73Site!=='1'){site.dataset.ne73Site='1';site.addEventListener('change',function(){if(currentSettings){currentSettings.siteUrl=normalizeWebV73(site.value,'https://nexestate.ru');site.value=currentSettings.siteUrl.replace(/^https?:\/\//,'');scheduleSave?.();scheduleRender?.()}})}
+  updateContactUiV73();
+}
+function ensureDataSummaryV73(){const form=byId('ne53DataForm');if(!form)return;let summary=byId('ne73DataSummary');if(!summary){summary=document.createElement('section');summary.id='ne73DataSummary';summary.className='ne73-data-summary';summary.setAttribute('aria-live','polite');form.prepend(summary)}updateDataSummaryV73()}
+
+function brokerImageV73(){return byId('studioBrokerPhotoPreview')?.querySelector('img')||null}
+function ensureCropDialogV73(){
+  let overlay=byId('ne73CropOverlay');if(overlay)return overlay;overlay=document.createElement('div');overlay.id='ne73CropOverlay';overlay.className='ne73-crop-overlay';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','ne73CropTitle');overlay.innerHTML='<div class="ne73-crop-dialog"><h3 id="ne73CropTitle">Кадрирование фотографии брокера</h3><p>Перемещайте изображение мышью или пальцем. Исходный файл не изменяется.</p><div class="ne73-crop-viewport" id="ne73CropViewport"><img id="ne73CropImage" alt="Предпросмотр круглой фотографии брокера"></div><label class="ne73-crop-zoom"><span>Масштаб</span><input id="ne73CropZoom" type="range" min="1" max="3" step="0.01"><output id="ne73CropZoomValue">100%</output></label><div class="ne73-crop-actions"><button type="button" data-action="reset">Сбросить</button><button type="button" data-action="delete">Удалить фото</button><button type="button" data-action="cancel">Отмена</button><button type="button" class="primary" data-action="apply">Применить</button></div></div>';byId('presentationStudio')?.appendChild(overlay);
+  const viewport=byId('ne73CropViewport'),zoom=byId('ne73CropZoom');
+  viewport.addEventListener('pointerdown',event=>{if(!cropDraftV73)return;viewport.setPointerCapture(event.pointerId);cropPointerV73={id:event.pointerId,x:event.clientX,y:event.clientY,focusX:cropDraftV73.focusX,focusY:cropDraftV73.focusY};event.preventDefault()});
+  viewport.addEventListener('pointermove',event=>{if(!cropPointerV73||cropPointerV73.id!==event.pointerId||!cropDraftV73)return;const rect=viewport.getBoundingClientRect(),factor=100/(Math.max(1,cropDraftV73.scale)*Math.max(1,rect.width));cropDraftV73.focusX=Math.max(0,Math.min(100,cropPointerV73.focusX-(event.clientX-cropPointerV73.x)*factor));cropDraftV73.focusY=Math.max(0,Math.min(100,cropPointerV73.focusY-(event.clientY-cropPointerV73.y)*factor));renderCropV73()});
+  const stop=event=>{if(cropPointerV73?.id===event.pointerId)cropPointerV73=null};viewport.addEventListener('pointerup',stop);viewport.addEventListener('pointercancel',stop);
+  zoom.addEventListener('input',()=>{if(cropDraftV73){cropDraftV73.scale=Number(zoom.value)||1;renderCropV73()}});
+  overlay.querySelector('[data-action="reset"]').onclick=()=>{cropDraftV73={focusX:50,focusY:50,scale:1};renderCropV73()};
+  overlay.querySelector('[data-action="cancel"]').onclick=()=>closeCropV73(false);
+  overlay.querySelector('[data-action="apply"]').onclick=()=>closeCropV73(true);
+    overlay.querySelector('[data-action="delete"]').onclick=()=>{window.NEXESTATE_STAGE2_TEST?.removeAvatar?.();closeCropV73(false)};
+  overlay.addEventListener('pointerdown',event=>{if(event.target===overlay)closeCropV73(false)});return overlay;
+}
+function renderCropV73(){const image=byId('ne73CropImage'),zoom=byId('ne73CropZoom'),value=byId('ne73CropZoomValue');if(!image||!cropDraftV73)return;image.style.objectPosition=cropDraftV73.focusX+'% '+cropDraftV73.focusY+'%';image.style.setProperty('--ne73-crop-scale',cropDraftV73.scale);if(zoom)zoom.value=String(cropDraftV73.scale);if(value)value.textContent=Math.round(cropDraftV73.scale*100)+'%'}
+function openCropV73(){const source=brokerImageV73(),api=window.NEXESTATE_STANDALONE_TEST;if(!source||!api)return false;const overlay=ensureCropDialogV73(),meta=api.getBrokerMeta?.()||{focusX:50,focusY:50,scale:1};cropDraftV73={focusX:Number(meta.focusX)||50,focusY:Number(meta.focusY)||50,scale:Number(meta.scale)||1};const image=byId('ne73CropImage');image.src=source.currentSrc||source.src;overlay.hidden=false;renderCropV73();byId('ne73CropZoom')?.focus();return true}
+function closeCropV73(apply){const overlay=byId('ne73CropOverlay');if(apply&&cropDraftV73)window.NEXESTATE_STANDALONE_TEST?.updateBrokerMeta?.(cropDraftV73);if(overlay)overlay.hidden=true;cropDraftV73=null;cropPointerV73=null;window.NEXESTATE_STAGE2_TEST?.sync?.();scheduleSave?.();scheduleRender?.()}
+function ensureCropButtonV73(){const actions=contactDetailsV73()?.querySelector('.ne70-broker-actions');if(!actions)return;let button=actions.querySelector('[data-action="crop"]');if(!button){button=document.createElement('button');button.type='button';button.dataset.action='crop';button.textContent='Настроить кадр';button.onclick=openCropV73;const remove=actions.querySelector('[data-action="remove"]');actions.insertBefore(button,remove)}button.disabled=!brokerImageV73()}
+const brokerSetterBeforeV73=window.studioSetBrokerPhoto;
+window.studioSetBrokerPhoto=function(file){const result=brokerSetterBeforeV73?.(file);setTimeout(()=>{ensureCropButtonV73();if(brokerImageV73())openCropV73()},700);return result};
+
+function safeTemplateSettingsV73(source){const out={};TEMPLATE_SAFE_KEYS_V73.forEach(key=>{if(ownV73(source,key))out[key]=deepClone(source[key])});return out}
+const dsNormalizePresetBeforeV73=dsNormalizePreset;
+dsNormalizePreset=function(value){
+  if(value&&!value.state&&value.design)value=Object.assign({},value,{state:{design:value.design,theme:value.theme,font:value.font,scenario:value.scenario||'universal'}});
+  const base=dsNormalizePresetBeforeV73(value);if(!base)return null;base.projectSettings=safeTemplateSettingsV73(value.projectSettings||value.settings||{});return base;
+};
+const dsPresetSnapshotBeforeV73=dsPresetSnapshot;
+dsPresetSnapshot=function(){return dsPresetSnapshotBeforeV73()};
+function loadTemplatesV73(){try{const parsed=JSON.parse(localStorage.getItem(DS_PRESETS_KEY)||'[]');return Array.isArray(parsed)?parsed.map(dsNormalizePreset).filter(Boolean):[]}catch(_){return[]}}
+function saveTemplatesV73(list){try{localStorage.setItem(DS_PRESETS_KEY,JSON.stringify(list.map(dsNormalizePreset).filter(Boolean)));return true}catch(error){toastSafe('Не удалось сохранить шаблоны: '+error.message,'err');return false}}
+function renderTemplatePickerV73(){
+  const select=byId('dsPresetSelect'),list=loadTemplatesV73();if(!select)return;select.disabled=!list.length;const current=select.value,signature=list.map(item=>[item.id,item.name,item.version,item.updatedAt].join(':')).join('|');if(select.dataset.ne73Signature!==signature){select.dataset.ne73Signature=signature;select.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=list.length?'Мои шаблоны · '+list.length:'Нет шаблонов';select.appendChild(placeholder);list.forEach(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=item.name+' · v'+item.version;select.appendChild(option)});if(list.some(item=>item.id===current))select.value=current}
+  const remove=byId('ne73TemplateDeleteButton');if(remove)remove.disabled=!select.value;
+}
+function ensureTemplateUiV73(){
+  const select=byId('dsPresetSelect');if(!select)return;byId('ne73TemplatePicker')?.remove();select.setAttribute('aria-label','Мои шаблоны');select.onchange=()=>{byId('ne73TemplateDeleteButton').disabled=!select.value;if(select.value)applyTemplateV73(select.value)};let remove=byId('ne73TemplateDeleteButton');if(!remove){remove=document.createElement('button');remove.type='button';remove.id='ne73TemplateDeleteButton';remove.textContent='Удалить';remove.setAttribute('aria-label','Удалить выбранный шаблон');remove.onclick=()=>{if(select.value)openDeleteTemplateV73(select.value)};select.insertAdjacentElement('afterend',remove)}
+  ensureTemplateDialogsV73();renderTemplatePickerV73();
+}
+function ensureTemplateDialogsV73(){
+  if(!byId('ne73TemplateCreateOverlay')){const overlay=document.createElement('div');overlay.id='ne73TemplateCreateOverlay';overlay.className='ne73-dialog-overlay';overlay.hidden=true;overlay.innerHTML='<form class="ne73-dialog" id="ne73TemplateCreateForm"><h3>Сохранить шаблон</h3><label>Название шаблона<input id="ne73TemplateName" type="text" maxlength="60" autocomplete="off" required></label><div class="ne73-dialog-actions"><button type="button" data-action="cancel">Отмена</button><button type="submit" class="primary">Сохранить</button></div></form>';byId('presentationStudio')?.appendChild(overlay);overlay.querySelector('[data-action="cancel"]').onclick=()=>overlay.hidden=true;overlay.querySelector('form').onsubmit=event=>{event.preventDefault();saveNewTemplateV73(byId('ne73TemplateName').value);overlay.hidden=true}}
+  if(!byId('ne73TemplateDeleteOverlay')){const overlay=document.createElement('div');overlay.id='ne73TemplateDeleteOverlay';overlay.className='ne73-dialog-overlay';overlay.hidden=true;overlay.innerHTML='<div class="ne73-dialog" role="alertdialog" aria-modal="true"><h3>Удалить шаблон?</h3><p>Будет удалён только выбранный шаблон.</p><div class="ne73-dialog-actions"><button type="button" data-action="cancel">Отмена</button><button type="button" class="danger" data-action="delete">Удалить</button></div></div>';byId('presentationStudio')?.appendChild(overlay);overlay.querySelector('[data-action="cancel"]').onclick=()=>{pendingTemplateDeleteV73='';overlay.hidden=true};overlay.querySelector('[data-action="delete"]').onclick=()=>confirmDeleteTemplateV73()}
+}
+function openCreateTemplateV73(){ensureTemplateUiV73();const overlay=byId('ne73TemplateCreateOverlay'),field=byId('ne73TemplateName');if(!overlay||!field)return;field.value=(DS_DESIGNS[DS.design]?.name||'Оформление')+' · '+(DS_THEMES[DS.theme]?.name||'Тема');overlay.hidden=false;requestAnimationFrame(()=>field.select())}
+function saveNewTemplateV73(name){name=String(name||'').trim().slice(0,60);if(!name)return;const list=loadTemplatesV73(),index=list.findIndex(item=>item.name.toLowerCase()===name.toLowerCase()),now=new Date().toISOString(),old=index>=0?list[index]:null,item={id:old?.id||'p'+Date.now().toString(36),name,version:(old?.version||0)+1,schema:3,createdAt:old?.createdAt||now,updatedAt:now,lastUsedAt:old?.lastUsedAt||'',favorite:old?.favorite||false,tags:old?.tags||[],state:dsPresetSnapshot(),projectSettings:safeTemplateSettingsV73(currentSettings||{})};if(index>=0)list[index]=item;else list.push(item);if(saveTemplatesV73(list)){renderTemplatePickerV73();const select=byId('dsPresetSelect');if(select)select.value=item.id;const remove=byId('ne73TemplateDeleteButton');if(remove)remove.disabled=false;toastSafe(index>=0?'Шаблон обновлён':'Шаблон сохранён','ok')}}
+function applyTemplateV73(id){const list=loadTemplatesV73(),item=list.find(entry=>entry.id===id);if(!item)return false;item.lastUsedAt=new Date().toISOString();saveTemplatesV73(list);dsPushHistory?.();Object.assign(DS,dsNormalizeState(Object.assign({},DS,item.state,{compare:DS.compare,fullscreen:DS.fullscreen})));if(currentSettings){const preserved={media:currentSettings.media,coverPhotoIds:currentSettings.coverPhotoIds,broker:currentSettings.broker,brokerPhotoChoice:currentSettings.brokerPhotoChoice};currentSettings=normalizeSettings(Object.assign({},currentSettings,item.projectSettings,preserved));syncPageOrder()}dsApply?.();syncAllV73();toastSafe('Шаблон «'+item.name+'» применён','ok');return true}
+function openDeleteTemplateV73(id){ensureTemplateDialogsV73();pendingTemplateDeleteV73=id;const overlay=byId('ne73TemplateDeleteOverlay');if(overlay){overlay.hidden=false;overlay.querySelector('[data-action="cancel"]')?.focus()}}
+function scheduleTemplateDeleteV73(id){clearTimeout(templateDeleteTimerV73);templateDeleteTimerV73=setTimeout(()=>openDeleteTemplateV73(id),80)}
+function confirmDeleteTemplateV73(){if(!pendingTemplateDeleteV73)return;const id=pendingTemplateDeleteV73,list=loadTemplatesV73();pendingTemplateDeleteV73='';if(saveTemplatesV73(list.filter(item=>item.id!==id))){byId('ne73TemplateDeleteOverlay').hidden=true;renderTemplatePickerV73();toastSafe('Шаблон удалён','ok')}}
+window.dsLoadPresets=loadTemplatesV73;window.dsSavePresets=saveTemplatesV73;window.dsRenderPresets=renderTemplatePickerV73;window.dsCreatePreset=openCreateTemplateV73;window.dsApplyPreset=applyTemplateV73;
+
+function contactLinksV73(){
+  if(!currentSettings)return[];const data=currentRecord?.data||dataFromForm(),broker=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||byId('studioTg')?.value),site=normalizeWebV73(data.presoUrl||byId('studioSite')?.value||currentSettings.siteUrl,'https://nexestate.ru');const lines=[];
+  if(data.mgrPhone)lines.push({label:'Телефон: '+data.mgrPhone,url:'tel:'+String(data.mgrPhone).replace(/[^+\d]/g,'')});if(broker?.valid&&!broker.empty)lines.push({label:'Telegram: '+broker.label,url:broker.url});lines.push({label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV73(currentSettings.companyTelegram,'https://t.me/Nex_Estate')});lines.push({label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV73(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')});if(currentSettings.showSite!==false&&site)lines.push({label:site.replace(/^https?:\/\//,''),url:site});return lines.filter(item=>item.url)
+}
+function companyContactLinesV73(){
+  if(!currentSettings)return[];const lines=[{label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV73(currentSettings.companyTelegram,'https://t.me/Nex_Estate')},{label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV73(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')}];
+  if(currentSettings.showSite!==false){const site=normalizeWebV73(byId('studioSite')?.value||currentSettings.siteUrl,'https://nexestate.ru');if(site)lines.push({label:'Сайт NexEstate',url:site})}return lines.filter(item=>item.url);
+}
+function attachContactSemanticsV73(canvas){
+  if(!canvas)return canvas;const lines=contactLinksV73(),company=companyContactLinesV73(),width=canvas.width||1240,height=canvas.height||1754,baseY=Math.round(height*.65),links=lines.map((item,index)=>({x:Math.round(width*.31),y:baseY+index*Math.round(height*.025),w:Math.round(width*.58),h:Math.round(height*.024),url:item.url,label:item.label}));
+  if(!canvas.neCompanyContactsV73&&company.length){const ctx=canvas.getContext('2d'),x=Math.round(width*.355),startY=Math.round(height*.785),lineH=Math.round(height*.021),sample=ctx.getImageData(Math.min(width-1,x),Math.min(height-1,startY),1,1).data,lum=.2126*sample[0]+.7152*sample[1]+.0722*sample[2];ctx.save();ctx.fillStyle=lum>150?'#0B3328':'#F6F3EA';company.forEach((item,index)=>{let text=item.label+' · '+item.url.replace(/^https?:\/\//,'').replace(/\/$/,'');let size=Math.round(width*.0155);do{ctx.font='600 '+size+'px "Segoe UI",Arial,sans-serif';if(ctx.measureText(text).width<=width*.55)break;size--}while(size>13);ctx.fillText(text,x,startY+index*lineH)});ctx.restore();canvas.neCompanyContactsV73=true}
+  canvas.neContactLines=lines.map(item=>item.label);canvas.neExternalLinks=(canvas.neExternalLinks||[]).filter(link=>!link.ne73Contact).concat(links.map(link=>Object.assign(link,{ne73Contact:true})));canvas.neStage3PageKind='contact';return canvas;
+}
+const byContactPageBeforeV73=byContactPage;
+byContactPage=function(page,total){const data=currentRecord?.data||dataFromForm(),rawWa=data.mgrWa;try{data.mgrWa='';return attachContactSemanticsV73(byContactPageBeforeV73(page,total))}finally{data.mgrWa=rawWa}};
+function drawClosedBadgeV73(canvas){if(!canvas||canvas.neClosedSaleV73)return canvas;const ctx=canvas.getContext('2d'),width=canvas.width||1240,height=canvas.height||1754,label='Закрытая продажа',font=Math.max(13,Math.round(width*.017)),pad=Math.round(width*.014),boxH=Math.round(font*2.25);ctx.save();ctx.font='700 '+font+'px "Segoe UI",Arial,sans-serif';const boxW=Math.ceil(ctx.measureText(label).width+pad*3.2),x=width-boxW-Math.round(width*.028),y=Math.round(height*.02);ctx.fillStyle='rgba(4,17,29,.88)';ctx.strokeStyle='rgba(220,174,82,.9)';ctx.lineWidth=Math.max(1,Math.round(width/900));ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,boxW,boxH,boxH/2);else ctx.rect(x,y,boxW,boxH);ctx.fill();ctx.stroke();ctx.fillStyle='#efc46d';ctx.textBaseline='middle';ctx.fillText('▣',x+pad,y+boxH/2);ctx.fillStyle='#fff4d8';ctx.fillText(label,x+pad*2.2,y+boxH/2);ctx.restore();canvas.neClosedSaleV73=true;return canvas}
+const buildCanonicalSlidesBeforeV73=buildCanonicalSlides;
+buildCanonicalSlides=function(config){syncPageOrder();let slides=buildCanonicalSlidesBeforeV73(config||{})||[];const appendix=slides.filter(canvas=>canvas?.neOriginalPdfPage),base=slides.filter(canvas=>!canvas?.neOriginalPdfPage);if(currentSettings?.showContactPage&&base.length&&!base.some(canvas=>canvas?.neStage3PageKind==='contact'))attachContactSemanticsV73(base[base.length-1]);if(currentSettings?.closedSale&&currentLayoutV73()!=='custom')slides.forEach(drawClosedBadgeV73);if(appendix.length&&base.length)slides=base.concat(appendix);return slides};
+window.ne53BuildSlides=buildCanonicalSlides;window.neBuildUnifiedSlides=buildCanonicalSlides;window.dsCanvasSet=buildCanonicalSlides;if(window.NEXESTATE_STANDALONE_TEST)window.NEXESTATE_STANDALONE_TEST.buildSlides=buildCanonicalSlides;
+
+const presentationHtmlBeforeV73=presentationHtml;
+presentationHtml=function(slides,title){
+  const pages=slides.map((canvas,index)=>{const links=(canvas.neExternalLinks||[]).filter(link=>/^https?:\/\/|^tel:/i.test(String(link.url||''))).map(link=>{const left=link.x/canvas.width*100,top=link.y/canvas.height*100,width=link.w/canvas.width*100,height=link.h/canvas.height*100;return'<a class="page-link" href="'+escapeHtml(link.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(link.label||'Открыть ссылку')+'" style="left:'+left+'%;top:'+top+'%;width:'+width+'%;height:'+height+'%"></a>'}).join('');return'<figure class="page"><div class="page-art"><img src="'+canvas.toDataURL('image/jpeg',.94)+'" alt="Страница '+(index+1)+'">'+links+'</div><figcaption>'+(index+1)+' / '+slides.length+'</figcaption></figure>'}).join('');
+  return'<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escapeHtml(title)+'</title><style>html{background:#07131e;color:#eaf6fd;font-family:system-ui,sans-serif}body{margin:0;padding:24px}.deck{display:grid;gap:24px;max-width:1100px;margin:auto}.page{margin:0;background:#102536;border:1px solid #2d526b;border-radius:12px;overflow:hidden;box-shadow:0 18px 55px #0008}.page-art{position:relative}.page img{display:block;width:100%;height:auto}.page-link{position:absolute;display:block;border-radius:4px}.page-link:focus-visible{outline:3px solid #58baf2;outline-offset:2px}.page figcaption{padding:8px 12px;text-align:right;color:#9eb7c7;font-size:12px}@media(max-width:640px){body{padding:8px}.deck{gap:10px}}</style></head><body><main class="deck">'+pages+'</main></body></html>';
+};
+
+function improveExtractedButtonsV73(){document.querySelectorAll('#ne53ExtractedPhotos button').forEach(button=>{const raw=button.textContent.trim();if(raw==='→'){button.textContent='Перенести в Медиа';button.classList.add('ne73-transfer-photo');button.setAttribute('aria-label','Перенести фотографию в Медиа')}else if(raw==='↓'){button.textContent='⇩ Скачать';button.classList.add('ne73-download-photo');button.setAttribute('aria-label','Скачать фотографию')}})}
+function showFocusNoticeV73(field){
+  clearTimeout(focusNoticeTimerV73);byId('ne73FocusNotice')?.remove();const preview=document.querySelector('#presentationStudio .ne52-preview'),rect=preview?.getBoundingClientRect();const notice=document.createElement('div');notice.id='ne73FocusNotice';notice.className='ne73-focus-notice';notice.textContent='Изменяемый блок показан в центре предпросмотра';if(rect){notice.style.setProperty('--ne73-preview-left',rect.left+'px');notice.style.setProperty('--ne73-preview-width',rect.width+'px')}byId('presentationStudio')?.appendChild(notice);focusNoticeTimerV73=setTimeout(()=>notice.remove(),3100);
+  clearTimeout(focusCloneTimerV73);focusCloneTimerV73=setTimeout(()=>{const mark=document.querySelector('#studioPresoDeck .ne70-preview-focus');if(!mark)return;const clone=mark.cloneNode(false);clone.className='ne70-preview-focus ne73-preview-focus';mark.parentElement?.appendChild(clone);setTimeout(()=>clone.remove(),3100)},500);
+}
+function keyboardAccessV73(event){const target=event.target;if((event.key==='Enter'||event.key===' ')&&target?.matches?.('[role="button"]:not(button)')){event.preventDefault();target.click()}if(event.key==='Escape'){toggleSettingsDrawerV73(false);byId('ne73TemplateMenu')&&(byId('ne73TemplateMenu').hidden=true);if(!byId('ne73CropOverlay')?.hidden)closeCropV73(false)}}
+function syncAllV73(){
+  syncingUiV73=true;
+  try{ensureSettingsDrawerV73();ensureBottomOrderV73();ensureDataSummaryV73();ensureContactUiV73();ensureCropButtonV73();ensureTemplateUiV73();improveExtractedButtonsV73();syncDrawerV73();updateContactUiV73();updateDataSummaryV73()}
+  finally{setTimeout(()=>{syncingUiV73=false},0)}
+}
+let uiQueuedV73=false;
+function queueUiV73(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||uiQueuedV73)return;uiQueuedV73=true;queueMicrotask(()=>{uiQueuedV73=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true)syncAllV73()})}
+const restoreRecordBeforeV73=restoreRecord;
+restoreRecord=async function(record){
+  const result=await restoreRecordBeforeV73(record);
+  if(currentSettings)currentSettings=normalizeSettings(currentSettings);
+  setTimeout(syncAllV73,0);setTimeout(syncAllV73,180);
+  return result;
+};
+document.addEventListener('input',event=>{if(event.target?.closest?.('#ne53DataForm'))updateDataSummaryV73()},true);
+document.addEventListener('change',event=>{if(event.target?.closest?.('#ne53DataForm'))updateDataSummaryV73();if(event.target?.id==='ne65BrandMode')queueUiV73()},true);
+document.addEventListener('click',event=>{
+  const templateDelete=event.target?.closest?.('.ne73-template-delete');
+  if(templateDelete){event.preventDefault();event.stopImmediatePropagation();scheduleTemplateDeleteV73(templateDelete.dataset.templateId);return}
+  const layoutButton=event.target?.closest?.('#ne62LayoutBy,#ne62LayoutSingle');
+  if(layoutButton){event.preventDefault();event.stopImmediatePropagation();activateBrandLayoutV73(layoutButton.id==='ne62LayoutSingle'?SINGLE_LAYOUT_V73:BY_LAYOUT_V73);return}
+  const action=event.target?.closest?.('button')?.textContent?.trim();if(action==='Открыть презентацию'||action==='Новая презентация'){setTimeout(syncAllV73,450);setTimeout(syncAllV73,1400)}
+  const menu=byId('ne73TemplateMenu');if(menu&&!menu.hidden&&!event.target.closest?.('#ne73TemplatePicker'))menu.hidden=true;
+},true);
+document.addEventListener('focusin',event=>{const field=event.target;if(field?.closest?.('#ne53DataForm')&&field.matches('input,textarea,select')&&!field.matches('#ne73CompanyTelegram,#ne73CompanyInstagram'))showFocusNoticeV73(field)},true);
+document.addEventListener('keydown',keyboardAccessV73,true);
+const observerV73=new MutationObserver(records=>{if(syncingUiV73)return;if(records.some(record=>!record.target.closest?.('[id^="ne73"], [class*="ne73-"]')&&[...record.addedNodes].some(node=>node.nodeType===1&&!String(node.id||'').startsWith('ne73')&&![...(node.classList||[])].some(name=>name.startsWith('ne73-')))))queueUiV73()});observerV73.observe(document.documentElement,{childList:true,subtree:true});
+const modeButtonObserverV73=new MutationObserver(records=>records.forEach(record=>{const target=record.target;if(target?.matches?.('#ne62LayoutBy,#ne62LayoutSingle'))unlockModeButtonsV73(target);else if(target?.id==='dsPresetSelect'&&target.disabled&&loadTemplatesV73().length)target.disabled=false}));modeButtonObserverV73.observe(document.documentElement,{attributes:true,subtree:true,attributeFilter:['disabled','aria-disabled']});
+
+if(window.NexCompactStudio?.setStep){const setStepBeforeV73=window.NexCompactStudio.setStep;window.NexCompactStudio.setStep=function(step){return setStepBeforeV73(step==='design'?'data':step)}}
+window.NEXESTATE_STAGE3_COMPACT_TEST={version:STAGE3_COMPACT_V73,inspect:()=>({designTabVisible:!!document.querySelector('.ne52-step[data-step="design"]')?.getClientRects().length,drawer:!!byId('ne73SettingsDrawer'),bottomOrder:byId('ne62LayoutBy')?.closest('.ne62-layout-switch')?.dataset.ne73Order||'',barHeight:document.querySelector('.ne53-exportbar.ne62-compactbar')?.getBoundingClientRect().height||0,layout:currentLayoutV73(),settings:currentSettings?deepClone({showContactPage:currentSettings.showContactPage,closedSale:currentSettings.closedSale,showSite:currentSettings.showSite,companyTelegram:currentSettings.companyTelegram,companyInstagram:currentSettings.companyInstagram,byTheme:currentSettings.byNexEstateThemeV71,singleTheme:currentSettings.singlePageThemeV71}):null,contactLast:currentSettings?.pageOrder?.at(-1)===CONTACT_PAGE_V73,templates:loadTemplatesV73().length,cropOpen:!byId('ne73CropOverlay')?.hidden}),sync:syncAllV73,setContact:value=>{if(currentSettings){currentSettings.showContactPage=!!value;syncPageOrder();scheduleRender?.();syncAllV73()}},setClosed:value=>{if(currentSettings){currentSettings.closedSale=!!value;scheduleRender?.();syncAllV73()}},openCrop:openCropV73,loadTemplates:loadTemplatesV73,applyTemplate:applyTemplateV73,contactLinks:contactLinksV73};
+if(window.NEXESTATE_STANDALONE_TEST)Object.assign(window.NEXESTATE_STANDALONE_TEST,{getSettings:()=>currentSettings?deepClone(currentSettings):null,setContactPage:value=>window.NEXESTATE_STAGE3_COMPACT_TEST.setContact(value)});
+if(window.NE53_STATE?.step==='design')window.NexCompactStudio?.setStep?.('data');syncPageOrder();syncAllV73();
+})();
+</script>
+<script id="nexestate-compact-editor-contacts-templates-v73-loader">
+(()=>{
+  const source=document.getElementById('nexestate-compact-editor-contacts-templates-v73')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_STAGE3_COMPACT_LOADED=true;delete window.NEXESTATE_STAGE3_COMPACT_LOAD_ERROR}catch(error){window.NEXESTATE_STAGE3_COMPACT_LOADED=false;window.NEXESTATE_STAGE3_COMPACT_LOAD_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
 <script src="../../pwa-shell.js"></script>
 </body>
 </html>
