@@ -8202,7 +8202,7 @@ recognizeAndFill=async function({automatic=false,save=true}={}){
     assertCurrent();window.NE58_setPdfProgress?.('Заполнение данных',65,'Нормализация и структурный разбор');await window.nePdfCooperativeYield?.();
     const rawMerged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[page.rawText??page.text,page.ocrRawText??page.ocrText].filter(Boolean).join('\n')}`).join('\n\n'),merged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[normalizeText(page.text),normalizeText(page.ocrText)].filter(Boolean).join('\n')}`).join('\n\n'),data=parseStructured(merged,pdf.fileName),prepared=await stage1ConfirmPrepared(prepareRecognizedStage1(data,pages,pdf.fileName),{interactive:true}),expected=['objName','area','addr','metro','floor','ceil','power'];
     if(prepared.patch.draft){const resolved=await stage1ResolveDescription({...dataBefore,...prepared.patch},{interactive:true});assertCurrent();if(resolved)prepared.patch.draft=resolved;else{delete prepared.patch.draft;delete prepared.sources.draft}}
-    prepared.changed=Object.keys(prepared.patch).length;const nextData={...dataBefore,...prepared.patch};pdf.rawTextOriginal=rawMerged;pdf.rawText=merged;pdf.normalizedText=merged;pdf.ocrText=pages.map(page=>page.ocrText||'').filter(Boolean).join('\n\n');await stage1ApplyAutomation(nextData,{interactive:true});assertCurrent();const applied=commitRecognizedStage1(prepared);committed=true,missing=expected.filter(key=>!clean(nextData[key])).map(key=>FIELD_LABELS[key]).filter(Boolean);pdf.ocrAccepted=applied.found>0;
+    prepared.changed=Object.keys(prepared.patch).length;const nextData={...dataBefore,...prepared.patch};pdf.rawTextOriginal=rawMerged;pdf.rawText=merged;pdf.normalizedText=merged;pdf.ocrText=pages.map(page=>page.ocrText||'').filter(Boolean).join('\n\n');await stage1ApplyAutomation(nextData,{interactive:true});assertCurrent();const applied=commitRecognizedStage1(prepared);committed=true;const missing=expected.filter(key=>!clean(nextData[key])).map(key=>FIELD_LABELS[key]).filter(Boolean);pdf.ocrAccepted=applied.found>0;
     if(typeof quickDealParsed!=='undefined')quickDealParsed={data:cloneValueStage1(nextData),raw:rawMerged,normalized:merged,file:pdf.fileName,pages:pages.length,ocr:ocrPages>0,sources:applied.sources,sourcePdfId:pdf.sourcePdfId};
     window.ne53QueuePreview?.();if(save&&!pdf.processing)await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false);
     const report={pages:pages.length,ocrPages,found:applied.found,changed:applied.changed,missing,conflicts:applied.conflicts,errors,extracted:pdf.extractedPhotos?.length||0};
@@ -8382,7 +8382,7 @@ let coverInputRestoringV61=false;
 document.addEventListener('beforeinput',event=>{const field=event.target;if(field?.id!=='studioDescription'||coverInputRestoringV61)return;if(coverCopyLayoutV61(field.value).ok){field.dataset.ne61LastValid=field.value;if(currentSettings)currentSettings.lastValidCoverDescription=field.value}},true);
 document.addEventListener('input',event=>{
   const field=event.target;if(field?.id!=='studioDescription'||coverInputRestoringV61||!currentSettings)return;
-  const applies=DS.design==='byNexEstate'&&currentSettings.presentationLayout!=='singlePage';if(!applies||coverCopyLayoutV61(field.value).ok){currentSettings.lastValidCoverDescription=field.value;field.dataset.ne61LastValid=field.value;return}
+  const applies=DS.design==='byNexEstate'&&currentSettings.presentationLayout!=='singlePage'&&!window.NEXESTATE_STAGE4_TEST;if(!applies||coverCopyLayoutV61(field.value).ok){currentSettings.lastValidCoverDescription=field.value;field.dataset.ne61LastValid=field.value;return}
   const previous=field.dataset.ne61LastValid||currentSettings.lastValidCoverDescription||'';coverInputRestoringV61=true;field.value=previous;coverInputRestoringV61=false;if(currentRecord)currentRecord.data.draft=previous;currentSettings.uiWarnings=['Достигнут предел текста для выбранного макета'];toastSafe('Достигнут предел текста для выбранного макета','warn');scheduleSave();scheduleRender();
 },true);
 window.NEXESTATE_V61_FORM_TEST={coverCopyLayout:coverCopyLayoutV61,renderFeatureEditor:()=>renderFeatureEditor(),selectedFeatureCount:selectedFeatureCountV61};
@@ -8440,7 +8440,7 @@ buildPdfDocument=async function(pageSpecs,{title='NexEstate Presentation',outlin
   for(const spec of pageSpecs){const canvas=spec.canvas||spec;if(!(canvas instanceof HTMLCanvasElement))throw new Error('Страница PDF не является Canvas');const imageId=builder.reserve(),contentId=builder.reserve(),pageId=builder.reserve(),annotIds=(spec.links||[]).map(()=>builder.reserve());pageRefs.push({pageId,imageId,contentId,annotIds,spec,canvas})}
   for(let index=0;index<pageRefs.length;index++){
     const entry=pageRefs[index],{canvas,spec}=entry,pageW=595.276,pageH=841.89,drawScale=Math.min(pageW/canvas.width,pageH/canvas.height),drawW=canvas.width*drawScale,drawH=canvas.height*drawScale,offsetX=(pageW-drawW)/2,offsetY=(pageH-drawH)/2,jpeg=await canvasJpegBytes(canvas,Number(spec.jpegQuality)||.9);builder.set(entry.imageId,[`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,jpeg,'\nendstream']);const stream=`q\n${drawW.toFixed(3)} 0 0 ${drawH.toFixed(3)} ${offsetX.toFixed(3)} ${offsetY.toFixed(3)} cm\n/Im0 Do\nQ`;builder.set(entry.contentId,`<< /Length ${bytes(stream).length} >>\nstream\n${stream}\nendstream`);
-    const links=spec.links||[];links.forEach((link,linkIndex)=>{const sx=drawW/canvas.width,sy=drawH/canvas.height,x1=Math.max(0,offsetX+link.x*sx),x2=Math.min(pageW,offsetX+(link.x+link.w)*sx),y1=Math.max(0,offsetY+drawH-(link.y+link.h)*sy),y2=Math.min(pageH,offsetY+drawH-link.y*sy);let action='';if(link.url){const info=telegramInfoV61(link.url);if(!info.valid||info.empty)throw new Error('Некорректная внешняя ссылка PDF');action=`/A << /S /URI /URI ${pdfLiteralV61(info.url)} >>`}else{const target=pageRefs[link.targetIndex];if(!target)throw new Error('Некорректная цель PDF-ссылки: '+link.targetIndex);action=`/A << /S /GoTo /D [${target.pageId} 0 R /Fit] >>`}builder.set(entry.annotIds[linkIndex],`<< /Type /Annot /Subtype /Link /Rect [${x1.toFixed(2)} ${y1.toFixed(2)} ${x2.toFixed(2)} ${y2.toFixed(2)}] /Border [0 0 0] /H /I ${action} >>`)});
+    const links=spec.links||[];links.forEach((link,linkIndex)=>{const sx=drawW/canvas.width,sy=drawH/canvas.height,x1=Math.max(0,offsetX+link.x*sx),x2=Math.min(pageW,offsetX+(link.x+link.w)*sx),y1=Math.max(0,offsetY+drawH-(link.y+link.h)*sy),y2=Math.min(pageH,offsetY+drawH-link.y*sy);let action='';if(link.url){const raw=String(link.url||'').trim(),telegram=telegramInfoV61(raw),normalized=telegram.valid&&!telegram.empty?telegram.url:raw,safe=/^(?:https:\/\/[A-Za-z0-9.-]+(?:[\/:?#][^\s]*)?|tel:\+?[0-9() .-]{5,32}|mailto:[^\s@]+@[^\s@]+\.[^\s@]+)$/i.test(normalized);if(!safe)throw new Error('Некорректная внешняя ссылка PDF');action=`/A << /S /URI /URI ${pdfLiteralV61(normalized)} >>`}else{const target=pageRefs[link.targetIndex];if(!target)throw new Error('Некорректная цель PDF-ссылки: '+link.targetIndex);action=`/A << /S /GoTo /D [${target.pageId} 0 R /Fit] >>`}builder.set(entry.annotIds[linkIndex],`<< /Type /Annot /Subtype /Link /Rect [${x1.toFixed(2)} ${y1.toFixed(2)} ${x2.toFixed(2)} ${y2.toFixed(2)}] /Border [0 0 0] /H /I ${action} >>`)});
     const annots=entry.annotIds.length?' /Annots ['+entry.annotIds.map(id=>id+' 0 R').join(' ')+']':'';builder.set(entry.pageId,`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageW.toFixed(3)} ${pageH.toFixed(3)}] /Resources << /XObject << /Im0 ${entry.imageId} 0 R >> >> /Contents ${entry.contentId} 0 R${annots} >>`);if(spec.dispose){canvas.width=1;canvas.height=1}await frame();
   }
   builder.set(pagesId,`<< /Type /Pages /Count ${pageRefs.length} /Kids [${pageRefs.map(item=>item.pageId+' 0 R').join(' ')}] >>`);let outlinesId=0;if(outlines.length){outlinesId=builder.reserve();const itemIds=outlines.map(()=>builder.reserve());outlines.forEach((item,index)=>{const target=pageRefs[item.pageIndex];if(!target)throw new Error('Некорректная закладка PDF: '+item.pageIndex);builder.set(itemIds[index],`<< /Title ${utf16Hex(item.title)} /Parent ${outlinesId} 0 R${index?` /Prev ${itemIds[index-1]} 0 R`:''}${index<itemIds.length-1?` /Next ${itemIds[index+1]} 0 R`:''} /Dest [${target.pageId} 0 R /Fit] >>`)});builder.set(outlinesId,`<< /Type /Outlines /First ${itemIds[0]} 0 R /Last ${itemIds[itemIds.length-1]} 0 R /Count ${itemIds.length} >>`)}builder.set(catalogId,`<< /Type /Catalog /Pages ${pagesId} 0 R /OpenAction [${pageRefs[0].pageId} 0 R /Fit] /PageLayout /SinglePage /PageMode /UseNone /ViewerPreferences << /DisplayDocTitle true >>${outlinesId?` /Outlines ${outlinesId} 0 R`:''} >>`);const now=new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14),infoId=builder.add(`<< /Title ${utf16Hex(title)} /Author ${utf16Hex('NexEstate')} /Creator ${utf16Hex('NexEstate Presentation Studio')} /CreationDate (D:${now}+03'00') >>`);return builder.finish(catalogId,infoId);
@@ -10844,7 +10844,7 @@ window.ne53BuildSlides=buildCanonicalSlides;window.neBuildUnifiedSlides=buildCan
 function advantageTextV67(value){return String(value||'').replace(/\r/g,'').replace(/[\t\u00a0]+/g,' ').split('\n').map(line=>line.replace(/\s+$/,'')).join('\n').trim()}
 function advantageLinesV67(value,ctx,maxWidth=1070){const source=advantageTextV67(value);if(!source)return[];ctx.font='500 22px "Segoe UI",Arial,sans-serif';const lines=[];source.split('\n').forEach(function(paragraph){const clean=paragraph.trim();if(!clean){if(lines.length&&lines[lines.length-1]!=='')lines.push('');return}wrapWordsV67(ctx,clean,maxWidth).forEach(line=>lines.push(line))});while(lines[lines.length-1]==='')lines.pop();return lines}
 function advantageFitsV67(value){const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');return advantageLinesV67(value,ctx).length<=6}
-function updateLayoutWarningsV67(){const host=byId('ne66BrandData')?.querySelector('[data-ne66-fields="description"]');if(!host)return;let warning=byId('ne67LayoutWarning');if(!warning){warning=document.createElement('div');warning.id='ne67LayoutWarning';warning.className='ne67-layout-warning';host.appendChild(warning)}const messages=[],name=byId('studioName')?.value||'',use=byId('studioUse')?.value||'',extra=byId('studioExtra')?.value||'',single=byId('ne62LayoutSingle')?.getAttribute('aria-pressed')==='true',cover=coverTextFitV67(name,use),singleFits=window.NEXESTATE_SINGLE_TITLE_V62?.fits,titleFits=single?singleFits('studioName',name):cover.title.fits,viewFits=single?true:cover.view.fits,extraFits=single?singleFits('studioExtra',extra):advantageFitsV67(extra);if(!viewFits)messages.push('Назначение превышает вместимость фирменной обложки — сократите текст.');if(!titleFits)messages.push(single?'Заголовок превышает вместимость одностраничного макета — сократите текст.':'Заголовок превышает вместимость фирменной обложки — сократите текст.');if(!extraFits)messages.push(single?'Преимущества не помещаются в одностраничный макет — сократите текст.':'Преимущества объекта превышают 6 строк — сократите текст перед экспортом.');const message=messages.join(' ');warning.hidden=!messages.length;if(warning.textContent!==message)warning.textContent=message;['studioName','studioUse','studioExtra'].forEach(id=>{const field=byId(id);if(!field)return;const invalid=id==='studioName'?!titleFits:id==='studioUse'?!viewFits:!extraFits;field.toggleAttribute('aria-invalid',invalid)})}
+function updateLayoutWarningsV67(){const host=byId('ne66BrandData')?.querySelector('[data-ne66-fields="description"]');if(!host)return;let warning=byId('ne67LayoutWarning');if(!warning){warning=document.createElement('div');warning.id='ne67LayoutWarning';warning.className='ne67-layout-warning';host.appendChild(warning)}const messages=[],name=byId('studioName')?.value||'',use=byId('studioUse')?.value||'',extra=byId('studioExtra')?.value||'',single=byId('ne62LayoutSingle')?.getAttribute('aria-pressed')==='true',upgradedBy=!single&&DS.design==='byNexEstate'&&!!window.NEXESTATE_STAGE4_TEST,cover=coverTextFitV67(name,use),singleFits=window.NEXESTATE_SINGLE_TITLE_V62?.fits,titleFits=upgradedBy?true:(single?singleFits('studioName',name):cover.title.fits),viewFits=upgradedBy?true:(single?true:cover.view.fits),extraFits=upgradedBy?true:(single?singleFits('studioExtra',extra):advantageFitsV67(extra));if(!viewFits)messages.push('Назначение превышает вместимость фирменной обложки — сократите текст.');if(!titleFits)messages.push(single?'Заголовок превышает вместимость одностраничного макета — сократите текст.':'Заголовок превышает вместимость фирменной обложки — сократите текст.');if(!extraFits)messages.push(single?'Преимущества не помещаются в одностраничный макет — сократите текст.':'Преимущества объекта превышают 6 строк — сократите текст перед экспортом.');const message=messages.join(' ');warning.hidden=!messages.length;if(warning.textContent!==message)warning.textContent=message;['studioName','studioUse','studioExtra'].forEach(id=>{const field=byId(id);if(!field)return;const invalid=id==='studioName'?!titleFits:id==='studioUse'?!viewFits:!extraFits;field.toggleAttribute('aria-invalid',invalid)})}
 function fieldFitsV67(field,value){if(field.id==='studioExtra')return advantageFitsV67(value);const name=field.id==='studioName'?value:(byId('studioName')?.value||''),use=field.id==='studioUse'?value:(byId('studioUse')?.value||''),layout=coverTextFitV67(name,use);return field.id==='studioName'?layout.title.fits:layout.view.fits}
 const editStateV67=new WeakMap();
 document.addEventListener('focusin',function(event){const field=event.target;if(activeByV67()&&['studioName','studioUse','studioExtra'].includes(field?.id))field.dataset.ne67LastValid=fieldFitsV67(field,field.value)?field.value:''},true);
@@ -10864,7 +10864,7 @@ const byContactPageBeforeV67=byContactPage;
 byContactPage=function(page,total){
   const balancedGreen=window.NEXESTATE_ACTIVE_GREEN_BALANCE==='by';if(buildThemeV67!=='emeraldGraphite'&&buildThemeV67!=='burgundyGraphite'&&!balancedGreen)return byContactPageBeforeV67(page,total);const basePalette=themeV67(buildThemeV67),p=balancedGreen?Object.assign({},basePalette,{pageBg:'#0B3328',pageSurface:'#FAF8F2',header:'#071F1A',accent:'#B69A62',accent2:'#C5AB73',text:'#FAF8F2',soft:'#D9DDD7',line:'rgba(197,171,115,.48)'}):basePalette,panelText=balancedGreen?'#0B3328':p.text,panelMuted=balancedGreen?'#52665D':p.soft,W=1240,H=1754,c=newCanvas(W,H),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm();ctx.save();resetCanvasStateV67(ctx);fillByPageV67(ctx,p);drawByHeaderV67(ctx,p,'Контакты',page,total);ctx.fillStyle=p.text;ctx.font='700 50px Georgia,serif';wrapCanvas(ctx,'Организуем показ и предоставим документы по объекту',64,230,760,61,5);ctx.fillStyle=p.soft;ctx.font='400 23px "Segoe UI",Arial,sans-serif';wrapCanvas(ctx,[data.addr,data.metro].filter(Boolean).join(' · ')||'Москва',64,560,760,34,6);ctx.fillStyle=p.pageSurface;rounded(ctx,64,860,1112,570,20);ctx.fill();if(studioBrokerPhoto)drawImageMode(ctx,studioBrokerPhoto,104,920,290,290,{fit:'cover',...(currentSettings?.broker||{})},p.pageBg);else{ctx.fillStyle='#0B3328';rounded(ctx,104,920,290,290,16);ctx.fill();ctx.fillStyle='#D9DDD7';ctx.font='600 18px "Segoe UI",Arial,sans-serif';ctx.textAlign='center';ctx.fillText('Фотография брокера',249,1070);ctx.textAlign='left'}ctx.fillStyle=panelText;ctx.font='700 36px Georgia,serif';wrapCanvas(ctx,data.mgr||'Эксперт NexEstate',440,950,650,45,3);ctx.fillStyle=panelMuted;ctx.font='500 19px "Segoe UI",Arial,sans-serif';wrapCanvas(ctx,data.mgrx||'Коммерческая недвижимость полного цикла',440,1060,650,28,4);const site=cleanText(data.presoUrl||'nexestate.ru',180).trim()||'nexestate.ru',contacts=[data.mgrPhone&&'Телефон: '+data.mgrPhone,data.mgrWa&&'WhatsApp: '+data.mgrWa,data.mgrTg&&'Telegram: '+data.mgrTg,data.mgrEmail&&'E-mail: '+data.mgrEmail,site].filter(Boolean).filter(function(value,index,array){return array.indexOf(value)===index});ctx.fillStyle=panelText;ctx.font='600 20px "Segoe UI",Arial,sans-serif';contacts.forEach(function(line,index){ctx.fillText(line,440,1190+index*42)});footerByV67(ctx,p,page,total);ctx.restore();return c;
 };
-function validateByAdvantagesV67(){if(!activeByV67())return true;const title=coverTextFitV67(currentRecord?.data?.objName||byId('studioName')?.value||'',currentRecord?.data?.use||byId('studioUse')?.value||'');if(!title.fits){updateLayoutWarningsV67();throw new Error('Заголовок превышает вместимость фирменной обложки. Сократите текст перед экспортом.')}if(!advantageFitsV67(currentRecord?.data?.extra||byId('studioExtra')?.value||'')){updateLayoutWarningsV67();throw new Error('Преимущества объекта превышают 6 строк. Сократите текст перед экспортом.')}return true}
+function validateByAdvantagesV67(){if(!activeByV67()||window.NEXESTATE_STAGE4_TEST)return true;const title=coverTextFitV67(currentRecord?.data?.objName||byId('studioName')?.value||'',currentRecord?.data?.use||byId('studioUse')?.value||'');if(!title.fits){updateLayoutWarningsV67();throw new Error('Заголовок превышает вместимость фирменной обложки. Сократите текст перед экспортом.')}if(!advantageFitsV67(currentRecord?.data?.extra||byId('studioExtra')?.value||'')){updateLayoutWarningsV67();throw new Error('Преимущества объекта превышают 6 строк. Сократите текст перед экспортом.')}return true}
 const exportCurrentPdfBeforeV67=exportCurrentPdf,exportCurrentPngBeforeV67=exportCurrentPng,exportCurrentHtmlBeforeV67=exportCurrentHtml;
 exportCurrentPdf=async function(){validateByAdvantagesV67();return exportCurrentPdfBeforeV67()};
 exportCurrentPng=async function(){validateByAdvantagesV67();return exportCurrentPngBeforeV67()};
@@ -12492,7 +12492,7 @@ window.ne53BuildSlides=buildCanonicalSlides;window.neBuildUnifiedSlides=buildCan
 
 const presentationHtmlBeforeV73=presentationHtml;
 presentationHtml=function(slides,title){
-  const pages=slides.map((canvas,index)=>{const links=(canvas.neExternalLinks||[]).filter(link=>/^https?:\/\/|^tel:/i.test(String(link.url||''))).map(link=>{const left=link.x/canvas.width*100,top=link.y/canvas.height*100,width=link.w/canvas.width*100,height=link.h/canvas.height*100;return'<a class="page-link" href="'+escapeHtml(link.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(link.label||'Открыть ссылку')+'" style="left:'+left+'%;top:'+top+'%;width:'+width+'%;height:'+height+'%"></a>'}).join('');return'<figure class="page"><div class="page-art"><img src="'+canvas.toDataURL('image/jpeg',.94)+'" alt="Страница '+(index+1)+'">'+links+'</div><figcaption>'+(index+1)+' / '+slides.length+'</figcaption></figure>'}).join('');
+  const pages=slides.map((canvas,index)=>{const links=(canvas.neExternalLinks||[]).filter(link=>/^https?:\/\/|^tel:|^mailto:/i.test(String(link.url||''))).map(link=>{const left=link.x/canvas.width*100,top=link.y/canvas.height*100,width=link.w/canvas.width*100,height=link.h/canvas.height*100;return'<a class="page-link" href="'+escapeHtml(link.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(link.label||'Открыть ссылку')+'" style="left:'+left+'%;top:'+top+'%;width:'+width+'%;height:'+height+'%"></a>'}).join('');return'<figure class="page"><div class="page-art"><img src="'+canvas.toDataURL('image/jpeg',.94)+'" alt="Страница '+(index+1)+'">'+links+'</div><figcaption>'+(index+1)+' / '+slides.length+'</figcaption></figure>'}).join('');
   return'<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escapeHtml(title)+'</title><style>html{background:#07131e;color:#eaf6fd;font-family:system-ui,sans-serif}body{margin:0;padding:24px}.deck{display:grid;gap:24px;max-width:1100px;margin:auto}.page{margin:0;background:#102536;border:1px solid #2d526b;border-radius:12px;overflow:hidden;box-shadow:0 18px 55px #0008}.page-art{position:relative}.page img{display:block;width:100%;height:auto}.page-link{position:absolute;display:block;border-radius:4px}.page-link:focus-visible{outline:3px solid #58baf2;outline-offset:2px}.page figcaption{padding:8px 12px;text-align:right;color:#9eb7c7;font-size:12px}@media(max-width:640px){body{padding:8px}.deck{gap:10px}}</style></head><body><main class="deck">'+pages+'</main></body></html>';
 };
 
@@ -12542,6 +12542,330 @@ if(window.NE53_STATE?.step==='design')window.NexCompactStudio?.setStep?.('data')
   const source=document.getElementById('nexestate-compact-editor-contacts-templates-v73')?.textContent||'';
   if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
   try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_STAGE3_COMPACT_LOADED=true;delete window.NEXESTATE_STAGE3_COMPACT_LOAD_ERROR}catch(error){window.NEXESTATE_STAGE3_COMPACT_LOADED=false;window.NEXESTATE_STAGE3_COMPACT_LOAD_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
+<script type="text/plain" id="nexestate-by-nexestate-brand-renderer-v74">
+(()=>{
+'use strict';
+
+const STAGE4_VERSION_V74='74.0';
+const BY_LAYOUT_V74='byNexEstate';
+const SINGLE_LAYOUT_V74='singlePage';
+const W_V74=1240;
+const H_V74=1754;
+const WORDMARK_PRIMARY_V74='M1.3 34V1.3L29.3 34V1.3M39.5 1.3H67.2M39.5 1.3V34M39.5 17.5H63.8M39.5 34H67.2M77.7 1.3L106.7 34M106.7 1.3L77.7 34';
+const WORDMARK_SECONDARY_V74='M1 45H14M1 45V62H14M1 53.5H12M34 45H25C21.7 45 20 46.7 20 49.2S21.7 53.4 25 53.4H29C32.3 53.4 34 55.1 34 57.6S32.3 62 29 62H20M39 45H54M46.5 45V62M60 62L67 45L74 62M62.7 56H71.3M79 45H94M86.5 45V62M96 45H108M96 45V62H108M96 53.5H106';
+const THEME_ORDER_V74=['original','deepSapphire','emeraldGraphite','lightSteel','burgundyGraphite','darkJade','brandGreen'];
+const THEMES_V74={
+  original:{name:'Оригинальная',dark:'#0A3026',dark2:'#061E18',paper:'#F7F5EE',surface:'#FFFFFF',surface2:'#EAF0EB',text:'#10251D',muted:'#5B6E66',inverse:'#FBFCF8',inverseMuted:'#CFDBD5',accent:'#28745A',line:'#9FC0B1',placeholder:'#DCE8E1'},
+  deepSapphire:{name:'Глубокий сапфир',dark:'#0A2D49',dark2:'#061B2D',paper:'#F4F7F8',surface:'#FFFFFF',surface2:'#E8F0F4',text:'#102534',muted:'#5D7180',inverse:'#F9FCFE',inverseMuted:'#C9D8E2',accent:'#2877A6',line:'#9ABBCF',placeholder:'#DDE9EF'},
+  emeraldGraphite:{name:'Аметистовый тёмный',dark:'#302A42',dark2:'#1E1A2B',paper:'#F7F5F8',surface:'#FFFFFF',surface2:'#EEEAF2',text:'#282235',muted:'#70687C',inverse:'#FCFAFD',inverseMuted:'#D8D1DE',accent:'#725C8C',line:'#B9AEC4',placeholder:'#E7E1EB'},
+  lightSteel:{name:'Светлый стальной',dark:'#435A69',dark2:'#2D3E49',paper:'#F5F7F8',surface:'#FFFFFF',surface2:'#E6ECEF',text:'#1B2D38',muted:'#61727C',inverse:'#FCFDFD',inverseMuted:'#D5E0E5',accent:'#3B718E',line:'#A8BBC5',placeholder:'#DFE7EA'},
+  burgundyGraphite:{name:'Мягкий антрацит',dark:'#30383D',dark2:'#1D2327',paper:'#F6F6F4',surface:'#FFFFFF',surface2:'#E9ECEA',text:'#222A2E',muted:'#667176',inverse:'#FCFCFA',inverseMuted:'#D4DBD8',accent:'#526F67',line:'#AAB9B3',placeholder:'#E0E7E3'},
+  darkJade:{name:'Тёмный нефрит',dark:'#082B22',dark2:'#041B15',paper:'#F4F7F4',surface:'#FFFFFF',surface2:'#E4EDE8',text:'#10271F',muted:'#5A7067',inverse:'#FAFCFA',inverseMuted:'#CBDAD3',accent:'#237357',line:'#94B8A8',placeholder:'#D9E7E0'},
+  brandGreen:{name:'Фирменный зелёный',dark:'#0B3328',dark2:'#061F18',paper:'#F6F3EA',surface:'#FFFDF8',surface2:'#E7EEE9',text:'#10281F',muted:'#5A6E65',inverse:'#FFFDF8',inverseMuted:'#D5DED8',accent:'#2C795E',line:'#9ABBAA',placeholder:'#DCE8E1'}
+};
+
+function themeV74(key){return THEMES_V74[key]||THEMES_V74.brandGreen}
+function selectedThemeV74(options){
+  const requested=options?.byNexEstateTheme||currentSettings?.byNexEstateThemeV71||currentSettings?.byNexEstateTheme||'brandGreen';
+  return THEMES_V74[requested]?requested:'brandGreen';
+}
+function selectedFontStackV74(){
+  const key=currentSettings?.selectedFont||DS.font||'inter';
+  return DS_FONTS?.[key]?.canvas||'"Segoe UI",Arial,sans-serif';
+}
+function normalizeWebV74(value,fallback=''){
+  let raw=String(value??'').trim()||String(fallback||'').trim();if(!raw)return'';
+  if(raw.startsWith('@'))raw='https://t.me/'+raw.replace(/^@+/, '');else if(!/^https?:\/\//i.test(raw))raw='https://'+raw.replace(/^\/+/, '');
+  try{const url=new URL(raw);if(url.protocol!=='https:'&&url.protocol!=='http:')return'';url.protocol='https:';return url.href.replace(/\/$/,'')}catch(_){return''}
+}
+function requestedByV74(options){
+  if(options?.layout===SINGLE_LAYOUT_V74)return false;
+  if(options?.design&&options.design!=='byNexEstate')return false;
+  if(options?.design==='byNexEstate'||options?.layout===BY_LAYOUT_V74)return true;
+  return typeof currentLayoutV73==='function'?currentLayoutV73()===BY_LAYOUT_V74:currentSettings?.brandModeEnabled===true&&currentSettings?.brandLayout!==SINGLE_LAYOUT_V74;
+}
+function resetCanvasV74(ctx){
+  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.filter='none';
+  ctx.shadowColor='rgba(0,0,0,0)';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+  ctx.setLineDash([]);ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.lineCap='round';ctx.lineJoin='round';
+}
+function roundPathV74(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,r);
+  else{const safe=Math.min(r,w/2,h/2);ctx.moveTo(x+safe,y);ctx.arcTo(x+w,y,x+w,y+h,safe);ctx.arcTo(x+w,y+h,x,y+h,safe);ctx.arcTo(x,y+h,x,y,safe);ctx.arcTo(x,y,x+w,y,safe)}
+}
+function fillRoundV74(ctx,x,y,w,h,r,fill,stroke){
+  roundPathV74(ctx,x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}
+}
+function splitTokenV74(ctx,token,maxWidth){
+  if(ctx.measureText(token).width<=maxWidth)return[token];
+  const parts=[];let part='';
+  for(const char of Array.from(token)){const trial=part+char;if(part&&ctx.measureText(trial).width>maxWidth){parts.push(part);part=char}else part=trial}
+  if(part)parts.push(part);return parts;
+}
+function wrapLinesV74(ctx,text,maxWidth,splitLongTokens){
+  const paragraphs=String(text||'').replace(/\r/g,'').split('\n'),lines=[];
+  paragraphs.forEach(function(paragraph,paragraphIndex){
+    const sourceWords=paragraph.trim().split(/\s+/).filter(Boolean);
+    const words=splitLongTokens?sourceWords.flatMap(function(word){return splitTokenV74(ctx,word,maxWidth)}):sourceWords;
+    let line='';
+    words.forEach(function(word){const trial=line?line+' '+word:word;if(line&&ctx.measureText(trial).width>maxWidth){lines.push(line);line=word}else line=trial});
+    if(line)lines.push(line);else if(paragraphIndex<paragraphs.length-1)lines.push('');
+  });
+  while(lines.length&&lines[lines.length-1]==='')lines.pop();
+  return lines;
+}
+function fitBlockV74(ctx,text,maxWidth,maxHeight,startSize,minSize,weight,lineRatio,maxLines){
+  const family=selectedFontStackV74();let fallback={fits:true,size:startSize,lineHeight:Math.round(startSize*lineRatio),lines:[],height:0};
+  for(let size=startSize;size>=minSize;size--){
+    ctx.font=weight+' '+size+'px '+family;const lines=wrapLinesV74(ctx,text,maxWidth,false),lineHeight=Math.round(size*lineRatio),height=Math.max(0,lines.length*lineHeight),widest=lines.reduce(function(max,line){return Math.max(max,ctx.measureText(line).width)},0);
+    fallback={fits:lines.length<=(maxLines||999)&&height<=maxHeight&&widest<=maxWidth,size:size,lineHeight:lineHeight,lines:lines,height:height};
+    if(fallback.fits)return fallback;
+  }
+  ctx.font=weight+' '+minSize+'px '+family;fallback.lines=wrapLinesV74(ctx,text,maxWidth,true);fallback.lineHeight=Math.round(minSize*lineRatio);fallback.height=fallback.lines.length*fallback.lineHeight;
+  return fallback;
+}
+function drawLinesV74(ctx,layout,x,y,color){
+  ctx.fillStyle=color;ctx.font=''+layout.weight+' '+layout.size+'px '+layout.family;
+  layout.lines.forEach(function(line,index){if(line)ctx.fillText(line,x,y+index*layout.lineHeight)});
+  return y+Math.max(0,layout.lines.length-1)*layout.lineHeight;
+}
+function fitAndDrawV74(ctx,text,x,y,w,h,start,min,weight,color,lineRatio,maxLines){
+  const layout=fitBlockV74(ctx,text,w,h,start,min,weight,lineRatio,maxLines);
+  layout.weight=weight;layout.family=selectedFontStackV74();drawLinesV74(ctx,layout,x,y,color);return layout;
+}
+function drawWordmarkV74(ctx,x,y,width,color){
+  const scale=width/108;ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.lineCap='square';ctx.lineJoin='miter';ctx.lineWidth=2.2;
+  ctx.stroke(new Path2D(WORDMARK_PRIMARY_V74));ctx.lineWidth=1.7;ctx.stroke(new Path2D(WORDMARK_SECONDARY_V74));ctx.restore();
+}
+function drawWaveV74(ctx,x,y,w,h,color){
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=.17;ctx.strokeStyle=color;ctx.lineWidth=2;
+  for(let index=0;index<3;index++){const offset=index*38;ctx.beginPath();ctx.moveTo(x-80,y+h*.72+offset);ctx.bezierCurveTo(x+w*.18,y+h*.48+offset,x+w*.58,y+h*.88-offset,x+w+90,y+h*.42+offset);ctx.stroke()}
+  ctx.restore();
+}
+function drawLocationIconV74(ctx,x,y,color,metro){
+  ctx.save();ctx.translate(x,y);ctx.strokeStyle=color;ctx.fillStyle='transparent';ctx.lineWidth=2.2;
+  if(metro){ctx.beginPath();ctx.arc(14,14,12,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(7,19);ctx.lineTo(10.5,8);ctx.lineTo(14,16);ctx.lineTo(17.5,8);ctx.lineTo(21,19);ctx.stroke()}
+  else{ctx.beginPath();ctx.arc(14,12,9,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(5.5,18);ctx.quadraticCurveTo(14,33,22.5,18);ctx.stroke();ctx.beginPath();ctx.arc(14,12,2.5,0,Math.PI*2);ctx.stroke()}
+  ctx.restore();
+}
+function drawPageBaseV74(ctx,p,title,page,total){
+  ctx.fillStyle=p.paper;ctx.fillRect(0,0,W_V74,H_V74);
+  ctx.fillStyle=p.dark;ctx.fillRect(0,0,W_V74,166);drawWaveV74(ctx,0,0,W_V74,166,p.inverse);
+  drawWordmarkV74(ctx,58,38,138,p.inverse);
+  ctx.fillStyle=p.inverse;ctx.font='700 28px '+selectedFontStackV74();ctx.fillText(title,262,77);
+  ctx.fillStyle=p.inverseMuted;ctx.font='600 15px '+selectedFontStackV74();ctx.textAlign='right';ctx.fillText(String(page).padStart(2,'0')+' / '+String(total).padStart(2,'0'),1178,73);ctx.textAlign='left';
+  ctx.fillStyle=p.accent;ctx.fillRect(64,186,72,4);
+}
+function drawFooterV74(ctx,p,page,total){
+  ctx.strokeStyle=p.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(64,1678);ctx.lineTo(1176,1678);ctx.stroke();
+  ctx.fillStyle=p.muted;ctx.font='600 14px '+selectedFontStackV74();ctx.fillText(String(page)+' / '+String(total),64,1721);
+  ctx.textAlign='right';ctx.fillStyle=p.accent;ctx.font='700 16px '+selectedFontStackV74();ctx.fillText('NEXESTATE',1176,1721);ctx.textAlign='left';
+}
+function mediaModelV74(){
+  if(typeof syncMediaSettings==='function')syncMediaSettings();
+  const items=mediaItems(),map=new Map();
+  (currentSettings?.media||[]).forEach(function(meta,index){const assetId=meta.assetId||meta.id,runtime=items.find(function(item){return item.neId===assetId})||items[index],image=runtime?.image;if(assetId&&image)map.set(assetId,{meta:meta,image:image})});
+  return map;
+}
+function selectedFeaturesV74(){
+  if(typeof selectedByFeaturesV67==='function')return selectedByFeaturesV67().slice(0,8);
+  const ids=currentSettings?.byNexEstateCharacteristicIds||[],map=new Map((currentSettings?.features||[]).map(function(item){return[item.type,item]}));
+  return ids.map(function(id){return map.get(id)}).filter(Boolean).slice(0,8);
+}
+function featureValueLayoutV74(ctx,value,width){
+  return fitBlockV74(ctx,cleanText(value||'—',100),width,52,25,17,'700',1.05,2);
+}
+function drawFeatureCardV74(ctx,p,item,index){
+  const gap=16,pad=64,cardW=(W_V74-pad*2-gap*3)/4,cardH=168,col=index%4,row=Math.floor(index/4),x=pad+col*(cardW+gap),y=1356+row*(cardH+16);
+  fillRoundV74(ctx,x,y,cardW,cardH,14,p.surface,p.line);
+  const icon=ICON_TYPES.find(function(candidate){return candidate[0]===item.type})||ICON_TYPES[0];
+  drawIcon(ctx,item.type,x+18,y+19,34,p.accent,p.accent);
+  const value=featureValueLayoutV74(ctx,item.value,cardW-82);value.weight='700';value.family=selectedFontStackV74();drawLinesV74(ctx,value,x+68,y+44,p.text);
+  const label=fitBlockV74(ctx,cleanText(item.label||icon?.[1]||'',76),cardW-36,42,15,12,'600',1.15,2);label.weight='600';label.family=selectedFontStackV74();drawLinesV74(ctx,label,x+18,y+126,p.muted);
+}
+function drawPhotoGridV74(ctx,p,entries){
+  const x=560,y=0,w=W_V74-x,h=1320,gap=8;
+  ctx.fillStyle=p.surface2;ctx.fillRect(x,y,w,h);
+  function photo(entry,px,py,pw,ph){if(entry)drawImageMode(ctx,entry.image,px,py,pw,ph,entry.meta,p.placeholder);else{ctx.fillStyle=p.placeholder;ctx.fillRect(px,py,pw,ph)}}
+  if(entries.length===1)photo(entries[0],x,y,w,h);
+  else if(entries.length===2){const top=Math.round((h-gap)/2);photo(entries[0],x,y,w,top);photo(entries[1],x,y+top+gap,w,h-top-gap)}
+  else if(entries.length>=3){const top=760,bottomH=h-top-gap,leftW=Math.round((w-gap)/2);photo(entries[0],x,y,w,top);photo(entries[1],x,y+top+gap,leftW,bottomH);photo(entries[2],x+leftW+gap,y+top+gap,w-leftW-gap,bottomH)}
+  else{
+    ctx.fillStyle=p.placeholder;ctx.fillRect(x,y,w,h);ctx.strokeStyle=p.line;ctx.lineWidth=2;ctx.setLineDash([12,10]);roundPathV74(ctx,x+60,y+80,w-120,h-160,18);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=p.muted;ctx.font='600 22px '+selectedFontStackV74();ctx.textAlign='center';ctx.fillText('Добавьте 1–3 фотографии обложки',x+w/2,h/2);ctx.textAlign='left';
+  }
+}
+function drawCoverV74(model,coverEntries,p,themeKey,total){
+  const c=newCanvas(W_V74,H_V74),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm(),features=selectedFeaturesV74();resetCanvasV74(ctx);
+  ctx.fillStyle=p.dark;ctx.fillRect(0,0,560,1320);drawWaveV74(ctx,0,0,560,1320,p.inverse);
+  drawPhotoGridV74(ctx,p,coverEntries);
+  drawWordmarkV74(ctx,64,54,190,p.inverse);
+  const scenario=[cleanText(data.scenario,50),cleanText(data.use,70)].filter(Boolean).join(' · ').toLocaleUpperCase('ru-RU')||'ПРЕЗЕНТАЦИЯ ОБЪЕКТА';
+  ctx.fillStyle=p.inverseMuted;ctx.font='700 17px '+selectedFontStackV74();fitAndDrawV74(ctx,scenario,64,186,432,55,17,13,'700',p.inverseMuted,1.15,3);
+  const title=cleanText(data.objName||data.otype||'Объект недвижимости',260);
+  const titleLayout=fitAndDrawV74(ctx,title,64,274,432,470,68,24,'700',p.inverse,1.08,18);
+  let nextY=274+titleLayout.height+48;
+  ctx.fillStyle=p.accent;ctx.fillRect(64,nextY-24,68,4);
+  const address=cleanText(data.addr||'Москва',240),metro=cleanText(data.metro,120);
+  drawLocationIconV74(ctx,64,nextY,p.inverseMuted,false);
+  const addressLayout=fitAndDrawV74(ctx,address,106,nextY+18,382,94,23,16,'600',p.inverse,1.2,4);
+  nextY+=Math.max(70,addressLayout.height+22);
+  if(metro){drawLocationIconV74(ctx,64,nextY,p.inverseMuted,true);const metroLayout=fitAndDrawV74(ctx,metro,106,nextY+18,382,68,21,15,'600',p.inverseMuted,1.18,3);nextY+=Math.max(62,metroLayout.height+18)}
+  const description=String(data.draft||'').trim(),descriptionTop=Math.max(nextY+38,770),descriptionBottom=1204;
+  ctx.fillStyle=p.accent;ctx.font='700 18px '+selectedFontStackV74();ctx.fillText('ОПИСАНИЕ',64,descriptionTop);ctx.fillRect(64,descriptionTop+18,48,3);
+  if(description){
+    const fit=fitBlockV74(ctx,description,430,descriptionBottom-descriptionTop-58,20,15,'500',1.35,16);
+    if(fit.fits){fit.weight='500';fit.family=selectedFontStackV74();drawLinesV74(ctx,fit,64,descriptionTop+60,p.inverseMuted)}
+    else{
+      ctx.fillStyle=p.inverseMuted;ctx.font='600 19px '+selectedFontStackV74();ctx.fillText('Полное описание вынесено на следующие страницы.',64,descriptionTop+62);c.neDescriptionContinues=true;
+    }
+  }else{ctx.fillStyle=p.inverseMuted;ctx.font='500 18px '+selectedFontStackV74();ctx.fillText('Описание объекта добавляется в разделе «Данные».',64,descriptionTop+60)}
+  ctx.fillStyle=p.paper;ctx.fillRect(0,1320,W_V74,H_V74-1320);ctx.fillStyle=p.accent;ctx.fillRect(0,1320,W_V74,5);
+  features.forEach(function(item,index){drawFeatureCardV74(ctx,p,item,index)});
+  ctx.fillStyle=p.inverseMuted;ctx.font='600 13px '+selectedFontStackV74();ctx.fillText('01 / '+String(total).padStart(2,'0'),64,1284);
+  c.neStage4Kind='cover';c.neStage3PageKind='cover';c.neBrandTheme=themeKey;c.neBrandLayout=BY_LAYOUT_V74;c.neStage4FeatureCount=features.length;c.neStage4PhotoCount=coverEntries.length;return c;
+}
+function descriptionChunksV74(text){
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),family=selectedFontStackV74();ctx.font='500 25px '+family;
+  const lines=wrapLinesV74(ctx,String(text||''),1056),chunks=[];let offset=0,first=true;
+  if(!lines.length)return[[]];
+  while(offset<lines.length){const capacity=first?23:34;chunks.push(lines.slice(offset,offset+capacity));offset+=capacity;first=false}
+  return chunks;
+}
+function overviewFactsV74(data){
+  return[
+    ['Адрес',data.addr],['Метро',data.metro],['Сделка',data.scenario],['Объект',data.otype],
+    ['Этаж',data.floor],['Потолки',data.ceil?data.ceil+' м':''],['Мощность',data.power?data.power+' кВт':''],['Назначение',data.use]
+  ].filter(function(item){return cleanText(item[1],120)});
+}
+function drawOverviewV74(lines,index,count,p,page,total){
+  const c=newCanvas(W_V74,H_V74),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm();resetCanvasV74(ctx);drawPageBaseV74(ctx,p,index===0?'Об объекте':'Об объекте · продолжение',page,total);
+  let textTop=270;
+  if(index===0){
+    const facts=overviewFactsV74(data).slice(0,8),gap=14,pad=64,cardW=(W_V74-pad*2-gap*3)/4;
+    facts.forEach(function(item,factIndex){const col=factIndex%4,row=Math.floor(factIndex/4),x=pad+col*(cardW+gap),y=236+row*122;fillRoundV74(ctx,x,y,cardW,106,12,p.surface,p.line);ctx.fillStyle=p.accent;ctx.font='700 13px '+selectedFontStackV74();ctx.fillText(item[0].toLocaleUpperCase('ru-RU'),x+16,y+25);fitAndDrawV74(ctx,cleanText(item[1],140),x+16,y+59,cardW-32,42,20,14,'700',p.text,1.1,2)});
+    textTop=514;
+  }
+  ctx.fillStyle=p.text;ctx.font='700 34px '+selectedFontStackV74();ctx.fillText(index===0?'Описание объекта':'Продолжение описания',64,textTop);
+  ctx.fillStyle=p.accent;ctx.fillRect(64,textTop+20,62,4);
+  ctx.fillStyle=p.text;ctx.font='500 25px '+selectedFontStackV74();const start=textTop+72,lineHeight=36;
+  if(lines.length)lines.forEach(function(line,lineIndex){if(line)ctx.fillText(line,64,start+lineIndex*lineHeight)});
+  else{ctx.fillStyle=p.muted;ctx.font='500 22px '+selectedFontStackV74();ctx.fillText('Добавьте описание объекта в разделе «Данные».',64,start)}
+  drawFooterV74(ctx,p,page,total);c.neStage4Kind='overview';c.neStage4DescriptionPage=index+1;c.neStage4DescriptionPages=count;c.neFullTextLines=lines.length;return c;
+}
+function drawGalleryCaptionV74(ctx,p,entry,x,y,w,h){
+  const caption=cleanText(entry?.meta?.caption,160);if(!caption)return;
+  fillRoundV74(ctx,x,y+h-58,w,58,0,p.dark);fitAndDrawV74(ctx,caption,x+18,y+h-24,w-36,34,17,13,'600',p.inverse,1.15,2);
+}
+function drawGalleryV74(entries,title,p,page,total){
+  const c=newCanvas(W_V74,H_V74),ctx=c.getContext('2d');resetCanvasV74(ctx);drawPageBaseV74(ctx,p,title||'Фотографии объекта',page,total);
+  const x=64,y=230,w=1112,bottom=1626,gap=22;
+  if(entries.length===1){fillRoundV74(ctx,x,y,w,bottom-y,18,p.surface,p.line);drawImageMode(ctx,entries[0].image,x+14,y+14,w-28,bottom-y-28,entries[0].meta,p.placeholder);drawGalleryCaptionV74(ctx,p,entries[0],x+14,y+14,w-28,bottom-y-28)}
+  else{const cellH=(bottom-y-gap)/2;entries.slice(0,2).forEach(function(entry,index){const cy=y+index*(cellH+gap);fillRoundV74(ctx,x,cy,w,cellH,18,p.surface,p.line);drawImageMode(ctx,entry.image,x+14,cy+14,w-28,cellH-28,entry.meta,p.placeholder);drawGalleryCaptionV74(ctx,p,entry,x+14,cy+14,w-28,cellH-28)})}
+  drawFooterV74(ctx,p,page,total);c.neStage4Kind='gallery';c.neStage4PhotoCount=entries.length;return c;
+}
+function drawFloorV74(entry,p,page,total){
+  const c=newCanvas(W_V74,H_V74),ctx=c.getContext('2d');resetCanvasV74(ctx);drawPageBaseV74(ctx,p,'Планировка',page,total);
+  fillRoundV74(ctx,64,232,1112,1372,20,p.surface,p.line);
+  drawImageMode(ctx,entry.image,92,260,1056,1316,Object.assign({},entry.meta,{fit:'contain',scale:1}),p.surface);
+  drawFooterV74(ctx,p,page,total);c.neStage4Kind='floor';return c;
+}
+function drawBrokerCircleV74(ctx,p,x,y,size){
+  ctx.save();ctx.beginPath();ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);ctx.clip();ctx.fillStyle=p.surface2;ctx.fillRect(x,y,size,size);
+  if(studioBrokerPhoto)drawImageMode(ctx,studioBrokerPhoto,x,y,size,size,Object.assign({fit:'cover'},currentSettings?.broker||{}),p.surface2);
+  else{ctx.fillStyle=p.muted;ctx.font='600 17px '+selectedFontStackV74();ctx.textAlign='center';ctx.fillText('Фото брокера',x+size/2,y+size/2);ctx.textAlign='left'}ctx.restore();
+  ctx.strokeStyle=p.line;ctx.lineWidth=3;ctx.beginPath();ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);ctx.stroke();
+}
+function drawContactV74(p,page,total){
+  const c=newCanvas(W_V74,H_V74),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm();resetCanvasV74(ctx);drawPageBaseV74(ctx,p,'Контакты',page,total);
+  fillRoundV74(ctx,64,232,1112,492,20,p.dark);
+  drawWaveV74(ctx,64,232,1112,492,p.inverse);
+  fitAndDrawV74(ctx,'Организуем показ и предоставим документы по объекту',104,330,820,260,52,32,'700',p.inverse,1.12,6);
+  const location=[cleanText(data.addr,220),cleanText(data.metro,120)].filter(Boolean).join(' · ')||'Москва';
+  fitAndDrawV74(ctx,location,104,632,930,70,23,16,'600',p.inverseMuted,1.18,3);
+  fillRoundV74(ctx,64,768,1112,764,20,p.surface,p.line);drawBrokerCircleV74(ctx,p,104,826,312);
+  fitAndDrawV74(ctx,cleanText(data.mgr||'Эксперт NexEstate',100),464,868,650,112,38,24,'700',p.text,1.12,4);
+  fitAndDrawV74(ctx,cleanText(data.mgrx||'Коммерческая недвижимость полного цикла',180),464,994,650,82,21,16,'500',p.muted,1.24,4);
+  const phone=cleanText(data.mgrPhone||'',60).trim(),email=cleanText(data.mgrEmail||'',120).trim(),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||''),siteRaw=cleanText(data.presoUrl||currentSettings?.siteUrl||'https://nexestate.ru',180).trim(),site=/^https:\/\//i.test(siteRaw)?siteRaw:'https://'+siteRaw.replace(/^\/+/,''),links=[];
+  if(phone)links.push({label:'Телефон: '+phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)links.push({label:'Telegram: '+telegram.label,url:telegram.url});if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))links.push({label:'E-mail: '+email,url:'mailto:'+email});if(currentSettings?.companyTelegram)links.push({label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV74(currentSettings.companyTelegram,'https://t.me/Nex_Estate')});if(currentSettings?.companyInstagram)links.push({label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV74(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')});if(currentSettings?.showSite!==false&&/^https:\/\/[A-Za-z0-9.-]+/i.test(site))links.push({label:site.replace(/^https?:\/\//,'').replace(/\/$/,''),url:site});const display=links.filter(function(item,index,array){return item.url&&array.findIndex(function(value){return value.url===item.url})===index}).slice(0,6),linkRects=[];
+  display.forEach(function(item,index){const y=1116+index*53;ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(473,y-7,4,0,Math.PI*2);ctx.fill();const layout=fitAndDrawV74(ctx,item.label,492,y,610,38,19,14,'600',p.text,1.15,2);linkRects.push({x:474,y:y-30,w:640,h:Math.max(36,layout.height+12),url:item.url,label:item.label,ne73Contact:true})});
+  c.neExternalLinks=linkRects;c.neContactLines=display.map(function(item){return item.label});c.neCompanyContactsV73=true;c.neStage3PageKind='contact';c.neStage4Kind='contact';
+  drawFooterV74(ctx,p,page,total);return c;
+}
+function drawClosedBadgeV74(canvas,p){
+  if(!canvas||canvas.neClosedSaleV74)return canvas;const ctx=canvas.getContext('2d'),width=canvas.width||W_V74,height=canvas.height||H_V74,label='Закрытая продажа',font=Math.max(14,Math.round(width*.016)),family=selectedFontStackV74();
+  ctx.save();ctx.font='700 '+font+'px '+family;const pad=Math.round(width*.012),boxW=Math.ceil(ctx.measureText(label).width+pad*3.4),boxH=Math.round(font*2.35);
+  const cover=canvas.neStage4Kind==='cover',appendix=canvas.neOriginalPdfPage,x=cover?64:width-boxW-Math.round(width*.035),y=cover?1234:appendix?Math.round(height*.024):184;
+  fillRoundV74(ctx,x,y,boxW,boxH,boxH/2,p.dark,p.accent);ctx.strokeStyle=p.inverse;ctx.lineWidth=1.8;ctx.beginPath();ctx.arc(x+pad*1.15,y+boxH/2,Math.max(6,font*.38),0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(x+pad*.95,y+boxH/2);ctx.lineTo(x+pad*1.12,y+boxH/2+font*.22);ctx.lineTo(x+pad*1.44,y+boxH/2-font*.25);ctx.stroke();ctx.fillStyle=p.inverse;ctx.textBaseline='middle';ctx.fillText(label,x+pad*2.05,y+boxH/2);ctx.restore();
+  canvas.neClosedSaleV74=true;return canvas;
+}
+function cloneAppendixV74(page){
+  if(typeof cloneOriginalPdfPageV70==='function')return cloneOriginalPdfPageV70(page);
+  const source=page?.canvas;if(!(source instanceof HTMLCanvasElement)||!source.width||!source.height)return null;
+  const c=newCanvas(source.width,source.height),ctx=c.getContext('2d');ctx.drawImage(source,0,0);c.neOriginalPdfPage=true;return c;
+}
+function buildDescriptorsV74(model){
+  const data=currentRecord?.data||dataFromForm(),descriptors=[],hidden=new Set(currentSettings?.hiddenPages||[]),order=currentSettings?.pageOrder||[];
+  const resolveEntry=function(id){const direct=model.get(id);if(direct)return direct;const runtime=typeof assetRuntime==='function'?assetRuntime(id):null,meta=typeof assetMeta==='function'?assetMeta(id):null;return runtime?.image&&meta?{meta:meta,image:runtime.image}:null},coverIds=(currentSettings?.coverPhotoIds||[]).slice(0,3),coverEntries=coverIds.map(resolveEntry).filter(Boolean);
+  if(!hidden.has('cover'))descriptors.push({kind:'cover',entries:coverEntries});
+  const chunks=descriptionChunksV74(data.draft||'');chunks.forEach(function(lines,index){descriptors.push({kind:'overview',lines:lines,index:index,count:chunks.length})});
+  const galleries=currentSettings?.galleryPages||[],orderedKeys=order.filter(function(key){return key.startsWith('gallery:')}),orderedGalleries=orderedKeys.map(function(key){return galleries.find(function(item){return'gallery:'+item.id===key})}).filter(Boolean);galleries.forEach(function(item){if(!orderedGalleries.includes(item))orderedGalleries.push(item)});
+  orderedGalleries.forEach(function(gallery){
+    const entries=(gallery.assetIds||[]).map(resolveEntry).filter(Boolean);
+    for(let index=0;index<entries.length;index+=2)descriptors.push({kind:'gallery',entries:entries.slice(index,index+2),title:gallery.title||'Фотографии объекта'});
+  });
+  const floor=floorPlanItem();if(floor&&!hidden.has('floor'))descriptors.push({kind:'floor',entry:floor});
+  if(currentSettings?.showContactPage)descriptors.push({kind:'contact'});
+  return descriptors;
+}
+function buildBySlidesV74(options){
+  const model=mediaModelV74();syncGalleryPages();syncPageOrder();const themeKey=selectedThemeV74(options),p=themeV74(themeKey),descriptors=buildDescriptorsV74(model),total=descriptors.length;
+  const slides=descriptors.map(function(descriptor,index){
+    const page=index+1;let canvas;
+    if(descriptor.kind==='cover')canvas=drawCoverV74(model,descriptor.entries,p,themeKey,total);
+    else if(descriptor.kind==='overview')canvas=drawOverviewV74(descriptor.lines,descriptor.index,descriptor.count,p,page,total);
+    else if(descriptor.kind==='gallery')canvas=drawGalleryV74(descriptor.entries,descriptor.title,p,page,total);
+    else if(descriptor.kind==='floor')canvas=drawFloorV74(descriptor.entry,p,page,total);
+    else canvas=drawContactV74(p,page,total);
+    canvas.neBrandLayout=BY_LAYOUT_V74;canvas.neBrandTheme=themeKey;canvas.neSelectedFont=currentSettings?.selectedFont||DS.font||'inter';return canvas;
+  });
+  const pdf=window.NE53_STATE?.pdf;if(pdf?.appendix&&Array.isArray(pdf.sourcePages))slides.push(...pdf.sourcePages.map(cloneAppendixV74).filter(Boolean));
+  if(currentSettings?.closedSale)slides.forEach(function(canvas){drawClosedBadgeV74(canvas,p)});
+  return slides;
+}
+
+const validateByAdvantagesBeforeV74=typeof validateByAdvantagesV67==='function'?validateByAdvantagesV67:null;
+if(validateByAdvantagesBeforeV74)validateByAdvantagesV67=function(){return requestedByV74({})?true:validateByAdvantagesBeforeV74()};
+const buildCanonicalSlidesBeforeV74=buildCanonicalSlides;
+buildCanonicalSlides=function(config){
+  const options=config||{};if(!requestedByV74(options))return buildCanonicalSlidesBeforeV74(options);
+  const slides=buildBySlidesV74(options);slides.forEach(function(canvas){canvas.neStage4Renderer=STAGE4_VERSION_V74});return slides;
+};
+window.ne53BuildSlides=buildCanonicalSlides;window.neBuildUnifiedSlides=buildCanonicalSlides;window.dsCanvasSet=buildCanonicalSlides;
+if(window.NEXESTATE_STANDALONE_TEST)window.NEXESTATE_STANDALONE_TEST.buildSlides=buildCanonicalSlides;
+
+window.NEXESTATE_STAGE4_TEST={
+  version:STAGE4_VERSION_V74,
+  themes:THEME_ORDER_V74.slice(),
+  build:function(config){return buildCanonicalSlides(Object.assign({design:'byNexEstate'},config||{}))},
+  inspect:function(config){
+    const slides=buildCanonicalSlides(Object.assign({design:'byNexEstate'},config||{}));
+    return{version:STAGE4_VERSION_V74,theme:selectedThemeV74(config||{}),count:slides.length,kinds:slides.map(function(canvas){return canvas.neStage4Kind||canvas.neOriginalPdfPage&&'appendix'||'unknown'}),sizes:slides.map(function(canvas){return[canvas.width,canvas.height]}),coverPhotos:slides[0]?.neStage4PhotoCount||0,features:slides[0]?.neStage4FeatureCount||0,contactLast:slides.filter(function(canvas){return!canvas.neOriginalPdfPage}).at(-1)?.neStage4Kind==='contact',closed:slides.filter(function(canvas){return canvas.neClosedSaleV74}).length};
+  },
+  setTheme:function(key){return window.NEXESTATE_STAGE3_TEST?.setByTheme?.(key)||false}
+};
+scheduleRender?.();
+})();
+</script>
+<script id="nexestate-by-nexestate-brand-renderer-v74-loader">
+(()=>{
+  const source=document.getElementById('nexestate-by-nexestate-brand-renderer-v74')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_STAGE4_LOADED=true;delete window.NEXESTATE_STAGE4_LOAD_ERROR}catch(error){window.NEXESTATE_STAGE4_LOADED=false;window.NEXESTATE_STAGE4_LOAD_ERROR=String(error?.stack||error);throw error}
 })();
 </script>
 <script src="../../pwa-shell.js"></script>
