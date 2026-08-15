@@ -5965,6 +5965,9 @@ window.NEXESTATE_BUILD_INFO = Object.freeze({
 #presentationStudio.ne53-studio .ne54-extracted-actions{display:flex;flex:0 0 auto;gap:4px}
 #presentationStudio.ne53-studio .ne54-photo-action{width:31px;height:31px;display:grid;place-items:center;padding:0;border:1px solid #b7c4be;border-radius:8px;background:#edf3ef;color:var(--ne53-forest);font-size:15px;font-weight:900;cursor:pointer}
 #presentationStudio.ne53-studio .ne54-photo-action.danger{color:#9f4343;background:#fff6f6;border-color:#d7b5b5}
+#presentationStudio.ne53-studio #ne53ExtractedPhotos .ne53-extracted-meta{display:block!important;width:100%!important}
+#presentationStudio.ne53-studio #ne53ExtractedPhotos .ne54-extracted-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:5px}
+#presentationStudio.ne53-studio #ne53ExtractedPhotos .ne54-photo-action{width:100%!important;min-width:0!important;height:30px!important;padding:0 4px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px!important}
 #presentationStudio.ne53-studio .ne54-transferred{position:absolute;top:7px;right:7px;padding:4px 6px;border-radius:999px;background:rgba(18,48,37,.9);color:#fff;font-size:8px;font-weight:900}
 #presentationStudio.ne53-studio .ne54-pdf-status-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px;margin-top:12px}
 #presentationStudio.ne53-studio .ne54-pdf-status-row .ne53-status{margin-top:0}
@@ -8771,26 +8774,25 @@ const CUSTOM_ICONS_V62={
 const ADVANTAGES_V62=[
   {id:'location',name:'Отличная локация',icon:'location'},
   {id:'footTraffic',name:'Высокий пешеходный трафик',icon:'foot'},
-  {id:'carTraffic',name:'Высокий автомобильный трафик',icon:'car'},
   {id:'adPotential',name:'Высокий рекламный потенциал',icon:'billboard'},
-  {id:'effectivePlacement',name:'Эффективное размещение',icon:'crown'},
   {id:'firstLine',name:'Первая линия',icon:'firstline'},
-  {id:'visibility',name:'Высокая видимость',icon:'eye'},
   {id:'nearMetro',name:'Рядом с метро',icon:'metro'},
   {id:'transport',name:'Удобная транспортная доступность',icon:'route'},
   {id:'showcaseFacade',name:'Витринный фасад',icon:'showcase'},
-  {id:'signage',name:'Место для вывески',icon:'billboard'},
   {id:'separateEntrance',name:'Отдельный вход',icon:'entrance'},
   {id:'parkingNearby',name:'Парковка рядом',icon:'parking'},
   {id:'denseHousing',name:'Плотная жилая застройка',icon:'residence'},
   {id:'businessArea',name:'Деловое окружение',icon:'business'},
   {id:'retailCorridor',name:'Сформированный торговый коридор',icon:'shops'},
   {id:'anchorTenants',name:'Якорные арендаторы рядом',icon:'anchor'},
-  {id:'readyToWork',name:'Готово к работе',icon:'keycheck'},
-  {id:'stableRent',name:'Стабильный арендный поток',icon:'yield'},
   {id:'reliableTenant',name:'Надёжный арендатор',icon:'shield'}
 ];
 const ADVANTAGE_BY_ID_V62=new Map(ADVANTAGES_V62.map(function(item){return[item.id,item]}));
+function singleHeroIdV62(settings){return cleanText(settings?.singlePageHero?.assetId||'',96)}
+function revokeSingleHeroUrlsV62(value,seen){
+  seen=seen||new Set();if(!value||typeof value!=='object'||seen.has(value))return;seen.add(value);
+  Object.keys(value).forEach(function(key){const item=value[key];if(typeof item==='string'&&item.startsWith('blob:')){try{URL.revokeObjectURL(item)}catch(_){}}else if(item&&typeof item==='object')revokeSingleHeroUrlsV62(item,seen)});
+}
 
 function uniqueValidV62(values,valid,max){
   const out=[];
@@ -8812,7 +8814,10 @@ settingsDefaults=function(){
     singlePageCharacteristicIds:selected.slice(0,5),
     selectedSinglePageAdvantageIds:[],
     singlePageAdvantageLabels:{},
+    singlePageHero:null,
+    singlePageHeroStretch:false,
     singlePageHeroExplicitlyCleared:false,
+    singlePageExcludedAssetIds:[],
     singlePageFloorExplicitlyCleared:false
   });
 };
@@ -8828,7 +8833,13 @@ normalizeSettings=function(value){
   base.exportType=VALID_EXPORTS_V62.has(source.exportType)?source.exportType:'pdf';
   base.singlePageHeroExplicitlyCleared=source.singlePageHeroExplicitlyCleared===true;
   base.singlePageFloorExplicitlyCleared=source.singlePageFloorExplicitlyCleared===true;
-  if(base.singlePageHeroExplicitlyCleared)base.heroAssetId='';
+  const mediaIds=new Set((base.media||[]).map(function(item){return item.assetId||item.id}).filter(Boolean)),hasCanonicalHero=Object.prototype.hasOwnProperty.call(source,'singlePageHero'),rawHero=source.singlePageHero&&typeof source.singlePageHero==='object'?source.singlePageHero:null;
+  base.singlePageExcludedAssetIds=uniqueValidV62(source.singlePageExcludedAssetIds,mediaIds,Math.max(1,mediaIds.size));
+  let heroId=base.singlePageHeroExplicitlyCleared?'':cleanText(hasCanonicalHero?rawHero?.assetId:(source.heroAssetId||base.heroAssetId),96);
+  if(heroId&&!mediaIds.has(heroId))heroId='';
+  base.singlePageHero=heroId?{assetId:heroId,focusX:Math.max(0,Math.min(100,Number(rawHero?.focusX)||50)),focusY:Math.max(0,Math.min(100,Number(rawHero?.focusY)||50)),scale:Math.max(1,Math.min(12,Number(rawHero?.scale)||1))}:null;
+  base.heroAssetId=heroId;base.singlePageHeroStretch=!!heroId&&source.singlePageHeroStretch===true;
+  if(base.singlePageHeroExplicitlyCleared){base.singlePageHero=null;base.heroAssetId='';base.singlePageHeroStretch=false}
   if(base.singlePageFloorExplicitlyCleared)base.floorPlanAssetId='';
   base.byNexEstateCharacteristicIds=byIds;
   base.singlePageCharacteristicIds=singleIds;
@@ -8854,27 +8865,18 @@ if(currentSettings)currentSettings=normalizeSettings(currentSettings);
 function enforceSingleAssetSelectionV62(){
   if(!currentSettings)return;
   const ids=new Set((currentSettings.media||[]).map(function(item){return item.assetId}));
-  if(!ids.has(currentSettings.heroAssetId))currentSettings.heroAssetId='';
+  let heroId=singleHeroIdV62(currentSettings);if(!ids.has(heroId))heroId='';
+  if(currentSettings.singlePageHeroExplicitlyCleared)heroId='';
+  currentSettings.singlePageHero=heroId?Object.assign({focusX:50,focusY:50,scale:1},currentSettings.singlePageHero,{assetId:heroId}):null;
+  currentSettings.heroAssetId=heroId;if(!heroId)currentSettings.singlePageHeroStretch=false;
   if(!ids.has(currentSettings.floorPlanAssetId))currentSettings.floorPlanAssetId='';
-  if(currentSettings.singlePageHeroExplicitlyCleared)currentSettings.heroAssetId='';
   if(currentSettings.singlePageFloorExplicitlyCleared)currentSettings.floorPlanAssetId='';
-  if(currentSettings.heroAssetId&&currentSettings.heroAssetId===currentSettings.floorPlanAssetId){
-    const shared=currentSettings.media.find(function(item){return item.assetId===currentSettings.heroAssetId});
-    const role=shared&&(shared.singlePageRole||shared.role);
-    if(role==='hero'){currentSettings.floorPlanAssetId='';currentSettings.singlePageFloorExplicitlyCleared=false}
-    else{currentSettings.heroAssetId='';currentSettings.singlePageHeroExplicitlyCleared=false;if(shared)shared.singlePageRole='floorPlan'}
+  if(heroId&&heroId===currentSettings.floorPlanAssetId){
+    currentSettings.floorPlanAssetId='';currentSettings.singlePageFloorExplicitlyCleared=false;
   }
   const planMeta=currentSettings.media.find(function(item){return item.assetId===currentSettings.floorPlanAssetId});
   if(planMeta)planMeta.singlePageRole='floorPlan';
-  const heroMeta=currentSettings.media.find(function(item){return item.assetId===currentSettings.heroAssetId});
-  if(heroMeta){
-    if(heroMeta.singlePageRole==='floorPlan'){currentSettings.heroAssetId=''}
-    else heroMeta.singlePageRole='hero';
-  }
-  if(!currentSettings.heroAssetId&&!currentSettings.singlePageHeroExplicitlyCleared){
-    const candidate=currentSettings.media.find(function(item){return item.assetId!==currentSettings.floorPlanAssetId&&(item.singlePageRole||item.role)!=='floorPlan'});
-    if(candidate){currentSettings.heroAssetId=candidate.assetId;candidate.singlePageRole='hero'}
-  }
+  const heroMeta=currentSettings.media.find(function(item){return item.assetId===heroId});if(heroMeta)heroMeta.singlePageRole='hero';
 }
 
 function currentLayoutV62(){return currentSettings&&currentSettings.presentationLayout==='singlePage'?LAYOUT_SINGLE_V62:LAYOUT_BY_V62}
@@ -8980,7 +8982,7 @@ function enhanceDataFieldsV62(){
   if(extra&&extra.tagName!=='TEXTAREA'){
     const textarea=document.createElement('textarea');textarea.id='studioExtra';textarea.value=extra.value||'';textarea.rows=5;textarea.maxLength=5000;textarea.oninput=function(){window.studioLiveUpdate?.()};extra.replaceWith(textarea);extra=textarea;
   }
-  if(extra){updateLabelTextV62(extra.closest('label'),single?'Преимущества объекта':'Дополнительные характеристики');extra.placeholder=single?'Каждое преимущество можно начать с новой строки.':'Дополнительные характеристики объекта.'}
+  if(extra){const block=extra.closest('label')||extra.parentElement;updateLabelTextV62(extra.closest('label'),single?'Преимущества объекта':'Дополнительные характеристики');extra.placeholder=single?'Каждое преимущество можно начать с новой строки.':'Дополнительные характеристики объекта.';if(block){block.hidden=single;block.classList.toggle('ne76-single-hidden',single)}}
   const legacy=byId('ne53Advantages');if(legacy){legacy.hidden=single;const head=legacy.previousElementSibling;if(head)head.hidden=single}
 }
 renderFeatureEditor=function(){
@@ -9082,6 +9084,8 @@ async function uploadSinglePageAssetV62(kind,file){
     const found=currentSettings.media.find(function(item){return item.hash===hash});
     if(!found)throw new Error(kind==='floor'?'Планировка не добавлена':'Фотография не добавлена');
     currentSettings[clearKey]=false;currentSettings[key]=found.assetId;found.singlePageRole=kind==='floor'?'floorPlan':'hero';
+    if(kind!=='floor')currentSettings.singlePageExcludedAssetIds=(currentSettings.singlePageExcludedAssetIds||[]).filter(function(id){return id!==found.assetId});
+    if(kind!=='floor'){currentSettings.singlePageHero={assetId:found.assetId,focusX:50,focusY:50,scale:1};currentSettings.singlePageHeroStretch=false}
     if(kind==='floor'&&currentSettings.heroAssetId===found.assetId){currentSettings.heroAssetId='';currentSettings.singlePageHeroExplicitlyCleared=false}
     if(kind!=='floor'&&currentSettings.floorPlanAssetId===found.assetId){currentSettings.floorPlanAssetId='';currentSettings.singlePageFloorExplicitlyCleared=false}
     enforceSingleAssetSelectionV62();
@@ -9096,9 +9100,17 @@ async function uploadSinglePageAssetV62(kind,file){
   }
 }
 function removeSinglePageAssetV62(kind){
-  if(!currentSettings)return;
-  const key=kind==='floor'?'floorPlanAssetId':'heroAssetId',clearKey=kind==='floor'?'singlePageFloorExplicitlyCleared':'singlePageHeroExplicitlyCleared';if(!currentSettings[key]&&currentSettings[clearKey])return;
-  historyPoint(kind==='floor'?'Удаление планировки из макета':'Удаление главного фото из макета');currentSettings[clearKey]=true;currentSettings[key]='';refreshUiV62();scheduleSave();scheduleRender();
+  if(!currentSettings)return false;
+  const key=kind==='floor'?'floorPlanAssetId':'heroAssetId',clearKey=kind==='floor'?'singlePageFloorExplicitlyCleared':'singlePageHeroExplicitlyCleared',removedId=kind==='floor'?'':singleHeroIdV62(currentSettings);if(!currentSettings[key]&&currentSettings[clearKey])return false;
+  if(kind!=='floor'&&!confirm('Удалить главное фото из одностраничной презентации? Фотография останется в Медиа.'))return false;
+  historyPoint(kind==='floor'?'Удаление планировки из макета':'Удаление главного фото из макета');currentSettings[clearKey]=true;currentSettings[key]='';
+  if(kind!=='floor'){
+    if(removedId&&!currentSettings.singlePageExcludedAssetIds?.includes(removedId))(currentSettings.singlePageExcludedAssetIds||(currentSettings.singlePageExcludedAssetIds=[])).push(removedId);
+    revokeSingleHeroUrlsV62(currentSettings.singlePageHero);
+    ['singlePageHeroBlob','singlePageHeroFile','singlePageHeroData','singlePageHeroUrl','singlePageHeroThumb','singlePageHeroThumbnail','singlePageHeroOriginal','singlePageHeroCrop','singlePageHeroFocus','singlePageHeroScale'].forEach(function(name){revokeSingleHeroUrlsV62(currentSettings[name]);delete currentSettings[name]});
+    currentSettings.singlePageHero=null;currentSettings.singlePageHeroStretch=false;
+  }
+  refreshUiV62();scheduleSave();scheduleRender();if(kind!=='floor')Promise.resolve(saveCurrent(false)).catch(function(error){console.warn('Single page hero save',error)});return true;
 }
 
 function buttonV62(label,handler,className){
@@ -9133,16 +9145,17 @@ function buildAssetPopoverV62(kind){
   const status=document.createElement('div');status.className='ne62-popover-status';status.dataset.status='true';status.setAttribute('aria-live','polite');
   popover.append(head,preview,actions);
   if(kind==='floor'){const noPlan=document.createElement('label');noPlan.className='ne62-no-plan';const check=document.createElement('input');check.type='checkbox';check.id='ne62NoFloorPlan';check.onchange=function(){setNoPlanV62(check.checked)};noPlan.append(check,document.createTextNode('Без планировки'));popover.appendChild(noPlan)}
+  else{const stretch=document.createElement('label');stretch.className='ne76-stretch-option';const check=document.createElement('input');check.type='checkbox';check.id='ne76StretchHero';check.onchange=function(){if(!currentSettings)return;historyPoint('Изменение масштаба главной фотографии');currentSettings.singlePageHeroStretch=check.checked&&!!singleHeroIdV62(currentSettings);scheduleSave();scheduleRender()};stretch.append(check,document.createTextNode('Растянуть фотографию'));popover.appendChild(stretch)}
   popover.appendChild(status);byId('presentationStudio').appendChild(popover);return popover;
 }
 function refreshAssetPopoverV62(kind){
-  const popover=buildAssetPopoverV62(kind),key=kind==='floor'?'floorPlanAssetId':'heroAssetId',entry=assetEntryV62(currentSettings?.[key]),preview=popover.querySelector('[data-preview]'),remove=popover.querySelector('[data-remove]'),uploadText=popover.querySelector('[data-upload-text]'),status=popover.querySelector('[data-status]'),withoutPlan=kind==='floor'&&currentSettings?.singlePageWithoutFloorPlan;
+  const popover=buildAssetPopoverV62(kind),key=kind==='floor'?'floorPlanAssetId':'heroAssetId',assetId=kind==='floor'?currentSettings?.[key]:singleHeroIdV62(currentSettings),entry=assetEntryV62(assetId),preview=popover.querySelector('[data-preview]'),remove=popover.querySelector('[data-remove]'),uploadText=popover.querySelector('[data-upload-text]'),status=popover.querySelector('[data-status]'),withoutPlan=kind==='floor'&&currentSettings?.singlePageWithoutFloorPlan;
   preview.replaceChildren();
   if(entry){const image=document.createElement('img');image.alt=kind==='floor'?'Выбранная планировка':'Выбранное главное фото';image.src=entry.image.currentSrc||entry.image.src;preview.appendChild(image)}
   else preview.textContent=kind==='floor'?'Планировка не выбрана':'Главное фото не выбрано';
   remove.disabled=!entry;uploadText.textContent=entry?'Заменить':kind==='floor'?'Загрузить планировку':'Загрузить фотографию';
   if(kind==='floor'){const check=popover.querySelector('#ne62NoFloorPlan');if(check)check.checked=!!currentSettings?.singlePageWithoutFloorPlan;preview.hidden=withoutPlan;popover.querySelector('.ne62-popover-actions').hidden=withoutPlan;status.dataset.kind=!withoutPlan&&!entry?'error':'';status.textContent=withoutPlan?'Блок планировки отключён.':entry?'Планировка выбрана.':'Загрузите планировку или включите «Без планировки»'}
-  else{status.dataset.kind='';status.textContent=entry?'Фото выбрано в исходном качестве.':'Загрузите главное фото.'}
+  else{const stretch=popover.querySelector('#ne76StretchHero');if(stretch){stretch.checked=currentSettings?.singlePageHeroStretch===true;stretch.disabled=!entry}status.dataset.kind='';status.textContent=entry?'Фото выбрано в исходном качестве.':'Загрузите главное фото.'}
 }
 function toggleAssetPopoverV62(kind,anchor){
   const popover=buildAssetPopoverV62(kind),opening=popover.hidden;closeAllPopoversV62(false);
@@ -9201,7 +9214,7 @@ function refreshBottomBarV62(){
   if(by){by.setAttribute('aria-pressed',String(!single));by.classList.toggle('is-active',!single)}
   if(singleButton){singleButton.setAttribute('aria-pressed',String(single));singleButton.classList.toggle('is-active',single)}
   if(theme){theme.hidden=!single;theme.value=currentSettings.singlePageTheme||'warmGold'}
-  if(hero){hero.hidden=!single;hero.dataset.hasAsset=String(!!currentSettings.heroAssetId)}
+  if(hero){hero.hidden=!single;hero.dataset.hasAsset=String(!!singleHeroIdV62(currentSettings))}
   if(floor){floor.hidden=!single;floor.dataset.hasAsset=String(!!currentSettings.floorPlanAssetId&&!currentSettings.singlePageWithoutFloorPlan);floor.textContent=currentSettings.singlePageWithoutFloorPlan?'Планировка: нет':'Планировка'}
   if(main)main.textContent=exportLabelV62(currentSettings.exportType);
   refreshFormatPopoverV62();if(!single)closeAllPopoversV62(false);
@@ -9276,7 +9289,7 @@ function singlePageAdvantagesV62(){
   }).filter(Boolean).slice(0,4);
 }
 function singlePagePlanV62(){
-  enforceSingleAssetSelectionV62();const entries=mediaEntriesV62();return{entries:entries,hero:assetEntryV62(currentSettings?.heroAssetId)||null,plan:assetEntryV62(currentSettings?.floorPlanAssetId)||null};
+  enforceSingleAssetSelectionV62();const entries=mediaEntriesV62();return{entries:entries,hero:assetEntryV62(singleHeroIdV62(currentSettings))||null,plan:assetEntryV62(currentSettings?.floorPlanAssetId)||null};
 }
 function validateSinglePageExportV62(){
   if(currentLayoutV62()!==LAYOUT_SINGLE_V62)return true;
@@ -9344,9 +9357,9 @@ restoreRecord=async function(record){
 };
 const renderExtendedMediaBeforeV62=renderExtendedMedia;
 renderExtendedMedia=function(){
-  const hero=currentSettings?.heroAssetId||'',floor=currentSettings?.floorPlanAssetId||'',heroCleared=currentSettings?.singlePageHeroExplicitlyCleared===true,floorCleared=currentSettings?.singlePageFloorExplicitlyCleared===true;
+  const hero=currentSettings?.singlePageHero?deepClone(currentSettings.singlePageHero):null,heroId=singleHeroIdV62(currentSettings),stretch=currentSettings?.singlePageHeroStretch===true,floor=currentSettings?.floorPlanAssetId||'',heroCleared=currentSettings?.singlePageHeroExplicitlyCleared===true,floorCleared=currentSettings?.singlePageFloorExplicitlyCleared===true;
   const result=renderExtendedMediaBeforeV62();
-  if(currentSettings){currentSettings.singlePageHeroExplicitlyCleared=heroCleared;currentSettings.singlePageFloorExplicitlyCleared=floorCleared;currentSettings.heroAssetId=hero;currentSettings.floorPlanAssetId=floor;enforceSingleAssetSelectionV62()}
+  if(currentSettings){currentSettings.singlePageHeroExplicitlyCleared=heroCleared;currentSettings.singlePageFloorExplicitlyCleared=floorCleared;currentSettings.singlePageHero=hero;currentSettings.heroAssetId=heroId;currentSettings.singlePageHeroStretch=stretch;currentSettings.floorPlanAssetId=floor;enforceSingleAssetSelectionV62()}
   queueMicrotask(refreshUiV62);return result;
 };
 let observerRefreshQueuedV62=false;
@@ -9368,7 +9381,7 @@ document.fonts.ready.then(function(){scheduleRender()});
 window.NEXESTATE_V62_TEST={
   layouts:{byNexEstate:LAYOUT_BY_V62,singlePage:LAYOUT_SINGLE_V62},
   advantages:ADVANTAGES_V62.map(function(item){return{id:item.id,name:item.name}}),
-  getState:function(){enforceSingleAssetSelectionV62();return currentSettings?deepClone({layout:currentSettings.presentationLayout,exportType:currentSettings.exportType,theme:currentSettings.singlePageTheme,heroAssetId:currentSettings.heroAssetId,floorPlanAssetId:currentSettings.floorPlanAssetId,withoutPlan:currentSettings.singlePageWithoutFloorPlan,byIds:currentSettings.byNexEstateCharacteristicIds,singleIds:currentSettings.singlePageCharacteristicIds,advantageIds:currentSettings.selectedSinglePageAdvantageIds,advantageLabels:currentSettings.singlePageAdvantageLabels,design:DS.design}):null},
+  getState:function(){enforceSingleAssetSelectionV62();return currentSettings?deepClone({layout:currentSettings.presentationLayout,exportType:currentSettings.exportType,theme:currentSettings.singlePageTheme,hero:currentSettings.singlePageHero,heroAssetId:singleHeroIdV62(currentSettings),heroStretch:currentSettings.singlePageHeroStretch,floorPlanAssetId:currentSettings.floorPlanAssetId,withoutPlan:currentSettings.singlePageWithoutFloorPlan,byIds:currentSettings.byNexEstateCharacteristicIds,singleIds:currentSettings.singlePageCharacteristicIds,advantageIds:currentSettings.selectedSinglePageAdvantageIds,advantageLabels:currentSettings.singlePageAdvantageLabels,design:DS.design}):null},
   setLayout:function(value){return setLayoutV62(value,true)},
   setNoPlan:setNoPlanV62,
   selectExport:selectExportV62,
@@ -12277,7 +12290,7 @@ const BY_THEME_ORDER_V73=['original','deepSapphire','emeraldGraphite','lightStee
 const BY_THEME_NAMES_V73={original:'Оригинальная',deepSapphire:'Глубокий сапфир',emeraldGraphite:'Аметистовый тёмный',lightSteel:'Светлый стальной',burgundyGraphite:'Мягкий антрацит',darkJade:'Тёмный нефрит',brandGreen:'Фирменный зелёный'};
 const SINGLE_THEME_NAMES_V73={warmGold:'Тёплый золотой',lightBlue:'Светло-синий',premiumDark:'Премиальный тёмный',darkJade:'Тёмный нефрит',brandGreen:'Фирменный зелёный'};
 const SAFE_LINK_V73=/^https:\/\/[A-Za-z0-9.-]+(?:[\/:?#][^\s]*)?$/i;
-const TEMPLATE_SAFE_KEYS_V73=['brandModeEnabled','activeBrandedLayout','brandLayout','presentationLayout','byNexEstateTheme','byNexEstateThemeV71','singlePageTheme','singlePageThemeV71','userDesign','userTheme','customThemeKey','selectedFont','showContactPage','companyTelegram','companyTelegramLabel','companyInstagram','companyInstagramLabel','showSite','siteUrl','closedSale','galleryMode','galleryTitles','galleryPages','pageOrder','hiddenPages','coverEnabled','features','userCharacteristicIds','byNexEstateCharacteristicIds','singlePageCharacteristicIds','brokerPhotoChoice','broker'];
+const TEMPLATE_SAFE_KEYS_V73=['brandModeEnabled','activeBrandedLayout','brandLayout','presentationLayout','byNexEstateTheme','byNexEstateThemeV71','singlePageTheme','singlePageThemeV71','userDesign','userTheme','customThemeKey','selectedFont','showContactPage','companyTelegram','companyTelegramLabel','companyInstagram','companyInstagramLabel','showSite','siteUrl','closedSale','galleryMode','galleryTitles','galleryPages','pageOrder','hiddenPages','coverEnabled','features','userCharacteristicIds','byNexEstateCharacteristicIds','singlePageCharacteristicIds','byNexEstateFeatureValues','singlePageFeatureValues','selectedSinglePageAdvantageIds','singlePageAdvantageLabels','singlePageHero','singlePageHeroStretch','singlePageHeroExplicitlyCleared','singlePageExcludedAssetIds','brokerPhotoChoice','broker'];
 let cropDraftV73=null,cropPointerV73=null,focusNoticeTimerV73=0,focusCloneTimerV73=0,templateDeleteTimerV73=0,pendingTemplateDeleteV73='',syncingUiV73=false;
 
 function ownV73(object,key){return !!object&&Object.prototype.hasOwnProperty.call(object,key)}
@@ -12348,7 +12361,7 @@ function brandThemeEntriesV73(layout){
 
 function ensureSettingsDrawerV73(){
   const host=document.querySelector('#presentationStudio .ne52-top-actions');if(!host)return;
-  let trigger=byId('ne73SettingsTrigger');if(!trigger){trigger=document.createElement('button');trigger.type='button';trigger.id='ne73SettingsTrigger';trigger.className='ne73-settings-trigger';trigger.textContent='⚙ Настройки презентации';trigger.setAttribute('aria-controls','ne73SettingsDrawer');trigger.setAttribute('aria-expanded','false');trigger.onclick=()=>toggleSettingsDrawerV73();host.prepend(trigger)}
+  let trigger=byId('ne73SettingsTrigger');if(!trigger){trigger=document.createElement('button');trigger.type='button';trigger.id='ne73SettingsTrigger';trigger.className='ne73-settings-trigger';trigger.textContent='⚙ Настройки презентации';trigger.setAttribute('aria-controls','ne73SettingsDrawer');trigger.setAttribute('aria-expanded','false');host.prepend(trigger)}trigger.onclick=()=>toggleSettingsDrawerV73();
   let drawer=byId('ne73SettingsDrawer');if(!drawer){
     drawer=document.createElement('aside');drawer.id='ne73SettingsDrawer';drawer.className='ne73-settings-drawer';drawer.hidden=true;drawer.setAttribute('aria-label','Настройки презентации');
     const head=document.createElement('div');head.className='ne73-drawer-head';const title=document.createElement('h3');title.textContent='Настройки презентации';const close=document.createElement('button');close.type='button';close.className='ne73-icon-btn';close.setAttribute('aria-label','Закрыть настройки');close.textContent='×';close.onclick=()=>toggleSettingsDrawerV73(false);head.append(title,close);
@@ -12642,8 +12655,7 @@ function fitAndDrawV74(ctx,text,x,y,w,h,start,min,weight,color,lineRatio,maxLine
   layout.weight=weight;layout.family=selectedFontStackV74();drawLinesV74(ctx,layout,x,y,color);return layout;
 }
 function drawWordmarkV74(ctx,x,y,width,color){
-  const scale=width/108;ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.lineCap='square';ctx.lineJoin='miter';ctx.lineWidth=2.2;
-  ctx.stroke(new Path2D(WORDMARK_PRIMARY_V74));ctx.lineWidth=1.7;ctx.stroke(new Path2D(WORDMARK_SECONDARY_V74));ctx.restore();
+  ctx.save();const nexSize=Math.max(28,Math.round(width*.31)),estateSize=Math.max(9,Math.round(nexSize*.22)),spacing=Math.max(2,estateSize*.68);ctx.font='500 '+nexSize+'px Georgia,"Times New Roman",serif';ctx.textBaseline='top';const nexWidth=ctx.measureText('NEX').width,nexX=x+(width-nexWidth)/2;ctx.fillStyle=color;ctx.fillText('NEX',nexX,y);ctx.strokeStyle=color;ctx.globalAlpha=.72;ctx.lineWidth=Math.max(1,width*.006);ctx.beginPath();ctx.moveTo(nexX,y+nexSize*1.06);ctx.lineTo(nexX+nexWidth,y+nexSize*1.06);ctx.stroke();ctx.globalAlpha=1;ctx.font='600 '+estateSize+'px "Segoe UI",Arial,sans-serif';let estateWidth=0;for(let index=0;index<6;index++){estateWidth+=ctx.measureText('ESTATE'[index]).width;if(index<5)estateWidth+=spacing}let cursor=x+(width-estateWidth)/2;for(const char of 'ESTATE'){ctx.fillText(char,cursor,y+nexSize*1.18);cursor+=ctx.measureText(char).width+spacing}ctx.restore();
 }
 function drawWaveV74(ctx,x,y,w,h,color){
   ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=.17;ctx.strokeStyle=color;ctx.lineWidth=2;
@@ -12676,9 +12688,8 @@ function mediaModelV74(){
   return map;
 }
 function selectedFeaturesV74(){
-  if(typeof selectedByFeaturesV67==='function')return selectedByFeaturesV67().slice(0,8);
-  const ids=currentSettings?.byNexEstateCharacteristicIds||[],map=new Map((currentSettings?.features||[]).map(function(item){return[item.type,item]}));
-  return ids.map(function(id){return map.get(id)}).filter(Boolean).slice(0,8);
+  const ids=(currentSettings?.byNexEstateCharacteristicIds||[]).slice(0,8),legacy=new Map((currentSettings?.features||[]).map(function(item){return[item.type,item]})),values=currentSettings?.byNexEstateFeatureValues||{};
+  return ids.map(function(id){const source=values[id]||legacy.get(id);return source?{type:id,value:cleanText(source.value,60),label:cleanText(source.label||ICON_TYPES.find(function(item){return item[0]===id})?.[1]||id,45),auto:source.auto===true,manual:source.manual===true}:null}).filter(Boolean);
 }
 function featureValueLayoutV74(ctx,value,width){
   return fitBlockV74(ctx,cleanText(value||'—',100),width,52,25,17,'700',1.05,2);
@@ -12801,10 +12812,10 @@ function drawContactV74(p,page,total){
   drawFooterV74(ctx,p,page,total);return c;
 }
 function drawClosedBadgeV74(canvas,p){
-  if(!canvas||canvas.neClosedSaleV74)return canvas;const ctx=canvas.getContext('2d'),width=canvas.width||W_V74,height=canvas.height||H_V74,label='Закрытая продажа',font=Math.max(14,Math.round(width*.016)),family=selectedFontStackV74();
-  ctx.save();ctx.font='700 '+font+'px '+family;const pad=Math.round(width*.012),boxW=Math.ceil(ctx.measureText(label).width+pad*3.4),boxH=Math.round(font*2.35);
+  if(!canvas||canvas.neClosedSaleV74)return canvas;const ctx=canvas.getContext('2d'),width=canvas.width||W_V74,height=canvas.height||H_V74,label='ЗАКРЫТАЯ ПРОДАЖА',font=Math.max(13,Math.round(width*.014)),family=selectedFontStackV74();
+  ctx.save();ctx.font='800 '+font+'px '+family;const pad=Math.round(width*.012),boxW=Math.ceil(ctx.measureText(label).width+pad*4.5),boxH=Math.round(font*2.5);
   const cover=canvas.neStage4Kind==='cover',appendix=canvas.neOriginalPdfPage,x=cover?64:width-boxW-Math.round(width*.035),y=cover?1234:appendix?Math.round(height*.024):184;
-  fillRoundV74(ctx,x,y,boxW,boxH,boxH/2,p.dark,p.accent);ctx.strokeStyle=p.inverse;ctx.lineWidth=1.8;ctx.beginPath();ctx.arc(x+pad*1.15,y+boxH/2,Math.max(6,font*.38),0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(x+pad*.95,y+boxH/2);ctx.lineTo(x+pad*1.12,y+boxH/2+font*.22);ctx.lineTo(x+pad*1.44,y+boxH/2-font*.25);ctx.stroke();ctx.fillStyle=p.inverse;ctx.textBaseline='middle';ctx.fillText(label,x+pad*2.05,y+boxH/2);ctx.restore();
+  fillRoundV74(ctx,x,y,boxW,boxH,boxH/2,p.dark,p.accent);ctx.strokeStyle=p.inverse;ctx.lineWidth=Math.max(1.6,font*.09);const lockX=x+pad,lockY=y+(boxH-font*1.25)/2,lockSize=font*1.25;ctx.beginPath();ctx.arc(lockX+lockSize*.5,lockY+lockSize*.4,lockSize*.27,Math.PI,0);ctx.stroke();roundPathV74(ctx,lockX+lockSize*.17,lockY+lockSize*.4,lockSize*.66,lockSize*.5,lockSize*.1);ctx.stroke();ctx.beginPath();ctx.moveTo(lockX+lockSize*.5,lockY+lockSize*.61);ctx.lineTo(lockX+lockSize*.5,lockY+lockSize*.79);ctx.stroke();ctx.fillStyle=p.inverse;ctx.textBaseline='middle';ctx.fillText(label,lockX+lockSize+pad,y+boxH/2);ctx.restore();
   canvas.neClosedSaleV74=true;return canvas;
 }
 function cloneAppendixV74(page){
@@ -12893,7 +12904,7 @@ let overflowDialogQueuedV75=false,lastOverflowTextV75='';
 function ownV75(object,key){return !!object&&Object.prototype.hasOwnProperty.call(object,key)}
 function cleanV75(value,max=6000){return cleanText(String(value??'').replace(/[\t\u00a0]+/g,' ').replace(/\r/g,''),max).trim()}
 function fontStackV75(){const key=currentSettings?.selectedFont||DS.font||'inter';return typeof DS_FONTS!=='undefined'&&DS_FONTS[key]?.canvas?DS_FONTS[key].canvas:'"Segoe UI",Arial,sans-serif'}
-function serifStackV75(){return'Georgia,"Times New Roman",serif'}
+function serifStackV75(){return fontStackV75()}
 function resetV75(ctx){ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.shadowBlur=0;ctx.shadowColor='transparent';ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.setLineDash([]);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high'}
 function roundV75(ctx,x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else rounded(ctx,x,y,w,h,r)}
 function panelV75(ctx,x,y,w,h,r,fill,stroke){roundV75(ctx,x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}}
@@ -12901,16 +12912,16 @@ function splitTokenV75(ctx,token,width){if(ctx.measureText(token).width<=width)r
 function wrapV75(ctx,text,width){const output=[],paragraphs=String(text||'').split('\n');paragraphs.forEach(function(paragraph,pIndex){const words=paragraph.trim().split(/\s+/).filter(Boolean).flatMap(function(word){return splitTokenV75(ctx,word,width)});let line='';words.forEach(function(word){const trial=line?line+' '+word:word;if(line&&ctx.measureText(trial).width>width){output.push(line);line=word}else line=trial});if(line)output.push(line);if(pIndex<paragraphs.length-1&&output[output.length-1]!=='')output.push('')});while(output[output.length-1]==='')output.pop();return output}
 function fitV75(ctx,text,width,height,options={}){const family=options.family||fontStackV75(),weight=options.weight||500,max=options.max||30,min=options.min||18,step=options.step||1,factor=options.lineHeight||1.24;let fallback=null;for(let size=max;size>=min;size-=step){ctx.font=weight+' '+size+'px '+family;const lines=wrapV75(ctx,text,width),lineHeight=Math.ceil(size*factor),total=lines.length?lines.length*lineHeight:0,fit={fits:total<=height,size,lines,lineHeight,height:total,weight,family};fallback=fit;if(fit.fits)return fit}return fallback||{fits:true,size:min,lines:[],lineHeight:Math.ceil(min*factor),height:0,weight,family}}
 function drawFitV75(ctx,layout,x,y,color,align='left'){ctx.save();ctx.fillStyle=color;ctx.font=layout.weight+' '+layout.size+'px '+layout.family;ctx.textAlign=align;ctx.textBaseline='top';layout.lines.forEach(function(line,index){if(line)ctx.fillText(line,x,y+index*layout.lineHeight)});ctx.restore();return y+layout.height}
-function drawWordmarkV75(ctx,x,y,width,color){const scale=width/110;ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.lineCap='square';ctx.lineJoin='miter';ctx.lineWidth=1.8/scale;ctx.stroke(new Path2D(WORDMARK_PRIMARY_V75));ctx.lineWidth=1.45/scale;ctx.stroke(new Path2D(WORDMARK_SECONDARY_V75));ctx.restore()}
+function drawWordmarkV75(ctx,x,y,width,color){ctx.save();const nexSize=Math.max(28,Math.round(width*.31)),estateSize=Math.max(9,Math.round(nexSize*.22)),spacing=Math.max(2,estateSize*.68);ctx.font='500 '+nexSize+'px Georgia,"Times New Roman",serif';ctx.textBaseline='top';const nexWidth=ctx.measureText('NEX').width,nexX=x+(width-nexWidth)/2;ctx.fillStyle=color;ctx.fillText('NEX',nexX,y);ctx.strokeStyle=color;ctx.globalAlpha=.72;ctx.lineWidth=Math.max(1,width*.006);ctx.beginPath();ctx.moveTo(nexX,y+nexSize*1.06);ctx.lineTo(nexX+nexWidth,y+nexSize*1.06);ctx.stroke();ctx.globalAlpha=1;ctx.font='600 '+estateSize+'px "Segoe UI",Arial,sans-serif';let estateWidth=0;for(let index=0;index<6;index++){estateWidth+=ctx.measureText('ESTATE'[index]).width;if(index<5)estateWidth+=spacing}let cursor=x+(width-estateWidth)/2;for(const char of 'ESTATE'){ctx.fillText(char,cursor,y+nexSize*1.18);cursor+=ctx.measureText(char).width+spacing}ctx.restore()}
 function drawLocationV75(ctx,x,y,color,metro){ctx.save();ctx.translate(x,y);ctx.strokeStyle=color;ctx.lineWidth=2.8;ctx.fillStyle='transparent';if(metro){ctx.beginPath();ctx.arc(16,16,14,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(7,23);ctx.lineTo(11.5,8);ctx.lineTo(16,20);ctx.lineTo(20.5,8);ctx.lineTo(25,23);ctx.stroke()}else{ctx.beginPath();ctx.arc(16,13,10,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(6.5,19);ctx.quadraticCurveTo(16,37,25.5,19);ctx.stroke();ctx.beginPath();ctx.arc(16,13,3,0,Math.PI*2);ctx.stroke()}ctx.restore()}
 function drawLockV75(ctx,x,y,color){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(x+12,y+11,8,Math.PI,0);ctx.stroke();roundV75(ctx,x+2,y+11,20,17,4);ctx.stroke();ctx.beginPath();ctx.moveTo(x+12,y+18);ctx.lineTo(x+12,y+23);ctx.stroke();ctx.restore()}
-function drawClosedV75(ctx,p){const label='Закрытая продажа';ctx.save();ctx.font='700 19px '+fontStackV75();const w=Math.ceil(ctx.measureText(label).width)+62;panelV75(ctx,72,32,w,50,25,'rgba(255,253,248,.12)',p.inverseMuted);drawLockV75(ctx,89,43,p.inverse);ctx.fillStyle=p.inverse;ctx.textBaseline='middle';ctx.fillText(label,126,57);ctx.restore()}
+function drawClosedV75(ctx,p){const label='ЗАКРЫТАЯ ПРОДАЖА';ctx.save();ctx.font='800 18px '+fontStackV75();const w=Math.ceil(ctx.measureText(label).width)+70;panelV75(ctx,72,32,w,50,25,'rgba(3,14,24,.78)',p.accent);drawLockV75(ctx,89,43,p.inverse);ctx.fillStyle=p.inverse;ctx.textBaseline='middle';ctx.fillText(label,128,57);ctx.restore()}
 function themeV75(key){return THEMES_V75[key]||THEMES_V75.brandGreen}
 function selectedThemeV75(options){const key=options?.singlePageTheme||currentSettings?.singlePageThemeV71||currentSettings?.singlePageTheme||'brandGreen';return THEMES_V75[key]?key:'brandGreen'}
 function requestedSingleV75(config){if(ownV75(config,'layout'))return config.layout===SINGLE_LAYOUT_V75;if(config?.design&&config.design!=='byNexEstate')return false;const layout=currentSettings?.presentationLayout||currentSettings?.activeBrandedLayout||currentSettings?.brandLayout;return currentSettings?.brandModeEnabled===true&&layout===SINGLE_LAYOUT_V75||layout===SINGLE_LAYOUT_V75}
 function mediaV75(){if(typeof syncMediaSettings==='function')syncMediaSettings();const runtime=new Map(mediaItems().map(function(item){return[item.neId,item]}));return(currentSettings?.media||[]).filter(function(meta){return meta.included!==false}).map(function(meta){const item=runtime.get(meta.assetId||meta.id);return item?.image?{meta,image:item.image,item}:null}).filter(Boolean)}
-function assetsV75(options){const entries=mediaV75(),floorId=currentSettings?.floorPlanAssetId||'',heroId=currentSettings?.heroAssetId||'',plan=currentSettings?.singlePageWithoutFloorPlan===true?null:(entries.find(function(entry){return entry.meta.assetId===floorId})||null),hero=entries.find(function(entry){return entry.meta.assetId===heroId&&entry.meta.assetId!==floorId})||entries.find(function(entry){return entry.meta.assetId!==floorId})||null,others=entries.filter(function(entry){return entry!==hero&&entry!==plan}),limit=Math.max(1,Math.min(3,Number(options?.testPhotoCount)||3)),extras=others.slice(0,Math.max(0,limit-1)),lower=plan?extras.slice(0,1).concat([{...plan,isPlan:true}]):extras.slice(0,2);return{entries,hero,plan,lower,photoCount:(hero?1:0)+extras.length}}
-function featuresV75(){const ids=currentSettings?.singlePageCharacteristicIds||[],map=new Map((currentSettings?.features||[]).map(function(item){return[item.type,item]}));return ids.map(function(id){return map.get(id)}).filter(function(item){return item&&(item.value||item.label)}).slice(0,5)}
+function assetsV75(options){const excluded=new Set(currentSettings?.singlePageExcludedAssetIds||[]),entries=mediaV75().filter(function(entry){return!excluded.has(entry.meta.assetId)}),floorId=currentSettings?.floorPlanAssetId||'',heroId=cleanV75(currentSettings?.singlePageHero?.assetId,96),plan=currentSettings?.singlePageWithoutFloorPlan===true?null:(entries.find(function(entry){return entry.meta.assetId===floorId})||null),hero=entries.find(function(entry){return entry.meta.assetId===heroId&&entry.meta.assetId!==floorId})||null,others=entries.filter(function(entry){return entry!==hero&&entry!==plan}),limit=Math.max(1,Math.min(3,Number(options?.testPhotoCount)||3)),extras=others.slice(0,Math.max(0,limit-1)),lower=plan?extras.slice(0,1).concat([{...plan,isPlan:true}]):extras.slice(0,2);return{entries,hero,plan,lower,photoCount:(hero?1:0)+extras.length}}
+function featuresV75(){const ids=(currentSettings?.singlePageCharacteristicIds||[]).slice(0,5),legacy=new Map((currentSettings?.features||[]).map(function(item){return[item.type,item]})),values=currentSettings?.singlePageFeatureValues||{};return ids.map(function(id){const source=values[id]||legacy.get(id);return source?{type:id,value:cleanV75(source.value,60),label:cleanV75(source.label||ICON_TYPES.find(function(item){return item[0]===id})?.[1]||id,45),auto:source.auto===true,manual:source.manual===true}:null}).filter(function(item){return item&&(item.value||item.label)})}
 function advantagesV75(){const names=new Map((window.NEXESTATE_V62_TEST?.advantages||[]).map(function(item){return[item.id,item.name]}));return(currentSettings?.selectedSinglePageAdvantageIds||[]).slice(0,4).map(function(id){return{id,label:cleanV75(currentSettings?.singlePageAdvantageLabels?.[id]||names.get(id)||id,72),icon:ADVANTAGE_ICON_V75[id]||'yield'}})}
 function drawVectorIconV75(ctx,type,x,y,size,p){ctx.save();ctx.lineWidth=2;drawIcon(ctx,type,x,y,size,p.accent,p.accent);ctx.restore()}
 function clipPhotoV75(ctx,entry,x,y,w,h,p,{plan=false}={}){panelV75(ctx,x,y,w,h,18,p.paper,p.line);ctx.save();roundV75(ctx,x+4,y+4,w-8,h-8,15);ctx.clip();if(entry?.image)drawImageMode(ctx,entry.image,x+4,y+4,w-8,h-8,Object.assign({},entry.meta,{fit:plan?'contain':'cover'}),plan?p.paper:p.placeholder);else{ctx.fillStyle=p.placeholder;ctx.fillRect(x+4,y+4,w-8,h-8)}ctx.restore();ctx.strokeStyle=p.line;ctx.lineWidth=2;roundV75(ctx,x,y,w,h,18);ctx.stroke()}
@@ -12923,10 +12934,33 @@ function queueOverflowDialogV75(text,measure){const normalized=cleanV75(text,120
 function drawDescriptionV75(ctx,p,text,x,y,w,h,canvas,forExport){panelV75(ctx,x,y,w,h,18,p.paper,p.line);ctx.fillStyle=p.accent;ctx.font='700 23px '+fontStackV75();ctx.textBaseline='top';ctx.fillText('ОБ ОБЪЕКТЕ',x+28,y+25);ctx.fillRect(x+28,y+62,56,4);const box={x:x+28,y:y+91,w:w-56,h:h-119},layout=descriptionLayoutV75(ctx,text,box.w,box.h),measure=function(value){return descriptionLayoutV75(ctx,cleanV75(value,12000),box.w,box.h)};if(text&&layout.fits)drawFitV75(ctx,layout,box.x,box.y,p.text);else if(text){canvas.neStage5DescriptionOverflow=true;ctx.fillStyle=p.muted;ctx.font='600 22px '+fontStackV75();ctx.fillText('Описание требует выбора подходящего варианта.',box.x,box.y+22);queueOverflowDialogV75(text,measure);if(forExport)throw new Error('Описание не помещается. Выберите вариант текста в открывшемся окне.')}else{ctx.fillStyle=p.muted;ctx.font='500 21px '+fontStackV75();ctx.fillText('Добавьте описание объекта в разделе «Данные».',box.x,box.y+22)}return layout}
 function drawLowerMediaV75(ctx,p,entries,x,y,w,h){if(!entries.length)return;const gap=16,cellW=entries.length===1?w:(w-gap)/2;entries.forEach(function(entry,index){const px=x+index*(cellW+gap),isPlan=entry.isPlan===true,labelH=isPlan?54:0;panelV75(ctx,px,y,cellW,h,18,p.paper,p.line);if(isPlan){ctx.fillStyle=p.accent;ctx.font='700 19px '+fontStackV75();ctx.textBaseline='middle';ctx.fillText('Планировка',px+22,y+28)}clipPhotoV75(ctx,entry,px+8,y+8+labelH,cellW-16,h-16-labelH,p,{plan:isPlan})})}
 function drawAdvantagesV75(ctx,p,items,y){if(!items.length)return 0;const gap=16,w=(1560-gap*(items.length-1))/items.length,h=200;items.forEach(function(item,index){const x=72+index*(w+gap);panelV75(ctx,x,y,w,h,18,p.dark,p.dark2);drawVectorIconV75(ctx,item.icon,x+22,y+26,48,{accent:p.accent2});const label=fitV75(ctx,item.label,w-44,90,{weight:650,max:22,min:14,lineHeight:1.15});drawFitV75(ctx,label,x+22,y+95,p.inverse)});return h}
+function drawStretchFeaturesV75(ctx,p,items,y){if(!items.length)return 0;const gap=14,w=(1504-gap*(items.length-1))/items.length,h=150;items.forEach(function(item,index){const x=100+index*(w+gap);panelV75(ctx,x,y,w,h,16,'rgba(3,14,24,.78)','rgba(255,255,255,.22)');drawVectorIconV75(ctx,item.type,x+18,y+18,34,{accent:p.accent2});const value=fitV75(ctx,cleanV75(item.value||'—',80),w-76,54,{family:fontStackV75(),weight:750,max:25,min:15,lineHeight:1.05}),label=fitV75(ctx,cleanV75(item.label||'',70),w-36,40,{family:fontStackV75(),weight:600,max:15,min:10,lineHeight:1.1});drawFitV75(ctx,value,x+62,y+19,p.inverse);drawFitV75(ctx,label,x+18,y+101,p.inverseMuted)});return h}
+function drawStretchAdvantagesV75(ctx,p,items,y){if(!items.length)return 0;const gap=12,w=(1504-gap*(items.length-1))/items.length,h=150;items.forEach(function(item,index){const x=100+index*(w+gap);panelV75(ctx,x,y,w,h,16,'rgba(3,14,24,.84)','rgba(255,255,255,.2)');drawVectorIconV75(ctx,item.icon,x+18,y+22,38,{accent:p.accent2});const label=fitV75(ctx,item.label,w-80,80,{family:fontStackV75(),weight:650,max:19,min:12,lineHeight:1.15});drawFitV75(ctx,label,x+68,y+28,p.inverse)});return h}
 function normalizeUrlV75(value,fallback=''){let raw=String(value||'').trim()||fallback;if(!raw)return'';if(/^@/.test(raw))raw='https://t.me/'+raw.slice(1);else if(!/^https?:\/\//i.test(raw))raw='https://'+raw.replace(/^\/+/, '');try{const url=new URL(raw);if(url.protocol!=='https:'&&url.protocol!=='http:')return'';url.protocol='https:';return url.href.replace(/\/$/,'')}catch(_){return''}}
 function contactLinksV75(data){const out=[],phone=cleanV75(data.mgrPhone,60),email=cleanV75(data.mgrEmail,100),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||'');if(phone)out.push({label:phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)out.push({label:'Telegram: '+telegram.label,url:telegram.url});const companyTg=normalizeUrlV75(currentSettings?.companyTelegram,'https://t.me/Nex_Estate'),instagram=normalizeUrlV75(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/'),site=normalizeUrlV75(currentSettings?.siteUrl||data.presoUrl,'https://nexestate.ru');if(companyTg)out.push({label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:companyTg});if(instagram)out.push({label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram});if(currentSettings?.showSite!==false&&site)out.push({label:site.replace(/^https?:\/\//,'').replace(/\/$/,''),url:site});if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))out.push({label:email,url:'mailto:'+email});return out.filter(function(item,index,array){return item.url&&array.findIndex(function(value){return value.url===item.url})===index}).slice(0,6)}
 function drawFooterV75(ctx,p,data,canvas,y){ctx.strokeStyle=p.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(72,y);ctx.lineTo(1632,y);ctx.stroke();ctx.fillStyle=p.text;ctx.font='700 18px '+fontStackV75();ctx.textBaseline='top';ctx.fillText(cleanV75(data.mgr||'NexEstate',80),72,y+22);const links=contactLinksV75(data),rects=[];let x=390,row=0;ctx.font='600 15px '+fontStackV75();links.forEach(function(item){const w=Math.ceil(ctx.measureText(item.label).width)+30;if(x+w>1632&&row===0){row=1;x=390}const yy=y+18+row*34;ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(x+5,yy+9,3,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.text;ctx.fillText(item.label,x+16,yy);rects.push({x,y:yy-3,w,h:28,url:item.url,label:item.label,ne75Contact:true});x+=w});canvas.neExternalLinks=rects;ctx.fillStyle=p.accent;ctx.fillRect(72,H_V75-18,1560,4)}
 function buildSingleV75(options={}){if(!currentRecord||!currentSettings)return null;syncCanonicalDataOnly?.();const themeKey=selectedThemeV75(options),p=themeV75(themeKey),canvas=newCanvas(W_V75,H_V75),ctx=canvas.getContext('2d'),data=currentRecord?.data||dataFromForm(),assets=assetsV75(options),features=featuresV75(),advantages=advantagesV75(),closed=currentSettings?.closedSale===true,forExport=options.forExport===true;resetV75(ctx);ctx.fillStyle=p.page;ctx.fillRect(0,0,W_V75,H_V75);const header=drawHeaderV75(ctx,p,data,closed);let heroH=assets.lower.length?650:930,featureH=features.length?176:0,footerY=2460,advY=advantages.length?2238:footerY-12,contentEnd=advantages.length?advY-22:footerY-28;function metrics(){const heroY=header.height+18,featureY=heroY+heroH+18,contentY=featureY+(featureH?featureH+22:0),contentH=contentEnd-contentY;return{heroY,featureY,contentY,contentH}}let m=metrics(),descWidth=assets.lower.length?606:1560,descText=cleanV75(data.draft,12000),descFit=descriptionLayoutV75(ctx,descText,descWidth-56,m.contentH-119);while(descText&&!descFit.fits&&heroH>540){heroH-=30;m=metrics();descFit=descriptionLayoutV75(ctx,descText,descWidth-56,m.contentH-119)}drawHeroV75(ctx,p,assets.hero,m.heroY,heroH);if(features.length)drawFeaturesV75(ctx,p,features,m.featureY);const gap=22,descX=72,descW=assets.lower.length?606:1560;drawDescriptionV75(ctx,p,descText,descX,m.contentY,descW,m.contentH,canvas,forExport);if(assets.lower.length)drawLowerMediaV75(ctx,p,assets.lower,descX+descW+gap,m.contentY,1560-descW-gap,m.contentH);if(advantages.length)drawAdvantagesV75(ctx,p,advantages,advY);drawFooterV75(ctx,p,data,canvas,footerY);canvas.neStage5Renderer=STAGE5_VERSION_V75;canvas.neBrandLayout=SINGLE_LAYOUT_V75;canvas.neBrandTheme=themeKey;canvas.neStage3PageKind='singlePage';canvas.neStage5PhotoCount=assets.photoCount;canvas.neStage5LowerSlots=assets.lower.length;canvas.neStage5Plan=!!assets.plan;canvas.neStage5FeatureCount=features.length;canvas.neStage5AdvantageCount=advantages.length;canvas.neStage5TitleFits=header.titleFits;canvas.neStage5AddressFits=header.addressFits;canvas.neStage5MetroFits=header.metroFits;canvas.neClosedSaleV75=closed;return canvas}
+
+const buildSingleRegularV75=buildSingleV75;
+buildSingleV75=function(options={}){
+  if(currentSettings?.singlePageHeroStretch!==true)return buildSingleRegularV75(options);
+  if(!currentRecord||!currentSettings)return null;
+  syncCanonicalDataOnly?.();
+  const themeKey=selectedThemeV75(options),p=themeV75(themeKey),canvas=newCanvas(W_V75,H_V75),ctx=canvas.getContext('2d'),data=currentRecord?.data||dataFromForm(),assets=assetsV75(options),features=featuresV75(),advantages=advantagesV75(),closed=currentSettings?.closedSale===true,forExport=options.forExport===true;
+  resetV75(ctx);ctx.fillStyle=p.page;ctx.fillRect(0,0,W_V75,H_V75);
+  const header=drawHeaderV75(ctx,p,data,closed),heroY=header.height+18,footerY=2460,mainBottom=2438,heroH=mainBottom-heroY;
+  panelV75(ctx,72,heroY,1560,heroH,20,p.dark,p.line);ctx.save();roundV75(ctx,76,heroY+4,1552,heroH-8,17);ctx.clip();
+  if(assets.hero)drawImageMode(ctx,assets.hero.image,76,heroY+4,1552,heroH-8,Object.assign({},assets.hero.meta,currentSettings.singlePageHero,{fit:'cover'}),p.placeholder);else{ctx.fillStyle=p.placeholder;ctx.fillRect(76,heroY+4,1552,heroH-8)}
+  const top=ctx.createLinearGradient(0,heroY,0,heroY+520);top.addColorStop(0,'rgba(2,10,18,.72)');top.addColorStop(1,'rgba(2,10,18,0)');ctx.fillStyle=top;ctx.fillRect(76,heroY+4,1552,560);
+  const bottom=ctx.createLinearGradient(0,mainBottom-900,0,mainBottom);bottom.addColorStop(0,'rgba(2,10,18,0)');bottom.addColorStop(1,'rgba(2,10,18,.94)');ctx.fillStyle=bottom;ctx.fillRect(76,mainBottom-920,1552,916);ctx.restore();
+  if(!assets.hero){ctx.fillStyle=p.inverseMuted;ctx.font='600 25px '+fontStackV75();ctx.textAlign='center';ctx.fillText('Загрузите главное фото объекта',W_V75/2,heroY+heroH/2);ctx.textAlign='left'}
+  const featureY=heroY+28,featureH=drawStretchFeaturesV75(ctx,p,features,featureY),advY=advantages.length?mainBottom-174:mainBottom-20,descY=featureY+(featureH?featureH+34:20),descH=Math.max(260,advY-descY-28),descW=1060;
+  panelV75(ctx,100,descY,descW,descH,18,'rgba(3,14,24,.78)','rgba(255,255,255,.2)');ctx.fillStyle=p.accent2;ctx.font='800 22px '+fontStackV75();ctx.textBaseline='top';ctx.fillText('ОБ ОБЪЕКТЕ',128,descY+28);ctx.fillRect(128,descY+64,58,4);
+  const description=cleanV75(data.draft,12000),layout=fitV75(ctx,description,descW-56,descH-116,{family:fontStackV75(),weight:550,max:27,min:17,lineHeight:1.28});
+  if(description&&layout.fits)drawFitV75(ctx,layout,128,descY+88,p.inverse);else if(description){canvas.neStage5DescriptionOverflow=true;ctx.fillStyle=p.inverseMuted;ctx.font='600 21px '+fontStackV75();ctx.fillText('Описание требует выбора подходящего варианта.',128,descY+106);const measure=function(value){return fitV75(ctx,cleanV75(value,12000),descW-56,descH-116,{family:fontStackV75(),weight:550,max:27,min:17,lineHeight:1.28})};queueOverflowDialogV75(description,measure);if(forExport)throw new Error('Описание не помещается. Выберите вариант текста в открывшемся окне.')}else{ctx.fillStyle=p.inverseMuted;ctx.font='500 21px '+fontStackV75();ctx.fillText('Добавьте описание объекта в разделе «Данные».',128,descY+106)}
+  if(advantages.length)drawStretchAdvantagesV75(ctx,p,advantages,advY);drawFooterV75(ctx,p,data,canvas,footerY);
+  canvas.neStage5Renderer=STAGE5_VERSION_V75+'-stretch';canvas.neBrandLayout=SINGLE_LAYOUT_V75;canvas.neBrandTheme=themeKey;canvas.neStage3PageKind='singlePage';canvas.neStage5PhotoCount=assets.hero?1:0;canvas.neStage5LowerSlots=0;canvas.neStage5Plan=false;canvas.neStage5FeatureCount=features.length;canvas.neStage5AdvantageCount=advantages.length;canvas.neStage5TitleFits=header.titleFits;canvas.neStage5AddressFits=header.addressFits;canvas.neStage5MetroFits=header.metroFits;canvas.neClosedSaleV75=closed;canvas.neSingleHeroStretchV75=true;return canvas;
+};
 
 const buildCanonicalSlidesBeforeV75=buildCanonicalSlides;
 buildCanonicalSlides=function(config={}){const options=config||{};if(!requestedSingleV75(options))return buildCanonicalSlidesBeforeV75(options);const canvas=buildSingleV75(options);return canvas?[canvas]:[]};
@@ -12943,6 +12977,467 @@ window.NEXESTATE_STAGE5_TEST={version:STAGE5_VERSION_V75,themes:Object.keys(THEM
   const source=document.getElementById('nexestate-single-page-renderer-v75')?.textContent||'';
   if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
   try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_STAGE5_LOADED=true;delete window.NEXESTATE_STAGE5_LOAD_ERROR}catch(error){window.NEXESTATE_STAGE5_LOADED=false;window.NEXESTATE_STAGE5_LOAD_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
+<style id="nexestate-same-branch-fixes-v76-css">
+#presentationStudio #nsFeatureEditor[data-ne76-mode="byNexEstate"] .ns-feature-summary h4::after{content:" · by NexEstate";color:#73b9e5;font-weight:700}
+#presentationStudio #nsFeatureEditor[data-ne76-mode="singlePage"] .ns-feature-summary h4::after{content:" · одностраничная";color:#73b9e5;font-weight:700}
+#presentationStudio .ne76-single-hidden{display:none!important}
+#presentationStudio .ne76-stretch-option{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(117,151,171,.24);font-size:11px}
+#presentationStudio .ne76-stretch-option input{width:16px;height:16px}
+#presentationStudio .ne53-extracted-grid{grid-template-columns:repeat(auto-fill,minmax(176px,1fr))!important;align-items:stretch}
+#presentationStudio .ne53-extracted-card,#presentationStudio .ne54-rejected-card{min-width:0;overflow:hidden}
+#presentationStudio .ne53-extracted-card>img,#presentationStudio .ne54-rejected-card>img{display:block;width:100%!important;height:auto!important;aspect-ratio:4/3;object-fit:contain;background:#06131d}
+#presentationStudio .ne53-extracted-meta{display:grid!important;gap:8px;min-width:0;padding:9px!important}
+#presentationStudio .ne53-extracted-meta>span{display:none!important}
+#presentationStudio .ne53-extracted-actions,#presentationStudio .ne54-extracted-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px!important;min-width:0}
+#presentationStudio .ne53-extracted-actions button,#presentationStudio .ne54-extracted-actions button{position:static!important;display:inline-flex!important;align-items:center;justify-content:center;min-width:0!important;width:100%!important;min-height:34px!important;height:auto!important;padding:6px 7px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px!important;line-height:1.15}
+#presentationStudio #dsFontSelect{min-width:184px;max-width:260px}
+#presentationStudio .ne73-control-wrap:has(#dsFontSelect){min-width:190px}
+@media(max-width:620px){
+  #presentationStudio .ne53-extracted-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  #presentationStudio .ne53-extracted-actions,#presentationStudio .ne54-extracted-actions{grid-template-columns:1fr}
+  #presentationStudio .ne53-extracted-actions button,#presentationStudio .ne54-extracted-actions button{font-size:8px!important;padding-inline:4px!important}
+}
+</style>
+<script type="text/plain" id="nexestate-same-branch-fixes-v76-core">
+(()=>{
+'use strict';
+const VERSION_V76='same-branch-v76';
+const REMOVED_FEATURES_V76=new Set(['ac','car','metro']);
+const REMOVED_ADVANTAGES_V76=new Set(['carTraffic','visibility','signage','readyToWork','stableRent','effectivePlacement']);
+const MODE_BY_V76='byNexEstate';
+const MODE_SINGLE_V76='singlePage';
+const MODE_CUSTOM_V76='custom';
+const ADVANTAGES_V76=[
+  {id:'location',name:'Отличная локация',icon:'location'},
+  {id:'footTraffic',name:'Высокий пешеходный трафик',icon:'foot'},
+  {id:'adPotential',name:'Высокий рекламный потенциал',icon:'showcase'},
+  {id:'firstLine',name:'Первая линия',icon:'firstline'},
+  {id:'nearMetro',name:'Рядом с метро',icon:'metro'},
+  {id:'transport',name:'Удобная транспортная доступность',icon:'access'},
+  {id:'showcaseFacade',name:'Витринный фасад',icon:'showcase'},
+  {id:'separateEntrance',name:'Отдельный вход',icon:'entrance'},
+  {id:'parkingNearby',name:'Парковка рядом',icon:'parking'},
+  {id:'denseHousing',name:'Плотная жилая застройка',icon:'floor'},
+  {id:'businessArea',name:'Деловое окружение',icon:'floor'},
+  {id:'retailCorridor',name:'Торговый коридор',icon:'showcase'},
+  {id:'anchorTenants',name:'Якорные арендаторы рядом',icon:'tenant'},
+  {id:'reliableTenant',name:'Надёжный долгосрочный арендатор',icon:'contract'}
+];
+const ADVANTAGE_BY_ID_V76=new Map(ADVANTAGES_V76.map(function(item){return[item.id,item]}));
+const FEATURE_LEGACY_V76={
+  area:{id:'studioArea',key:'area',label:'Площадь'},rent:{id:'studioRent',key:'rent',label:'МАП'},sale:{id:'studioSale',key:'sale',label:'Цена'},map:{id:'studioMap',key:'map',label:'МАП'},floor:{id:'studioFloor',key:'floor',label:'Этаж'},ceiling:{id:'studioCeiling',key:'ceiling',label:'Высота потолков'},power:{id:'studioPower',key:'power',label:'Мощность'},layout:{id:'studioLayout',key:'layout',label:'Планировка'},tenant:{id:'studioTenant',key:'tenant',label:'Арендатор'},contract:{id:'studioContract',key:'contract',label:'Договор'},indexation:{id:'studioIndexation',key:'indx',label:'Индексация'},finish:{id:'studioFinish',key:'finish',label:'Отделка'}
+};
+
+for(let index=ICON_TYPES.length-1;index>=0;index--){if(REMOVED_FEATURES_V76.has(ICON_TYPES[index][0]))ICON_TYPES.splice(index,1)}
+const saleRegistryV76=ICON_TYPES.find(function(item){return item[0]==='sale'});if(saleRegistryV76)saleRegistryV76[1]='Цена';
+
+Object.assign(DS_FONTS,{
+  inter:{name:'Нейтральный · Segoe UI',canvas:'"Segoe UI", Arial, sans-serif'},
+  montserrat:{name:'Геометрический · Century Gothic',canvas:'"Century Gothic", "Trebuchet MS", Arial, sans-serif'},
+  manrope:{name:'Гуманистический · Calibri',canvas:'Calibri, Candara, "Segoe UI", sans-serif'},
+  classic:{name:'Редакционный serif · Georgia',canvas:'Georgia, "Times New Roman", serif'},
+  contrastSerif:{name:'Контрастный serif · Times New Roman',canvas:'"Times New Roman", Times, serif'},
+  roboto:{name:'Узкий акцидентный · Bahnschrift',canvas:'"Bahnschrift Condensed", "Arial Narrow", Arial, sans-serif'},
+  display:{name:'Необычный display · Arial Black',canvas:'"Arial Black", Impact, Arial, sans-serif'},
+  technical:{name:'Архитектурный slab · Courier New',canvas:'"Courier New", Consolas, monospace'}
+});
+
+function activeModeV76(){
+  if(!currentSettings||currentSettings.brandModeEnabled!==true)return MODE_CUSTOM_V76;
+  const value=currentSettings.activeBrandedLayout||currentSettings.brandLayout||currentSettings.presentationLayout;
+  return value===MODE_SINGLE_V76?MODE_SINGLE_V76:MODE_BY_V76;
+}
+function selectionKeyV76(mode){return mode===MODE_SINGLE_V76?'singlePageCharacteristicIds':'byNexEstateCharacteristicIds'}
+function valuesKeyV76(mode){return mode===MODE_SINGLE_V76?'singlePageFeatureValues':'byNexEstateFeatureValues'}
+function limitV76(mode){return mode===MODE_SINGLE_V76?5:8}
+function registryLabelV76(type){const item=ICON_TYPES.find(function(candidate){return candidate[0]===type});return cleanText(item?item[1].replace(/\/.*$/,''):type,45)}
+function validFeatureIdsV76(){return new Set(ICON_TYPES.map(function(item){return item[0]}))}
+function uniqueFeatureIdsV76(values,max){const valid=validFeatureIdsV76(),out=[];(Array.isArray(values)?values:[]).forEach(function(id){id=cleanText(id,80);if(valid.has(id)&&!out.includes(id)&&out.length<max)out.push(id)});return out}
+function normalizeFeatureRecordV76(value,type,fallback){
+  const source=value&&typeof value==='object'?value:{},legacy=fallback&&typeof fallback==='object'?fallback:{},systemLabel=registryLabelV76(type),resolvedValue=cleanText(source.value!=null?source.value:legacy.value,60),resolvedLabel=cleanText(source.label!=null?source.label:(legacy.label||systemLabel),45),meaningfulManual=!!resolvedValue.trim()||resolvedLabel!==systemLabel,manual=meaningfulManual&&(source.manual===true||source.auto===false||(source.manual==null&&legacy.manual===true)||(source.manual==null&&source.auto==null&&legacy.auto===false));
+  return{value:resolvedValue,label:resolvedLabel,auto:!manual&&(source.auto===true||(source.auto==null&&legacy.auto===true)),manual:manual};
+}
+function normalizeFeatureMapV76(source,selected,legacyFeatures){
+  const valid=validFeatureIdsV76(),legacy=new Map((Array.isArray(legacyFeatures)?legacyFeatures:[]).map(function(item){return[item.type,item]})),out={};
+  if(source&&typeof source==='object')Object.keys(source).forEach(function(type){if(valid.has(type))out[type]=normalizeFeatureRecordV76(source[type],type,legacy.get(type))});
+  selected.forEach(function(type){if(!out[type])out[type]=normalizeFeatureRecordV76(null,type,legacy.get(type))});
+  return out;
+}
+function modeMapV76(settings,mode,create){
+  if(!settings)return{};const key=valuesKeyV76(mode);
+  if(create&&(!settings[key]||typeof settings[key]!=='object'))settings[key]={};
+  return settings[key]&&typeof settings[key]==='object'?settings[key]:{};
+}
+function modeRecordV76(settings,mode,type,create){
+  const map=modeMapV76(settings,mode,create);if(!map[type]&&create)map[type]=normalizeFeatureRecordV76(null,type,(settings.features||[]).find(function(item){return item.type===type}));
+  return map[type]||null;
+}
+function selectedFeaturesForV76(mode,maximum){
+  if(!currentSettings)return[];const ids=uniqueFeatureIdsV76(currentSettings[selectionKeyV76(mode)],maximum||limitV76(mode)),map=modeMapV76(currentSettings,mode,true);
+  return ids.map(function(type){const item=map[type]||modeRecordV76(currentSettings,mode,type,true);return item?{type:type,value:item.value,label:item.label,auto:item.auto,manual:item.manual}:null}).filter(function(item){return item&&(item.value||item.label)});
+}
+
+const settingsDefaultsBeforeV76=settingsDefaults;
+const normalizeSettingsBeforeV76=normalizeSettings;
+settingsDefaults=function(){
+  const base=settingsDefaultsBeforeV76(),by=uniqueFeatureIdsV76(base.byNexEstateCharacteristicIds||(base.features||[]).filter(function(item){return item.enabled}).map(function(item){return item.type}),8),single=uniqueFeatureIdsV76(base.singlePageCharacteristicIds||by,5);
+  base.byNexEstateCharacteristicIds=by;base.singlePageCharacteristicIds=single;
+  base.byNexEstateFeatureValues=normalizeFeatureMapV76(null,by,base.features);
+  base.singlePageFeatureValues=normalizeFeatureMapV76(null,single,base.features);
+  base.singlePageHero=null;base.singlePageHeroStretch=false;base.singlePageExcludedAssetIds=[];
+  return base;
+};
+normalizeSettings=function(value){
+  const source=value&&typeof value==='object'?value:{},base=normalizeSettingsBeforeV76(source);
+  base.features=(base.features||[]).filter(function(item){return validFeatureIdsV76().has(item.type)});
+  const enabled=base.features.filter(function(item){return item.enabled}).map(function(item){return item.type});
+  base.byNexEstateCharacteristicIds=uniqueFeatureIdsV76(Array.isArray(source.byNexEstateCharacteristicIds)?source.byNexEstateCharacteristicIds:enabled,8);
+  base.singlePageCharacteristicIds=uniqueFeatureIdsV76(Array.isArray(source.singlePageCharacteristicIds)?source.singlePageCharacteristicIds:base.byNexEstateCharacteristicIds,5);
+  base.byNexEstateFeatureValues=normalizeFeatureMapV76(source.byNexEstateFeatureValues,base.byNexEstateCharacteristicIds,base.features);
+  base.singlePageFeatureValues=normalizeFeatureMapV76(source.singlePageFeatureValues,base.singlePageCharacteristicIds,base.features);
+  base.selectedSinglePageAdvantageIds=(Array.isArray(source.selectedSinglePageAdvantageIds)?source.selectedSinglePageAdvantageIds:base.selectedSinglePageAdvantageIds||[]).filter(function(id,index,list){return ADVANTAGE_BY_ID_V76.has(id)&&list.indexOf(id)===index}).slice(0,4);
+  const labels=source.singlePageAdvantageLabels&&typeof source.singlePageAdvantageLabels==='object'?source.singlePageAdvantageLabels:{};
+  base.singlePageAdvantageLabels={};base.selectedSinglePageAdvantageIds.forEach(function(id){base.singlePageAdvantageLabels[id]=cleanText(labels[id]||ADVANTAGE_BY_ID_V76.get(id)?.name||id,72)});
+  base.singlePageHeroExplicitlyCleared=source.singlePageHeroExplicitlyCleared===true;
+  const mediaIds=new Set((base.media||[]).map(function(item){return item.assetId||item.id}).filter(Boolean)),rawHero=source.singlePageHero&&typeof source.singlePageHero==='object'?source.singlePageHero:null;
+  base.singlePageExcludedAssetIds=[];(Array.isArray(source.singlePageExcludedAssetIds)?source.singlePageExcludedAssetIds:[]).forEach(function(value){const id=cleanText(value,96);if(mediaIds.has(id)&&!base.singlePageExcludedAssetIds.includes(id))base.singlePageExcludedAssetIds.push(id)});
+  let heroId=base.singlePageHeroExplicitlyCleared?'':cleanText(rawHero?.assetId||source.heroAssetId||base.heroAssetId,96);
+  if(heroId&&!mediaIds.has(heroId))heroId='';
+  base.singlePageHero=heroId?{assetId:heroId,focusX:Math.max(0,Math.min(100,Number(rawHero?.focusX)||50)),focusY:Math.max(0,Math.min(100,Number(rawHero?.focusY)||50)),scale:Math.max(1,Math.min(12,Number(rawHero?.scale)||1))}:null;
+  base.heroAssetId=heroId;base.singlePageHeroStretch=source.singlePageHeroStretch===true;
+  if(base.singlePageHeroExplicitlyCleared){base.singlePageHero=null;base.heroAssetId='';base.singlePageHeroStretch=false}
+  return base;
+};
+if(currentSettings)currentSettings=normalizeSettings(currentSettings);
+
+function displayLegacyV76(type,value){const text=cleanText(value,100).trim();if(!text)return'';if(type==='area'&&!/[мm][²2]/iu.test(text))return text+' м²';if(type==='power'&&!/квт/iu.test(text))return text+' кВт';if(type==='indexation'&&!/%/.test(text))return text+'%';return text}
+function bridgeFeaturesV76(){
+  if(!currentSettings||activeModeV76()===MODE_CUSTOM_V76)return;
+  Object.entries(FEATURE_LEGACY_V76).forEach(function(pair){
+    const type=pair[0],meta=pair[1];if(!validFeatureIdsV76().has(type))return;
+    const field=byId(meta.id),raw=cleanText(field?.value??currentRecord?.data?.[meta.key]??'',100).trim();if(!raw)return;
+    [MODE_BY_V76,MODE_SINGLE_V76].forEach(function(mode){const record=modeRecordV76(currentSettings,mode,type,true);if(record&&!record.manual){record.value=displayLegacyV76(type,raw);record.label=record.label||meta.label;record.auto=true}});
+  });
+}
+const syncFeatureSuggestionsBeforeV76=syncFeatureSuggestions;
+syncFeatureSuggestions=function(){if(activeModeV76()===MODE_CUSTOM_V76)return syncFeatureSuggestionsBeforeV76();bridgeFeaturesV76()};
+
+const renderFeatureEditorBeforeV76=renderFeatureEditor;
+function captureFeatureUiV76(){const active=document.activeElement,sidebar=document.querySelector('#presentationStudio .ne52-sidebar');return{type:active?.closest?.('[data-feature-type]')?.dataset.featureType||'',field:active?.dataset?.featureField||'',start:Number.isInteger(active?.selectionStart)?active.selectionStart:null,end:Number.isInteger(active?.selectionEnd)?active.selectionEnd:null,scroll:sidebar?.scrollTop||0}}
+function restoreFeatureUiV76(state,editor){if(state?.type&&state.field){const field=editor.querySelector('[data-feature-type="'+CSS.escape(state.type)+'"] [data-feature-field="'+CSS.escape(state.field)+'"]');if(field){field.focus({preventScroll:true});if(state.start!==null&&field.setSelectionRange)field.setSelectionRange(state.start,state.end)}}const sidebar=document.querySelector('#presentationStudio .ne52-sidebar');if(sidebar&&state)sidebar.scrollTop=state.scroll}
+function refreshPublicModeUiV76(){window.NEXESTATE_V62_TEST?.refresh?.();ensureFontOptionsV76();hideSingleExtraV76()}
+function featureEditorStateV76(){
+  const mode=activeModeV76(),key=selectionKeyV76(mode),selected=currentSettings[key]||(currentSettings[key]=[]);
+  return{mode:mode,key:key,selected:selected,limit:limitV76(mode)};
+}
+function refreshFeatureEditorV76(editor,message){
+  if(!editor||!currentSettings)return;const state=featureEditorStateV76(),selected=new Set(state.selected),status=editor.querySelector('[data-feature-limit]');
+  if(status){status.textContent=message||('Выбрано '+state.selected.length+' из '+state.limit);status.closest('.ns-feature-summary')?.classList.toggle('limit',state.selected.length>=state.limit)}
+  editor.querySelectorAll('[data-feature-type]').forEach(function(row){
+    const type=row.dataset.featureType,on=selected.has(type),record=modeRecordV76(currentSettings,state.mode,type,true),position=state.selected.indexOf(type),box=row.querySelector('[data-feature-field="enabled"]'),value=row.querySelector('[data-feature-field="value"]'),label=row.querySelector('[data-feature-field="label"]');
+    row.classList.toggle('selected',on);if(box){box.checked=on;box.disabled=!on&&state.selected.length>=state.limit}
+    if(value){value.disabled=!on;if(document.activeElement!==value)value.value=record.value||''}
+    if(label){label.disabled=!on;if(document.activeElement!==label)label.value=record.label||registryLabelV76(type)}
+    const up=row.querySelector('[data-feature-field="up"]'),down=row.querySelector('[data-feature-field="down"]');if(up)up.disabled=position<=0;if(down)down.disabled=position<0||position===state.selected.length-1;
+  });
+}
+function renderAdvantagesEditorV76(){
+  const form=byId('ne53DataForm');if(!form||!currentSettings)return;
+  let host=byId('ne62AdvantagesEditor');
+  if(activeModeV76()!==MODE_SINGLE_V76){if(host)host.hidden=true;return}
+  const sidebar=document.querySelector('#presentationStudio .ne52-sidebar'),scroll=sidebar?.scrollTop||0,active=document.activeElement,activeId=active?.closest?.('[data-advantage-id]')?.dataset.advantageId||'',activeField=active?.dataset?.advantageField||'',wasOpen=host?host.open!==false:true;
+  if(!host){host=document.createElement('details');host.id='ne62AdvantagesEditor';host.className='ne62-advantages-editor'}host.hidden=false;
+  const selected=currentSettings.selectedSinglePageAdvantageIds||(currentSettings.selectedSinglePageAdvantageIds=[]),selectedSet=new Set(selected),summary=document.createElement('summary');summary.textContent='Преимущества';
+  const body=document.createElement('div');body.className='ne62-advantages-body';const help=document.createElement('p');help.className='ne62-advantages-help';help.textContent='Выберите до 4 карточек для нижней части одностраничной презентации.';const status=document.createElement('div');status.className='ne62-advantages-status';status.setAttribute('aria-live','polite');status.textContent='Выбрано '+selected.length+' из 4';const list=document.createElement('div');list.className='ne62-advantage-list';
+  selected.map(function(id){return ADVANTAGE_BY_ID_V76.get(id)}).filter(Boolean).concat(ADVANTAGES_V76.filter(function(item){return!selectedSet.has(item.id)})).forEach(function(item){
+    const row=document.createElement('label');row.className='ne62-advantage-row'+(selectedSet.has(item.id)?' selected':'');row.dataset.advantageId=item.id;const box=document.createElement('input');box.type='checkbox';box.checked=selectedSet.has(item.id);box.dataset.advantageField='enabled';
+    box.onchange=function(){const ids=currentSettings.selectedSinglePageAdvantageIds,index=ids.indexOf(item.id);if(box.checked&&index<0&&ids.length>=4){box.checked=false;status.dataset.kind='warn';status.textContent='Можно выбрать не более 4 преимуществ.';toastSafe('Можно выбрать не более 4 преимуществ.','warn');return}historyPoint(box.checked?'Добавление преимущества':'Удаление преимущества');if(box.checked&&index<0)ids.push(item.id);if(!box.checked&&index>=0)ids.splice(index,1);if(box.checked&&!currentSettings.singlePageAdvantageLabels[item.id])currentSettings.singlePageAdvantageLabels[item.id]=item.name;renderAdvantagesEditorV76();scheduleSave();scheduleRender()};
+    const icon=document.createElement('span');icon.className='ne62-adv-icon';icon.setAttribute('aria-hidden','true');icon.textContent='◆';const name=document.createElement('span');name.textContent=item.name;const caption=document.createElement('input');caption.type='text';caption.maxLength=72;caption.dataset.advantageField='label';caption.placeholder=item.name;caption.value=currentSettings.singlePageAdvantageLabels[item.id]||item.name;caption.disabled=!selectedSet.has(item.id);caption.oninput=function(){currentSettings.singlePageAdvantageLabels[item.id]=caption.value;scheduleSave();scheduleRender()};row.append(box,icon,name,caption);list.appendChild(row)
+  });
+  body.append(help,status,list);host.replaceChildren(summary,body);host.open=wasOpen;const feature=byId('nsFeatureEditor');if(feature&&feature.parentNode===form)form.insertBefore(host,feature);else form.appendChild(host);if(activeId&&activeField){const field=host.querySelector('[data-advantage-id="'+CSS.escape(activeId)+'"] [data-advantage-field="'+CSS.escape(activeField)+'"]');field?.focus({preventScroll:true})}if(sidebar)sidebar.scrollTop=scroll;
+}
+renderFeatureEditor=function(force){
+  const mode=activeModeV76();if(mode===MODE_CUSTOM_V76)return renderFeatureEditorBeforeV76(force);
+  const form=byId('ne53DataForm');if(!form||!currentSettings)return;bridgeFeaturesV76();const state=featureEditorStateV76(),focus=captureFeatureUiV76();
+  let editor=byId('nsFeatureEditor');if(!editor){editor=document.createElement('section');editor.id='nsFeatureEditor';editor.className='ns-feature-editor';form.appendChild(editor)}
+  editor.dataset.ne76Mode=state.mode;editor.dataset.ne66Mode=state.mode;
+  const summary=document.createElement('div');summary.className='ns-feature-summary';const title=document.createElement('h4');title.textContent='Характеристики на обложке';const status=document.createElement('span');status.dataset.featureLimit='true';status.setAttribute('aria-live','polite');summary.append(title,status);
+  const list=document.createElement('div');list.className='ns-feature-list';
+  ICON_TYPES.forEach(function(registry){
+    const type=registry[0],longLabel=registry[1],row=document.createElement('div');row.className='ns-feature-row';row.dataset.featureType=type;row.innerHTML=iconSvg(type);
+    const choose=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.dataset.featureField='enabled';box.setAttribute('aria-label',longLabel);choose.append(box,document.createTextNode(longLabel));
+    const value=document.createElement('input');value.type='text';value.placeholder='Главное значение';value.maxLength=60;value.dataset.featureField='value';value.setAttribute('aria-label',longLabel+': значение');
+    const caption=document.createElement('input');caption.type='text';caption.placeholder='Короткая подпись';caption.maxLength=45;caption.dataset.featureField='label';caption.setAttribute('aria-label',longLabel+': подпись');
+    const controls=document.createElement('div');controls.className='ns-feature-order';
+    [-1,1].forEach(function(direction){const button=document.createElement('button');button.type='button';button.textContent=direction<0?'↑':'↓';button.dataset.featureField=direction<0?'up':'down';button.setAttribute('aria-label',(direction<0?'Поднять: ':'Опустить: ')+longLabel);button.onclick=function(){const current=featureEditorStateV76(),position=current.selected.indexOf(type),next=position+direction;if(position<0||next<0||next>=current.selected.length)return;historyPoint('Изменение порядка характеристик');const moved=current.selected.splice(position,1)[0];current.selected.splice(next,0,moved);refreshFeatureEditorV76(editor);scheduleSave();scheduleRender()};controls.appendChild(button)});
+    box.onchange=function(){const current=featureEditorStateV76(),index=current.selected.indexOf(type);if(box.checked&&index<0&&current.selected.length>=current.limit){box.checked=false;const warning='Выбрано '+current.limit+' из '+current.limit+'. Снимите один пункт, чтобы выбрать другой';refreshFeatureEditorV76(editor,warning);toastSafe(warning,'warn');return}historyPoint(box.checked?'Добавление характеристики':'Удаление характеристики');if(box.checked&&index<0){current.selected.push(type);modeRecordV76(currentSettings,current.mode,type,true)}if(!box.checked&&index>=0)current.selected.splice(index,1);refreshFeatureEditorV76(editor);scheduleSave();scheduleRender();refreshPublicModeUiV76()};
+    value.oninput=function(){const record=modeRecordV76(currentSettings,state.mode,type,true);record.value=value.value;record.manual=true;record.auto=false;scheduleSave();scheduleRender()};
+    caption.oninput=function(){const record=modeRecordV76(currentSettings,state.mode,type,true);record.label=caption.value;record.manual=true;record.auto=false;scheduleSave();scheduleRender()};
+    row.append(choose,value,caption,controls);list.appendChild(row);
+  });
+  const warnings=document.createElement('div');warnings.id='nsTextWarnings';warnings.className='ns-text-warnings';warnings.textContent=(currentSettings.uiWarnings||[]).join(' · ');
+  editor.replaceChildren(summary,list,warnings);refreshFeatureEditorV76(editor);restoreFeatureUiV76(focus,editor);renderAdvantagesEditorV76();hideSingleExtraV76();ensureFontOptionsV76();
+};
+function hideSingleExtraV76(){const field=byId('studioExtra'),extra=field?.closest('label')||field?.parentElement;if(extra){const hidden=activeModeV76()===MODE_SINGLE_V76;extra.hidden=hidden;extra.classList.toggle('ne76-single-hidden',hidden)}}
+
+function ensureFontOptionsV76(){
+  const select=byId('dsFontSelect');if(!select)return false;const keys=Object.keys(DS_FONTS),signature=keys.map(function(key){return key+':'+DS_FONTS[key].name}).join('|');if(select.dataset.ne76Fonts===signature)return true;
+  const selected=currentSettings?.selectedFont||DS.font||'inter';select.replaceChildren();keys.forEach(function(key){const option=document.createElement('option');option.value=key;option.textContent=DS_FONTS[key].name;select.appendChild(option)});select.value=DS_FONTS[selected]?selected:'inter';select.dataset.ne76Fonts=signature;return true;
+}
+function replaceBulkPdfLabelV76(){
+  const input=byId('nsBulkPdf'),label=input?.closest('label');if(!label)return;
+  Array.from(label.childNodes).forEach(function(node){if(node.nodeType===Node.TEXT_NODE&&/Добавить PDF/i.test(node.textContent))node.textContent=node.textContent.replace(/Добавить PDF/i,'Загрузить PDF')});
+}
+ensureChoiceDialog=function(){
+  let dialog=byId('nsNewDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='nsNewDialog';document.body.appendChild(dialog)}
+  dialog.replaceChildren();const form=document.createElement('form');form.method='dialog';form.style.cssText='min-width:min(440px,88vw);padding:24px;background:var(--ns-surface);color:var(--ns-text);border:1px solid var(--ns-line);border-radius:16px';
+  const question=document.createElement('p');question.style.cssText='margin:0 0 18px;color:var(--ns-text);font-size:18px;font-weight:700';question.textContent='Создать новую презентацию с нуля?';
+  const actions=document.createElement('div');actions.style.cssText='display:grid;gap:9px';const create=document.createElement('button');create.type='button';create.className='ns-primary';create.textContent='Создать';const cancel=document.createElement('button');cancel.type='button';cancel.className='ns-button';cancel.textContent='Отмена';actions.append(create,cancel);form.append(question,actions);dialog.appendChild(form);
+  create.onclick=function(){dialog.close('cancel');createBlankProject()};cancel.onclick=function(){dialog.close('cancel')};return dialog;
+};
+replaceBulkPdfLabelV76();
+
+function collectOcrCorpusV76(data){
+  const values=[],push=function(value){if(value==null)return;if(Array.isArray(value)){value.forEach(push);return}if(typeof value==='string'||typeof value==='number')values.push(String(value))};
+  const pdf=window.NE53_STATE?.pdf||{};['rawText','normalizedText','ocrText','text'].forEach(function(key){push(pdf[key])});
+  (pdf.sourcePages||[]).forEach(function(page){['rawText','normalizedText','ocrText','text','caption','title'].forEach(function(key){push(page?.[key])})});
+  (pdf.extractedPhotos||[]).forEach(function(photo){push(photo?.caption);push(photo?.sourceName)});
+  Object.keys(data||{}).forEach(function(key){push(data[key])});push(currentRecord?.name);
+  (currentSettings?.media||[]).forEach(function(item){push(item.caption);push(item.sourceName)});
+  const raw=values.join('\n').replace(/\u00a0/g,' '),normalized=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/[–—−]/g,'-').replace(/[^\p{L}\p{N}₽%&@+.,/#:\-\n ]+/gu,' ').replace(/[ \t]+/g,' ').replace(/\n+/g,'\n');
+  return{raw:raw,normalized:normalized};
+}
+function moneyV76(value){
+  let raw=cleanText(value,80).trim();if(!raw)return'';if(/по\s+запросу/i.test(raw))return'По запросу';if(/[₽р]|\bруб/i.test(raw))return raw.replace(/\s+/g,' ');
+  const compact=raw.replace(/\s/g,'').replace(',','.');if(!/^\d+(?:\.\d+)?$/.test(compact))return raw;
+  return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(compact)).replace(/\u00a0/g,' ')+' ₽';
+}
+function parsedMoneyV76(match){
+  if(!match)return'';let number=String(match[1]||'').replace(/\s/g,'').replace(',','.'),amount=Number(number);if(!Number.isFinite(amount))return'';
+  const multiplier=String(match[2]||'').toLocaleLowerCase('ru-RU');if(multiplier==='млрд')amount*=1000000000;else if(multiplier==='млн')amount*=1000000;else if(multiplier==='тыс')amount*=1000;
+  return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(amount).replace(/\u00a0/g,' ')+' ₽';
+}
+function triggerCandidatesV76(data){
+  data=data||{};const corpus=collectOcrCorpusV76(data),raw=corpus.raw,n=corpus.normalized,features=[],advantages=[],valid=validFeatureIdsV76();
+  function source(field){return{kind:'ocr',label:'PDF / OCR / поля',field:field||'draft',confidence:.82}}
+  function addFeature(id,value,field,label){value=cleanText(value,80).trim();if(!valid.has(id)||!value||features.some(function(item){return item.id===id}))return;const src=source(field);features.push({id:id,label:label||registryLabelV76(id),value:value,source:src,confidence:src.confidence})}
+  function addAdvantage(id,field){if(!ADVANTAGE_BY_ID_V76.has(id)||advantages.some(function(item){return item.id===id}))return;const src=source(field||'draft'),label=ADVANTAGE_BY_ID_V76.get(id).name;advantages.push({id:id,label:label,value:label,source:src,confidence:src.confidence})}
+  const match=function(pattern){return n.match(pattern)},rawMatch=function(pattern){return raw.match(pattern)};
+  const area=data.area||match(/(?:площадь|общая площадь)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*м(?:²|2)\b/u)?.[1]||match(/(\d+(?:[.,]\d+)?)\s*м(?:²|2)\b/u)?.[1];
+  if(area)addFeature('area',String(area).replace('.',',')+' м²','area');
+  if(data.rate)addFeature('rent',moneyV76(data.rate),'rate');
+  const priceMatch=rawMatch(/(?:цена|стоимость)(?:\s+(?:продажи|объекта))?\s*[:\-—]?\s*([0-9][0-9 \u00a0.,]*)(млрд|млн|тыс)?\s*(?:₽|руб)/iu);
+  const price=data.price?moneyV76(data.price):(priceMatch?parsedMoneyV76(priceMatch):(/(?:цена|стоимость)\s+(?:продажи\s+)?по\s+запросу/i.test(raw)?'По запросу':''));
+  if(price)addFeature('sale',price,'price','Цена');
+  if(data.map)addFeature('map',moneyV76(data.map),'map');
+  const floor=data.floor||match(/(?:этаж|на\s+этаже)\s*[:\-]?\s*(-?\d+(?:\s*\/\s*\d+)?)/u)?.[1];if(floor)addFeature('floor',String(floor),'floor');
+  const entrance=match(/(\d+)\s+(?:отдельн\w*\s+)?вход/u)?.[1]||(/\bотдельн\w*\s+вход\b/u.test(n)?'Отдельный':'');if(entrance)addFeature('entrance',entrance==='Отдельный'?entrance:entrance+' входа','draft');
+  if(data.layout)addFeature('layout',String(data.layout),'layout');else if(/\b(?:свободная|открытая|кабинетная|коридорно-кабинетная)\s+планировка\b/u.test(n))addFeature('layout',match(/\b(свободная|открытая|кабинетная|коридорно-кабинетная)\s+планировка\b/u)?.[1]||'Есть','draft');
+  const ceiling=data.ceil||match(/(?:высота\s+потолк\w*|потолки)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*м\b/u)?.[1];if(ceiling)addFeature('ceiling',String(ceiling).replace('.',',')+' м','ceil');
+  const parking=match(/(\d+)\s+(?:парковоч\w*\s+мест|машиномест)/u)?.[1];if(parking||/\bпарковк\w*\b/u.test(n))addFeature('parking',parking?parking+' мест':'Есть','draft');
+  const power=data.power||match(/(?:мощность|электричеств\w*)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*квт\b/u)?.[1];if(power)addFeature('power',String(power).replace('.',',')+' кВт','power');
+  if(/\b(?:витрин\w*\s+(?:окн\w*|фасад)|витрины)\b/u.test(n))addFeature('showcase','Есть','draft');
+  if(/\bпанорамн\w*\s+окн\w*\b/u.test(n))addFeature('panorama','Есть','draft');
+  if(/\bпервая\s+линия\b/u.test(n)||/\bstreet\s*retail\b/u.test(n)||/\bстрит[\s-]*ритейл\b/u.test(n))addFeature('firstline','Первая линия','draft');
+  if(/\bуглов\w*\s+помещен\w*\b/u.test(n))addFeature('corner','Угловое','draft');
+  if(/\b(?:санузел|сан\/узел|с\/у)\b/u.test(n))addFeature('wc','Есть','draft');
+  if(/\b(?:мокрая\s+точка|вода\s+и\s+канализация|водоснабжен\w*)\b/u.test(n))addFeature('water','Есть','draft');
+  if(/\b(?:вентиляц\w*|вытяжная\s+система)\b/u.test(n))addFeature('vent','Есть','draft');
+  if(/(?:^|[^\p{L}\p{N}])газ(?:$|[^\p{L}\p{N}])/u.test(n))addFeature('gas','Есть','draft');
+  if(/\b(?:кухн\w*|вытяжк\w*)\b/u.test(n))addFeature('kitchen','Есть','draft');
+  if(/\b(?:зона\s+погрузки|погрузк\w*[\s/-]+разгрузк\w*)\b/u.test(n))addFeature('loading','Есть','draft');
+  const freight=/\bгрузов\w*\s+лифт\b/u.test(n);if(freight)addFeature('freight','Есть','draft');
+  if(!freight&&/\bлифт\b/u.test(n))addFeature('lift','Есть','draft');
+  if(/\b(?:цоколь|цокольн\w*\s+этаж|минус\s+первый\s+этаж)\b/u.test(n))addFeature('basement','Есть','draft');
+  if(/\bподвал\w*\b/u.test(n))addFeature('cellar','Есть','draft');
+  if(/\b(?:мансард\w*|чердак\w*)\b/u.test(n))addFeature('attic','Есть','draft');
+  if(data.tenant)addFeature('tenant',String(data.tenant),'tenant');else{const tenant=rawMatch(/(?:арендатор|якорный арендатор)\s*[:\-—]\s*([^\n;,]{2,80})/iu)?.[1];if(tenant)addFeature('tenant',tenant,'tenant')}
+  if(data.contract)addFeature('contract',String(data.contract),'contract');else{const contract=match(/(?:срок\s+договора|договор\s+аренды\s+на)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*(лет|год\w*|месяц\w*)/u);if(contract)addFeature('contract',contract[1]+' '+contract[2],'contract')}
+  if(data.indx)addFeature('indexation',String(data.indx).replace(/%$/,'')+'%','indx');else{const indexation=match(/индексац\w*\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*%/u)?.[1];if(indexation)addFeature('indexation',indexation+'%','indx')}
+  if(/\b(?:24\s*\/\s*7|круглосуточн\w*\s+доступ)\b/u.test(n))addFeature('access','24/7','draft');
+  if(/\b(?:пешеходн\w*\s+трафик|высокий\s+трафик|интенсивн\w*\s+трафик)\b/u.test(n))addFeature('foot','Высокий','draft');
+  if(data.finish)addFeature('finish',String(data.finish),'finish');else{const finish=match(/\b(без отделки|чистовая отделка|офисная отделка|ремонт под ключ|с отделкой)\b/u)?.[1];if(finish)addFeature('finish',finish,'finish')}
+  const land=data.landArea||match(/(?:площадь\s+участка|земельный\s+участок)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*(га|м(?:²|2)|сот\w*)/u);if(Array.isArray(land))addFeature('land',land[1]+' '+land[2],'draft');else if(land)addFeature('land',String(land),'draft');
+
+  if(/(?:^|[^\p{L}\p{N}])трафик(?:$|[^\p{L}\p{N}])/u.test(n))addAdvantage('footTraffic');
+  if(/\b(?:вывеск\w*|реклам\w*)\b/u.test(n))addAdvantage('adPotential');
+  if(/\bпервая\s+линия\b/u.test(n)||/\bstreet\s*retail\b/u.test(n)||/\bстрит[\s-]*ритейл\b/u.test(n))addAdvantage('firstLine');
+  const metroNear=/(?:\bметро\b|(?:^|[^\p{L}\p{N}])м\.)[^\n;]{0,90}?\b([0-5])\s*мин/u.test(n)||/\b([0-5])\s*мин[^\n;]{0,90}?(?:\bметро\b|(?:^|[^\p{L}\p{N}])м\.)/u.test(n);if(metroNear)addAdvantage('nearMetro','metroMinutes');
+  if(/\b(?:витринный\s+фасад|внешний\s+фасад)\b/u.test(n))addAdvantage('showcaseFacade');
+  if(/\bотдельный\s+вход\b/u.test(n))addAdvantage('separateEntrance');
+  if(/\bпарковк\w*\b/u.test(n))addAdvantage('parkingNearby');
+  if(/(?:^|[^\p{L}\p{N}])жк(?:$|[^\p{L}\p{N}])/u.test(n)||/\bжилой\s+комплекс\b/u.test(n))addAdvantage('denseHousing');
+  if(/(?:^|[^\p{L}\p{N}])(?:бц|bc)(?:$|[^\p{L}\p{N}])/u.test(n)||/\bbusiness\s+cent(?:er|re)\b/u.test(n)||/\bбизнес[\s-]*центр\b/u.test(n))addAdvantage('businessArea');
+  if(/(?:^|[^\p{L}\p{N}])тц(?:$|[^\p{L}\p{N}])/u.test(n)||/\bторгов\w*\s+(?:центр|комплекс)\b/u.test(n))addAdvantage('retailCorridor');
+  if(/\b(?:вкусвилл|вкус\s*вилл|пятерочк\w*|пятёрочк\w*|красное\s*(?:&|и)\s*белое|dark\s*store|даркстор\w*)\b/u.test(n))addAdvantage('anchorTenants');
+  const explicitLong=/\b(?:долгосрочн\w*|долгосрок\w*)\b/u.test(n),termMatches=Array.from(n.matchAll(/(?:срок\s+(?:аренды|договора)|договор\s+аренды\s+на)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*(?:лет|год\w*)/gu)),longTerm=termMatches.some(function(item){return Number(String(item[1]).replace(',','.'))>=5});if(explicitLong||longTerm)addAdvantage('reliableTenant','contract');
+  return{features:features,advantages:advantages};
+}
+
+function cloneV76(value){if(value==null)return value;try{return structuredClone(value)}catch(_){return JSON.parse(JSON.stringify(value))}}
+function mergeManualV76(existing,previousAuto,candidates){const auto=new Set(previousAuto||[]),manual=(existing||[]).filter(function(id){return!auto.has(id)});return Array.from(new Map(manual.map(function(id){return[id,{id:id,label:id,value:'',source:{},confidence:1}]}).concat(candidates.map(function(item){return[item.id,item]}))).values())}
+function ensureAutomationDialogV76(){let dialog=byId('ne76AutomationChoice');if(!dialog){dialog=document.createElement('dialog');dialog.id='ne76AutomationChoice';dialog.className='ne55-dialog';document.body.appendChild(dialog)}return dialog}
+function chooseCandidatesV76(title,candidates,limit,interactive){const ordered=candidates.slice().sort(function(a,b){return(b.confidence||0)-(a.confidence||0)||String(a.label).localeCompare(String(b.label),'ru')});if(ordered.length<=limit)return Promise.resolve(ordered);if(!interactive)return Promise.resolve(ordered.slice(0,limit));const dialog=ensureAutomationDialogV76();return new Promise(function(resolve){const selected=new Set(ordered.slice(0,limit).map(function(item){return item.id}));dialog.replaceChildren();const head=document.createElement('div');head.className='ne55-dialog-head';const heading=document.createElement('h2');heading.textContent=title;head.appendChild(heading);const body=document.createElement('div');body.className='ne55-dialog-body';const note=document.createElement('p');note.textContent='Найдено больше допустимого лимита. Выберите нужные значения.';const counter=document.createElement('strong');counter.setAttribute('aria-live','polite');const list=document.createElement('div');list.className='ne55-missing';ordered.forEach(function(item){const label=document.createElement('label');label.style.cssText='display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:start;padding:8px 0;border-bottom:1px solid var(--ns-line)';const box=document.createElement('input');box.type='checkbox';box.checked=selected.has(item.id);const copy=document.createElement('span'),name=document.createElement('b'),value=document.createElement('span'),source=document.createElement('small'),confidence=document.createElement('span');name.textContent=item.label;value.textContent=' — '+item.value;source.style.display='block';source.textContent=item.source?.label||'PDF / OCR / поля';copy.append(name,value,source);confidence.textContent=Math.round((item.confidence||0)*100)+'%';box.onchange=function(){if(box.checked)selected.add(item.id);else selected.delete(item.id);paint()};label.append(box,copy,confidence);list.appendChild(label)});body.append(note,counter,list);const actions=document.createElement('div');actions.className='ne55-dialog-actions';const apply=document.createElement('button');apply.type='button';apply.className='primary';apply.textContent='Применить выбранное';actions.appendChild(apply);dialog.append(head,body,actions);function paint(){counter.textContent='Выбрано '+selected.size+' из '+limit;apply.disabled=selected.size>limit}apply.onclick=function(){if(selected.size>limit)return;dialog.close();resolve(ordered.filter(function(item){return selected.has(item.id)}))};dialog.oncancel=function(event){event.preventDefault()};paint();dialog.showModal()})}
+async function applyAutomationV76(data,options){
+  const interactive=options?.interactive!==false,api=window.NEXESTATE_STANDALONE_TEST,settings=cloneV76(api?.getState?.()?.settings);if(!settings)return{features:[],advantages:[]};
+  const normalized=normalizeSettings(settings),plan=triggerCandidatesV76(data),byPool=mergeManualV76(normalized.byNexEstateCharacteristicIds,normalized.ocrAutoByIds,plan.features),singlePool=mergeManualV76(normalized.singlePageCharacteristicIds,normalized.ocrAutoSingleIds,plan.features),advPool=mergeManualV76(normalized.selectedSinglePageAdvantageIds,normalized.ocrAutoAdvantageIds,plan.advantages);
+  const by=await chooseCandidatesV76('Характеристики by NexEstate',byPool,8,interactive),single=await chooseCandidatesV76('Характеристики одностраничной презентации',singlePool,5,interactive),advantages=await chooseCandidatesV76('Преимущества одностраничной презентации',advPool,4,interactive);
+  normalized.byNexEstateCharacteristicIds=uniqueFeatureIdsV76(by.map(function(item){return item.id}),8);normalized.singlePageCharacteristicIds=uniqueFeatureIdsV76(single.map(function(item){return item.id}),5);
+  plan.features.forEach(function(candidate){[MODE_BY_V76,MODE_SINGLE_V76].forEach(function(mode){const record=modeRecordV76(normalized,mode,candidate.id,true);if(record&&!record.manual){record.value=candidate.value;record.label=candidate.label;record.auto=true}})});
+  normalized.selectedSinglePageAdvantageIds=advantages.map(function(item){return item.id}).filter(function(id,index,list){return ADVANTAGE_BY_ID_V76.has(id)&&list.indexOf(id)===index}).slice(0,4);normalized.singlePageAdvantageLabels=normalized.singlePageAdvantageLabels||{};
+  normalized.selectedSinglePageAdvantageIds.forEach(function(id){const wasManual=(settings.selectedSinglePageAdvantageIds||[]).includes(id)&&!(settings.ocrAutoAdvantageIds||[]).includes(id);if(!wasManual||!normalized.singlePageAdvantageLabels[id])normalized.singlePageAdvantageLabels[id]=plan.advantages.find(function(item){return item.id===id})?.label||ADVANTAGE_BY_ID_V76.get(id)?.name||id});
+  normalized.ocrAutoByIds=normalized.byNexEstateCharacteristicIds.filter(function(id){return plan.features.some(function(item){return item.id===id})});
+  normalized.ocrAutoSingleIds=normalized.singlePageCharacteristicIds.filter(function(id){return plan.features.some(function(item){return item.id===id})});
+  normalized.ocrAutoAdvantageIds=normalized.selectedSinglePageAdvantageIds.filter(function(id){return plan.advantages.some(function(item){return item.id===id})});
+  api?.replaceSettings?.(normalized);renderFeatureEditor(true);window.NEXESTATE_V62_TEST?.refresh?.();scheduleRender();scheduleSave();
+  return{features:plan.features,advantages:plan.advantages,by:normalized.byNexEstateCharacteristicIds.slice(),single:normalized.singlePageCharacteristicIds.slice(),selectedAdvantages:normalized.selectedSinglePageAdvantageIds.slice()};
+}
+window.NE55_applyAutomation=applyAutomationV76;
+if(window.NEXESTATE_STAGE1_TEST){window.NEXESTATE_STAGE1_TEST.triggers=triggerCandidatesV76;window.NEXESTATE_STAGE1_TEST.apply=applyAutomationV76}
+
+if(window.NEXESTATE_V62_TEST)window.NEXESTATE_V62_TEST.advantages=ADVANTAGES_V76.map(function(item){return{id:item.id,name:item.name,icon:item.icon}});
+if(window.NEXESTATE_STANDALONE_TEST){
+  window.NEXESTATE_STANDALONE_TEST.iconTypes=ICON_TYPES.map(function(item){return item[0]});
+  const replaceSettingsBeforeV76=window.NEXESTATE_STANDALONE_TEST.replaceSettings;
+  window.NEXESTATE_STANDALONE_TEST.replaceSettings=function(value){const result=replaceSettingsBeforeV76?.(normalizeSettings(value));if(currentSettings)currentSettings=normalizeSettings(currentSettings);return result};
+}
+window.NEXESTATE_V76_CORE_TEST={
+  version:VERSION_V76,
+  trigger:function(data){return triggerCandidatesV76(data||{})},
+  featureIds:function(){return ICON_TYPES.map(function(item){return item[0]})},
+  advantageIds:function(){return ADVANTAGES_V76.map(function(item){return item.id})},
+  selected:function(mode){return selectedFeaturesForV76(mode===MODE_SINGLE_V76?MODE_SINGLE_V76:MODE_BY_V76,mode===MODE_SINGLE_V76?5:8)},
+  fonts:function(){return Object.entries(DS_FONTS).map(function(pair){return{key:pair[0],name:pair[1].name,stack:pair[1].canvas}})}
+};
+ensureFontOptionsV76();replaceBulkPdfLabelV76();
+hideSingleExtraV76();
+let modeEditorSyncTimerV76=0;
+function queueModeEditorSyncV76(){
+  clearTimeout(modeEditorSyncTimerV76);modeEditorSyncTimerV76=setTimeout(function(){
+    if(!currentSettings||currentSettings.brandModeEnabled!==true)return;
+    const editor=byId('nsFeatureEditor'),mode=activeModeV76();
+    if(editor?.dataset.ne76Mode!==mode)renderFeatureEditor(true);
+    hideSingleExtraV76();ensureFontOptionsV76();
+  },0);
+}
+const modeButtonObserverV76=new MutationObserver(function(records){
+  if(records.some(function(record){return record.target?.matches?.('#ne62LayoutBy,#ne62LayoutSingle')}))queueModeEditorSyncV76();
+});
+modeButtonObserverV76.observe(document.documentElement,{attributes:true,subtree:true,attributeFilter:['aria-pressed']});
+const observerV76=new MutationObserver(function(){ensureFontOptionsV76();replaceBulkPdfLabelV76();hideSingleExtraV76();queueModeEditorSyncV76()});
+observerV76.observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener('click',function(event){if(event.target.closest?.('#ne62LayoutBy,#ne62LayoutSingle'))setTimeout(function(){renderFeatureEditor(true);hideSingleExtraV76();ensureFontOptionsV76()},80)},true);
+})();
+</script>
+<script id="nexestate-same-branch-fixes-v76-core-loader">
+(()=>{
+  const source=document.getElementById('nexestate-same-branch-fixes-v76-core')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_V76_CORE_LOADED=true;delete window.NEXESTATE_V76_CORE_ERROR}catch(error){window.NEXESTATE_V76_CORE_LOADED=false;window.NEXESTATE_V76_CORE_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
+<script type="text/plain" id="nexestate-same-branch-fixes-v76-media">
+(()=>{
+'use strict';
+const VERSION_MEDIA_V76='same-branch-media-v76';
+
+function cleanupExtractedCardsV76(){
+  document.querySelectorAll('#ne53ExtractedPhotos .ne53-extracted-meta>span').forEach(function(node){node.remove()});
+  document.querySelectorAll('#ne53ExtractedPhotos .ne54-extracted-actions').forEach(function(actions){actions.classList.add('ne53-extracted-actions')});
+  document.querySelectorAll('#ne53ExtractedPhotos button').forEach(function(button){
+    const title=(button.title||button.dataset.tooltip||button.getAttribute('aria-label')||'').toLocaleLowerCase('ru-RU');
+    const apply=function(label,aria){if(button.textContent!==label)button.textContent=label;if(button.getAttribute('aria-label')!==aria)button.setAttribute('aria-label',aria)};
+    if(/перенести/.test(title))apply('В Медиа','Перенести фотографию в Медиа');
+    else if(/планировк/.test(title))apply('План','Использовать как планировку');
+    else if(/скачать/.test(title))apply('Скачать','Скачать фотографию');
+    else if(/удалить/.test(title))apply('Удалить','Удалить фотографию');
+  });
+}
+function heroIdV76(settings){return cleanText(settings?.singlePageHero?.assetId||'',96)}
+function enforceCanonicalHeroV76(){
+  if(!currentSettings)return;const ids=new Set((currentSettings.media||[]).map(function(item){return item.assetId||item.id}).filter(Boolean));let id=heroIdV76(currentSettings);
+  if(currentSettings.singlePageHeroExplicitlyCleared===true||!ids.has(id))id='';
+  currentSettings.singlePageHero=id?Object.assign({focusX:50,focusY:50,scale:1},currentSettings.singlePageHero,{assetId:id}):null;currentSettings.heroAssetId=id;
+  if(!id)currentSettings.singlePageHeroStretch=false;
+}
+let pendingCoverAutoV76=null;
+const syncMediaSettingsBeforeV76=syncMediaSettings;
+syncMediaSettings=function(){
+  if(!currentSettings)return syncMediaSettingsBeforeV76.apply(this,arguments);
+  const coverBefore=(currentSettings.coverPhotoIds||[]).slice(),explicit=currentSettings.coverExplicitlyCleared===true,heroBefore=currentSettings.singlePageHero?Object.assign({},currentSettings.singlePageHero):null,heroCleared=currentSettings.singlePageHeroExplicitlyCleared===true,stretch=currentSettings.singlePageHeroStretch===true;
+  const result=syncMediaSettingsBeforeV76.apply(this,arguments);
+  currentSettings.singlePageHero=heroBefore;currentSettings.singlePageHeroExplicitlyCleared=heroCleared;currentSettings.singlePageHeroStretch=stretch;
+  if(!coverBefore.length){currentSettings.coverPhotoIds=[];currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=explicit}
+  if(pendingCoverAutoV76?.eligible&&!explicit&&!coverBefore.length){const candidate=(currentSettings.media||[]).find(function(item){return !pendingCoverAutoV76.beforeIds.has(item.assetId)&&ordinaryCoverCandidateV76(item)});if(candidate){currentSettings.coverPhotoIds=[candidate.assetId];currentSettings.coverAutoAssignedId=candidate.assetId;currentSettings.coverExplicitlyCleared=false;candidate.fit='contain';candidate.focusX=50;candidate.focusY=50;candidate.scale=1}}
+  enforceCanonicalHeroV76();return result;
+};
+
+function ordinaryCoverCandidateV76(meta){
+  if(!meta||meta.included===false)return false;const id=meta.assetId,name=cleanText(meta.sourceName||'',200).toLocaleLowerCase('ru-RU'),kind=cleanText(meta.sourceKind||'',80).toLocaleLowerCase('ru-RU');
+  if(id===currentSettings?.floorPlanAssetId||/\b(?:карта|map|план|plan|схем|diagram|chart|логотип|logo|icon|иконк|брокер|broker|аватар|avatar|service|служебн)\b/i.test(name+' '+kind))return false;
+  const width=Number(meta.pixelWidth||meta.sourceWidth)||0,height=Number(meta.pixelHeight||meta.sourceHeight)||0,ratio=width/Math.max(1,height);return !width||!height||width*height>=60000&&ratio>=.35&&ratio<=3.8;
+}
+const addMediaFilesBeforeV76=addMediaFiles;
+addMediaFiles=async function(files){
+  const layout=currentSettings?.activeBrandedLayout||currentSettings?.brandLayout||currentSettings?.presentationLayout,active=layout==='byNexEstate'&&currentSettings?.brandModeEnabled===true,beforeIds=new Set((currentSettings?.media||[]).map(function(item){return item.assetId})),coverBefore=(currentSettings?.coverPhotoIds||[]).slice(),explicit=currentSettings?.coverExplicitlyCleared===true,eligible=active&&currentSettings?.coverEnabled!==false&&!coverBefore.length&&!explicit;
+  pendingCoverAutoV76={beforeIds:beforeIds,eligible:eligible};
+  try{const added=await addMediaFilesBeforeV76.apply(this,arguments);if(!currentSettings)return added;
+    if(explicit){currentSettings.coverPhotoIds=[];currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=true}
+    else if(eligible&&added){const candidate=currentSettings.media.find(function(item){return !beforeIds.has(item.assetId)&&ordinaryCoverCandidateV76(item)});currentSettings.coverPhotoIds=candidate?[candidate.assetId]:[];currentSettings.coverAutoAssignedId=candidate?.assetId||'';if(candidate){candidate.fit='contain';candidate.focusX=50;candidate.focusY=50;candidate.scale=1;currentSettings.coverExplicitlyCleared=false}}
+    syncGalleryPages();renderExtendedMedia();scheduleSave();return added;
+  }finally{pendingCoverAutoV76=null}
+};
+window.studioSetPhotos=addMediaFiles;window.setPresoPhotos=addMediaFiles;if(window.NEXESTATE_STANDALONE_TEST)window.NEXESTATE_STANDALONE_TEST.addMediaFiles=addMediaFiles;
+
+const transferExtractedBeforeV76=transferExtracted,transferAllExtractedBeforeV76=transferAllExtracted;
+async function preserveCoverTransferV76(operation,args){const beforeIds=new Set((currentSettings?.media||[]).map(function(item){return item.assetId})),coverBefore=(currentSettings?.coverPhotoIds||[]).slice(),explicit=currentSettings?.coverExplicitlyCleared===true,layout=currentSettings?.activeBrandedLayout||currentSettings?.brandLayout||currentSettings?.presentationLayout;pendingCoverAutoV76={beforeIds:beforeIds,eligible:layout==='byNexEstate'&&currentSettings?.brandModeEnabled===true&&currentSettings?.coverEnabled!==false&&!coverBefore.length&&!explicit};try{const result=await operation.apply(this,args);if(explicit&&currentSettings){currentSettings.coverPhotoIds=[];currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=true}syncMediaSettings();renderExtendedMedia();scheduleSave();scheduleRender();return result}finally{pendingCoverAutoV76=null}}
+transferExtracted=function(){return preserveCoverTransferV76.call(this,transferExtractedBeforeV76,arguments)};
+transferAllExtracted=function(){return preserveCoverTransferV76.call(this,transferAllExtractedBeforeV76,arguments)};
+window.NexCompactStudio=Object.assign({},window.NexCompactStudio,{transferOne:function(index){return transferExtracted(index)},transferAll:function(){return transferAllExtracted()}});
+const removePlacementBeforeV76=removePlacement;
+removePlacement=function(pageKey,slot){const result=removePlacementBeforeV76.apply(this,arguments);if(result&&pageKey==='cover'&&currentSettings&&!currentSettings.coverPhotoIds.length){currentSettings.coverExplicitlyCleared=true;currentSettings.coverAutoAssignedId='';scheduleSave()}return result};
+
+function brokerViewStateV76(){
+  const sidebar=document.querySelector('#presentationStudio .ne52-sidebar'),preview=document.querySelector('#presentationStudio .ne52-preview'),deck=byId('studioPresoDeck');return{sidebar:sidebar,sidebarTop:sidebar?.scrollTop||0,sidebarLeft:sidebar?.scrollLeft||0,preview:preview,previewTop:preview?.scrollTop||0,previewLeft:preview?.scrollLeft||0,deck:deck,deckTop:deck?.scrollTop||0,deckLeft:deck?.scrollLeft||0,step:document.querySelector('#presentationStudio .ne52-step.on')?.dataset.step||''};
+}
+function restoreBrokerViewV76(state){if(!state)return;if(state.sidebar?.isConnected){state.sidebar.scrollTop=state.sidebarTop;state.sidebar.scrollLeft=state.sidebarLeft}if(state.preview?.isConnected){state.preview.scrollTop=state.previewTop;state.preview.scrollLeft=state.previewLeft}if(state.deck?.isConnected){state.deck.scrollTop=state.deckTop;state.deck.scrollLeft=state.deckLeft}const active=document.querySelector('#presentationStudio .ne52-step.on')?.dataset.step||'';if(state.step&&active!==state.step)window.NexCompactStudio?.setStep?.(state.step)}
+let heldBrokerViewV76=null,heldBrokerUntilV76=0;
+function holdBrokerViewV76(){heldBrokerViewV76=brokerViewStateV76();heldBrokerUntilV76=Date.now()+1500;[0,40,140,420,850,1250].forEach(function(delay){setTimeout(function(){if(Date.now()<=heldBrokerUntilV76)restoreBrokerViewV76(heldBrokerViewV76)},delay)})}
+const renderExtendedMediaBeforeV76=renderExtendedMedia;
+renderExtendedMedia=function(){const state=Date.now()<=heldBrokerUntilV76?heldBrokerViewV76:null,result=renderExtendedMediaBeforeV76.apply(this,arguments);installBrokerSetterV76();if(state){restoreBrokerViewV76(state);queueMicrotask(function(){restoreBrokerViewV76(state)})}return result};
+function settleCustomBrokerV76(recordId,before){
+  if(currentSettings&&currentRecord?.id===recordId&&studioBrokerPhoto&&studioBrokerPhoto!==before){currentSettings.brokerPhotoChoice='custom';syncCanonical?.();scheduleSave?.()}
+  holdBrokerViewV76();
+}
+function installBrokerSetterV76(){
+  const base=window.studioSetBrokerPhoto;if(typeof base!=='function'||base.ne76BrokerView===true)return;
+  const wrapped=function(){holdBrokerViewV76();const recordId=currentRecord?.id,before=studioBrokerPhoto,result=base.apply(this,arguments),settle=function(){settleCustomBrokerV76(recordId,before)};[160,700,1300].forEach(function(delay){setTimeout(settle,delay)});if(result&&typeof result.then==='function')return Promise.resolve(result).finally(settle);settle();return result};
+  wrapped.ne76BrokerView=true;window.studioSetBrokerPhoto=wrapped;
+}
+installBrokerSetterV76();
+document.addEventListener('pointerdown',function(event){if(event.target.closest?.('#ne53BrokerHost,#ne73CropOverlay,[data-preview-target-id="broker-photo"],[data-preview-target-id="single-contact-photo"]')){installBrokerSetterV76();holdBrokerViewV76()}},true);
+document.addEventListener('click',function(event){if(event.target.closest?.('#ne53BrokerHost,#ne73CropOverlay,[data-preview-target-id="broker-photo"],[data-preview-target-id="single-contact-photo"]'))installBrokerSetterV76()},true);
+document.addEventListener('change',function(event){if(event.target.closest?.('#ne53BrokerHost')||/broker/i.test(event.target.id||''))holdBrokerViewV76()},true);
+
+window.NEXESTATE_V76_MEDIA_TEST={
+  version:VERSION_MEDIA_V76,
+  cleanupExtracted:cleanupExtractedCardsV76,
+  hero:function(){return currentSettings?{state:currentSettings.singlePageHero,legacyId:currentSettings.heroAssetId,cleared:currentSettings.singlePageHeroExplicitlyCleared,stretch:currentSettings.singlePageHeroStretch}:null},
+  cover:function(){return currentSettings?{ids:(currentSettings.coverPhotoIds||[]).slice(),explicit:currentSettings.coverExplicitlyCleared===true}:null},
+  installBrokerSetter:installBrokerSetterV76,
+  buildSingle:function(config){return window.NEXESTATE_STAGE5_TEST?.build?.(config||{})?.[0]||null}
+};
+cleanupExtractedCardsV76();
+const extractedObserverV76=new MutationObserver(cleanupExtractedCardsV76);extractedObserverV76.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+<script id="nexestate-same-branch-fixes-v76-media-loader">
+(()=>{
+  const source=document.getElementById('nexestate-same-branch-fixes-v76-media')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_V76_MEDIA_LOADED=true;delete window.NEXESTATE_V76_MEDIA_ERROR}catch(error){window.NEXESTATE_V76_MEDIA_LOADED=false;window.NEXESTATE_V76_MEDIA_ERROR=String(error?.stack||error);throw error}
 })();
 </script>
 <script src="../../pwa-shell.js"></script>
