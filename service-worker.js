@@ -1,5 +1,10 @@
 const CACHE_PREFIX = 'nex-estate-media-studio-';
-const CACHE_NAME = `${CACHE_PREFIX}unified-v3-green-balance`;
+const CACHE_NAME = `${CACHE_PREFIX}unified-v4-ocr-runtime`;
+const OCR_RUNTIME_CACHE = `${CACHE_PREFIX}ocr-runtime-v1`;
+const OCR_RUNTIME_HOSTS = new Set([
+  'cdn.jsdelivr.net',
+  'tessdata.projectnaptha.com'
+]);
 const APP_SHELL = [
   './',
   './index.html',
@@ -63,7 +68,7 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
       keys
-        .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+        .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME && key !== OCR_RUNTIME_CACHE)
         .map(key => caches.delete(key))
     ))
   );
@@ -78,6 +83,20 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+  if (OCR_RUNTIME_HOSTS.has(url.hostname)) {
+    event.respondWith(
+      caches.open(OCR_RUNTIME_CACHE).then(async cache => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        const response = await fetch(request);
+        if (response && (response.ok || response.type === 'opaque')) {
+          await cache.put(request, response.clone());
+        }
+        return response;
+      })
+    );
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
