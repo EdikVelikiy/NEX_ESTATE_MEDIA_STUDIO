@@ -7864,7 +7864,7 @@ function genericGalleryPages(entries,titles,mode,config={}){const pages=[],theme
 function ensureA4Portrait(source){if(!(source instanceof HTMLCanvasElement))return source;const ratio=source.width/source.height,target=1240/1754;if(source.height>=source.width&&Math.abs(ratio-target)<.012)return source;const canvas=newCanvas(1240,1754),ctx=canvas.getContext('2d');ctx.fillStyle=DS.theme==='soft'||DS.theme==='ivory'||DS.theme==='sand'?'#f2f0ea':'#071725';ctx.fillRect(0,0,canvas.width,canvas.height);const scale=Math.min(canvas.width/source.width,canvas.height/source.height),w=source.width*scale,h=source.height*scale;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(source,(canvas.width-w)/2,(canvas.height-h)/2,w,h);return canvas}
 function buildCanonicalSlides(config={}){if(!currentRecord||!currentSettings)return[];syncCanonicalDataOnly();if((config.design||DS.design)==='byNexEstate')return buildBySlides(config);const slides=(typeof legacy.buildSlides==='function'?legacy.buildSlides(config).slice():[]).map(ensureA4Portrait),gallery=includedMedia();syncGalleryTitles();if(gallery.length){const appendixCount=window.NE53_STATE.pdf.appendix?(window.NE53_STATE.pdf.sourcePages||[]).length:0,contactIndex=Math.max(1,slides.length-1-appendixCount),hasPlan=!!floorPlanItem(),hadLegacyGallery=mediaItems().length>1;let insertion=contactIndex-(hasPlan?1:0);if(hadLegacyGallery&&insertion>0){insertion--;slides.splice(insertion,1)}slides.splice(insertion,0,...genericGalleryPages(gallery,currentSettings.galleryTitles,currentSettings.galleryMode,config))}return slides}
 window.ne53BuildSlides=buildCanonicalSlides;window.neBuildUnifiedSlides=buildCanonicalSlides;window.dsCanvasSet=buildCanonicalSlides;
-function renderPreview(){const host=byId('studioPresoDeck');if(!host||!currentRecord||!byId('presentationStudio')?.classList.contains('show'))return;try{const slides=buildCanonicalSlides(),fragment=document.createDocumentFragment();slides.forEach((canvas,index)=>{const page=document.createElement('div');page.className='ps-canvas-page';const image=new Image();image.alt='Презентация NexEstate — страница '+(index+1);image.width=canvas.width;image.height=canvas.height;image.loading='lazy';image.src=DS.design==='byNexEstate'&&index===0?canvas.toDataURL('image/png'):canvas.toDataURL('image/jpeg',.84);page.appendChild(image);fragment.appendChild(page)});host.replaceChildren(fragment);host.style.zoom=String((DS.zoom||100)/100);host.setAttribute('aria-busy','false')}catch(error){console.error('Standalone preview',error);host.innerHTML='<div class="ne53-status show err">Ошибка предпросмотра: '+escapeHtml(error.message)+'</div>'}}
+function renderPreview(){const host=byId('studioPresoDeck');if(!host||!currentRecord||!byId('presentationStudio')?.classList.contains('show'))return;try{const slides=buildCanonicalSlides(),fallbackIds=typeof renderedPageIdsV70==='function'?renderedPageIdsV70(slides.length):[],fragment=document.createDocumentFragment();slides.forEach((canvas,index)=>{const page=document.createElement('div'),kind=canvas.neStage4Kind||canvas.neStage3PageKind||canvas.neStage5Renderer||'',semanticId=kind==='singlePage'?'single-page':kind==='contact'?'contact':kind==='cover'?'cover':kind==='floor'?'floor':fallbackIds[index]||'page-'+(index+1);page.className='ps-canvas-page';page.dataset.pageKind=kind||'page';page.dataset.pageId=semanticId;page.dataset.pageIndex=String(index);const image=new Image();image.alt='Презентация NexEstate — страница '+(index+1);image.width=canvas.width;image.height=canvas.height;image.loading='lazy';image.src=DS.design==='byNexEstate'&&index===0?canvas.toDataURL('image/png'):canvas.toDataURL('image/jpeg',.84);page.appendChild(image);fragment.appendChild(page)});host.replaceChildren(fragment);host.style.zoom=String((DS.zoom||100)/100);host.setAttribute('aria-busy','false')}catch(error){console.error('Standalone preview',error);host.innerHTML='<div class="ne53-status show err">Ошибка предпросмотра: '+escapeHtml(error.message)+'</div>'}}
 window.syncStudioPreview=scheduleRender;window.renderPresoPreview=scheduleRender;window.ne53QueuePreview=scheduleRender;
 const originalDsApply=window.dsApply;window.dsApply=function(){const result=originalDsApply?.apply(this,arguments);if(currentRecord){if(DS.design==='byNexEstate'&&!currentSettings.byNexEstateSeen){currentSettings.galleryMode=2;currentSettings.byNexEstateSeen=true}currentRecord.designName=DS.design;syncCanonicalDataOnly();scheduleRender();scheduleSave()}return result};
 
@@ -8157,6 +8157,7 @@ function stage1DescriptionMeasure(text,mode){const canvas=document.createElement
 function stage1DescriptionFits(text){const by=stage1DescriptionMeasure(text,'by'),single=stage1DescriptionMeasure(text,'single');return{fits:by.fits&&single.fits,by,single}}
 function stage1FitSentences(text,count){const sentences=normalizeText(text).split(/(?<=[.!?])\s+/).filter(Boolean),picked=sentences.slice(0,count);while(picked.length&&!stage1DescriptionFits(picked.join(' ')).fits)picked.pop();if(!picked.length){const words=normalizeText(text).split(/\s+/),out=[];for(const word of words){const next=[...out,word].join(' ');if(!stage1DescriptionFits(next).fits)break;out.push(word)}return out.join(' ')}return picked.join(' ')}
 async function stage1ResolveDescription(data,{interactive=true}={}){const original=clean(data.draft);if(!original||stage1DescriptionFits(original).fits)return original;const variants=[{id:'brief',label:'Краткий фактический',value:stage1FitSentences(original,2)},{id:'balanced',label:'Сбалансированный',value:stage1FitSentences(original,4)},{id:'facts',label:'Структурированный / факты',value:stage1FitSentences(original.replace(/[;•]/g,'. '),3)},{id:'full',label:'Полный исходный для ручного редактирования',value:original}];if(!interactive)return variants[1].value||variants[0].value;const dialog=stage1EnsureChoiceDialog();return new Promise(resolve=>{dialog.innerHTML='';const head=document.createElement('div');head.className='ne55-dialog-head';const title=document.createElement('h2');title.textContent='Описание не помещается';head.appendChild(title);const body=document.createElement('div');body.className='ne55-dialog-body';const note=document.createElement('p');note.textContent='Лимит рассчитан по фактической ширине и шрифту обоих фирменных макетов.';const select=document.createElement('div');select.className='ne55-missing';const textarea=document.createElement('textarea');textarea.rows=8;textarea.style.width='100%';const metrics=document.createElement('p');let active=variants[1];variants.forEach(item=>{const label=document.createElement('label');label.style.cssText='display:flex;gap:8px;padding:7px 0';const radio=document.createElement('input');radio.type='radio';radio.name='ne73Description';radio.checked=item===active;radio.onchange=()=>{active=item;textarea.value=item.value;paint()};label.append(radio,document.createTextNode(item.label));select.appendChild(label)});textarea.value=active.value;const actions=document.createElement('div');actions.className='ne55-dialog-actions';const apply=document.createElement('button');apply.className='primary';apply.textContent='Применить описание';const paint=()=>{const result=stage1DescriptionFits(textarea.value);metrics.textContent=`by NexEstate: ${result.by.lines} из ${result.by.maxLines} строк · одностраничный: ${result.single.lines} из ${result.single.maxLines}`;apply.disabled=!result.fits};textarea.oninput=paint;apply.onclick=()=>{if(apply.disabled)return;const value=normalizeText(textarea.value);dialog.close();resolve(value)};actions.appendChild(apply);body.append(note,select,textarea,metrics);dialog.append(head,body,actions);dialog.oncancel=event=>event.preventDefault();paint();dialog.showModal()})}
+window.NE55_resolveDescription=stage1ResolveDescription;
 window.NE58_cancelPdfWork=async function(){ocrCancelRequested=true;const pdf=window.NE53_STATE?.pdf;if(pdf)pdf.loadToken=(Number(pdf.loadToken)||0)+1;try{await activeOcrWorker?.terminate?.()}catch(_){}try{window.NE68_cancelActiveImport?.()}catch(_){}window.NE58_setPdfProgress?.('Отменено',100,'Операция остановлена; изменения будут отменены')};
 window.NEXESTATE_STAGE1_TEST={parse:(text,fileName='')=>({data:stage1ParseStructured(text,fileName),meta:cloneValueStage1(stage1ParseMeta)}),titleValid:stage1TitleValid,triggers:stage1TriggerCandidates,description:stage1DescriptionFits,rules:{characteristics:STAGE1_CHARACTERISTIC_RULES.map(item=>item.id),advantages:STAGE1_ADVANTAGE_RULES.map(item=>item.id)}};
 function showReport(result){const panel=ensureProgressPanel(),report=byId('ne58ProgressReport'),status=byId('studioPdfStatus');window.NE58_LAST_OCR_REPORT=result;if(report){const parts=result.error?[result.error]:[`${result.pages||0} стр.`,`полей найдено: ${result.found||0}`,`заполнено: ${result.changed||0}`,`OCR-страниц: ${result.ocrPages||0}`,`фото: ${result.extracted||0}`];if(result.errors?.length)parts.push('ошибок: '+result.errors.length);report.textContent=parts.join(' · ')}if(panel)panel.hidden=false;if(status&&result.error){status.className='ne53-status show err';status.textContent=result.error}}
@@ -8206,9 +8207,9 @@ recognizeAndFill=async function({automatic=false,save=true}={}){
       }
     }
     assertCurrent();window.NE58_setPdfProgress?.('Заполнение данных',65,'Нормализация и структурный разбор');await window.nePdfCooperativeYield?.();
-    const rawMerged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[page.rawText??page.text,page.ocrRawText??page.ocrText].filter(Boolean).join('\n')}`).join('\n\n'),merged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[normalizeText(page.text),normalizeText(page.ocrText)].filter(Boolean).join('\n')}`).join('\n\n'),data=parseStructured(merged,pdf.fileName),prepared=await stage1ConfirmPrepared(prepareRecognizedStage1(data,pages,pdf.fileName),{interactive:true}),expected=['objName','area','addr','metro','floor','ceil','power'];
-    if(prepared.patch.draft){const resolved=await stage1ResolveDescription({...dataBefore,...prepared.patch},{interactive:true});assertCurrent();if(resolved)prepared.patch.draft=resolved;else{delete prepared.patch.draft;delete prepared.sources.draft}}
-    prepared.changed=Object.keys(prepared.patch).length;const nextData={...dataBefore,...prepared.patch};pdf.rawTextOriginal=rawMerged;pdf.rawText=merged;pdf.normalizedText=merged;pdf.ocrText=pages.map(page=>page.ocrText||'').filter(Boolean).join('\n\n');await stage1ApplyAutomation(nextData,{interactive:true});assertCurrent();const applied=commitRecognizedStage1(prepared);committed=true;const missing=expected.filter(key=>!clean(nextData[key])).map(key=>FIELD_LABELS[key]).filter(Boolean);pdf.ocrAccepted=applied.found>0;
+    const rawMerged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[page.rawText??page.text,page.ocrRawText??page.ocrText].filter(Boolean).join('\n')}`).join('\n\n'),merged=pages.map(page=>`--- СТРАНИЦА ${page.page} ---\n${[normalizeText(page.text),normalizeText(page.ocrText)].filter(Boolean).join('\n')}`).join('\n\n'),data=parseStructured(merged,pdf.fileName),confirmPrepared=window.NE55_confirmRecognized||stage1ConfirmPrepared,prepared=await confirmPrepared(prepareRecognizedStage1(data,pages,pdf.fileName),{interactive:true}),expected=['objName','area','addr','metro','floor','ceil','power'];
+    if(prepared.patch.draft){const resolveDescription=window.NE55_resolveDescription||stage1ResolveDescription,resolved=await resolveDescription({...dataBefore,...prepared.patch},{interactive:true});assertCurrent();if(resolved)prepared.patch.draft=resolved;else{delete prepared.patch.draft;delete prepared.sources.draft}}
+    prepared.changed=Object.keys(prepared.patch).length;const nextData={...dataBefore,...prepared.patch};pdf.rawTextOriginal=rawMerged;pdf.rawText=merged;pdf.normalizedText=merged;pdf.ocrText=pages.map(page=>page.ocrText||'').filter(Boolean).join('\n\n');const applyAutomation=window.NE55_applyAutomation||stage1ApplyAutomation;await applyAutomation(nextData,{interactive:true});assertCurrent();const applied=commitRecognizedStage1(prepared);committed=true;const missing=expected.filter(key=>!clean(nextData[key])).map(key=>FIELD_LABELS[key]).filter(Boolean);pdf.ocrAccepted=applied.found>0;
     if(typeof quickDealParsed!=='undefined')quickDealParsed={data:cloneValueStage1(nextData),raw:rawMerged,normalized:merged,file:pdf.fileName,pages:pages.length,ocr:ocrPages>0,sources:applied.sources,sourcePdfId:pdf.sourcePdfId};
     window.ne53QueuePreview?.();if(save&&!pdf.processing)await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false);
     const report={pages:pages.length,ocrPages,found:applied.found,changed:applied.changed,missing,conflicts:applied.conflicts,errors,extracted:pdf.extractedPhotos?.length||0};
@@ -9293,6 +9294,7 @@ function singlePagePlanV62(){
 }
 function validateSinglePageExportV62(){
   if(currentLayoutV62()!==LAYOUT_SINGLE_V62)return true;
+  if(typeof window.NEXESTATE_FUNCTIONAL_VALIDATE==='function')return window.NEXESTATE_FUNCTIONAL_VALIDATE({mode:LAYOUT_SINGLE_V62});
   const data=currentRecord?.data||dataFromForm();
   if(!singleTextFitsV62('studioName',data.objName||data.otype||'Объект'))throw new Error('Заголовок превышает вместимость одностраничного макета — сократите текст.');
   if(!singleTextFitsV62('studioDescription',data.draft||'')||!singleTextFitsV62('studioExtra',data.extra||''))throw new Error('Текст не помещается в одностраничный макет — сократите его.');
@@ -10881,7 +10883,7 @@ const byContactPageBeforeV67=byContactPage;
 byContactPage=function(page,total){
   const balancedGreen=window.NEXESTATE_ACTIVE_GREEN_BALANCE==='by';if(buildThemeV67!=='emeraldGraphite'&&buildThemeV67!=='burgundyGraphite'&&!balancedGreen)return byContactPageBeforeV67(page,total);const basePalette=themeV67(buildThemeV67),p=balancedGreen?Object.assign({},basePalette,{pageBg:'#0B3328',pageSurface:'#FAF8F2',header:'#071F1A',accent:'#B69A62',accent2:'#C5AB73',text:'#FAF8F2',soft:'#D9DDD7',line:'rgba(197,171,115,.48)'}):basePalette,panelText=balancedGreen?'#0B3328':p.text,panelMuted=balancedGreen?'#52665D':p.soft,W=1240,H=1754,c=newCanvas(W,H),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm();ctx.save();resetCanvasStateV67(ctx);fillByPageV67(ctx,p);drawByHeaderV67(ctx,p,'Контакты',page,total);ctx.fillStyle=p.text;ctx.font='700 50px Georgia,serif';wrapCanvas(ctx,'Организуем показ и предоставим документы по объекту',64,230,760,61,5);ctx.fillStyle=p.soft;ctx.font='400 23px "Segoe UI",Arial,sans-serif';wrapCanvas(ctx,[data.addr,data.metro].filter(Boolean).join(' · ')||'Москва',64,560,760,34,6);ctx.fillStyle=p.pageSurface;rounded(ctx,64,860,1112,570,20);ctx.fill();if(studioBrokerPhoto)drawImageMode(ctx,studioBrokerPhoto,104,920,290,290,{fit:'cover',...(currentSettings?.broker||{})},p.pageBg);else{ctx.fillStyle='#0B3328';rounded(ctx,104,920,290,290,16);ctx.fill();ctx.fillStyle='#D9DDD7';ctx.font='600 18px "Segoe UI",Arial,sans-serif';ctx.textAlign='center';ctx.fillText('Фотография брокера',249,1070);ctx.textAlign='left'}ctx.fillStyle=panelText;ctx.font='700 36px Georgia,serif';wrapCanvas(ctx,data.mgr||'Эксперт NexEstate',440,950,650,45,3);ctx.fillStyle=panelMuted;ctx.font='500 19px "Segoe UI",Arial,sans-serif';wrapCanvas(ctx,data.mgrx||'Коммерческая недвижимость полного цикла',440,1060,650,28,4);const site=cleanText(data.presoUrl||'nexestate.ru',180).trim()||'nexestate.ru',contacts=[data.mgrPhone&&'Телефон: '+data.mgrPhone,data.mgrWa&&'WhatsApp: '+data.mgrWa,data.mgrTg&&'Telegram: '+data.mgrTg,data.mgrEmail&&'E-mail: '+data.mgrEmail,site].filter(Boolean).filter(function(value,index,array){return array.indexOf(value)===index});ctx.fillStyle=panelText;ctx.font='600 20px "Segoe UI",Arial,sans-serif';contacts.forEach(function(line,index){ctx.fillText(line,440,1190+index*42)});footerByV67(ctx,p,page,total);ctx.restore();return c;
 };
-function validateByAdvantagesV67(){if(!activeByV67()||window.NEXESTATE_STAGE4_TEST)return true;const title=coverTextFitV67(currentRecord?.data?.objName||byId('studioName')?.value||'',currentRecord?.data?.use||byId('studioUse')?.value||'');if(!title.fits){updateLayoutWarningsV67();throw new Error('Заголовок превышает вместимость фирменной обложки. Сократите текст перед экспортом.')}if(!advantageFitsV67(currentRecord?.data?.extra||byId('studioExtra')?.value||'')){updateLayoutWarningsV67();throw new Error('Преимущества объекта превышают 6 строк. Сократите текст перед экспортом.')}return true}
+function validateByAdvantagesV67(){if(typeof window.NEXESTATE_FUNCTIONAL_VALIDATE==='function')return window.NEXESTATE_FUNCTIONAL_VALIDATE({mode:'byNexEstate'});if(!activeByV67()||window.NEXESTATE_STAGE4_TEST)return true;const title=coverTextFitV67(currentRecord?.data?.objName||byId('studioName')?.value||'',currentRecord?.data?.use||byId('studioUse')?.value||'');if(!title.fits){updateLayoutWarningsV67();throw new Error('Заголовок превышает вместимость фирменной обложки. Сократите текст перед экспортом.')}if(!advantageFitsV67(currentRecord?.data?.extra||byId('studioExtra')?.value||'')){updateLayoutWarningsV67();throw new Error('Преимущества объекта превышают 6 строк. Сократите текст перед экспортом.')}return true}
 const exportCurrentPdfBeforeV67=exportCurrentPdf,exportCurrentPngBeforeV67=exportCurrentPng,exportCurrentHtmlBeforeV67=exportCurrentHtml;
 exportCurrentPdf=async function(){validateByAdvantagesV67();return exportCurrentPdfBeforeV67()};
 exportCurrentPng=async function(){validateByAdvantagesV67();return exportCurrentPngBeforeV67()};
@@ -11629,7 +11631,7 @@ const FOCUS_REGISTRY_V70=Object.freeze({
     brokerPhoto:{pageId:'custom-contact',previewTargetId:'custom-broker-photo',rect:[8,52,25,21]}
   }
 });
-const BROKER_FIELD_IDS_V70=new Set(['studioMgr','studioMgrRole','studioPhone','studioWa','studioTg','studioEmail','studioSite']);
+const BROKER_FIELD_IDS_V70=new Set(['studioMgr','studioMgrRole','studioPhone','studioWa','studioTg','studioEmail','studioSite','ne73CompanyTelegram','ne73CompanyInstagram']);
 function renderedPageIdsV70(count){
   const mode=activeLayoutV70(),appendixCount=window.NE53_STATE?.pdf?.appendix?(window.NE53_STATE.pdf.sourcePages||[]).length:0,baseCount=Math.max(0,count-appendixCount),ids=[];
   if(mode===BRAND_SINGLE_V70){if(baseCount)ids.push('single-page')}
@@ -11650,10 +11652,11 @@ function renderedPageIdsV70(count){
 }
 function decoratePreviewPagesV70(){
   const pages=[...document.querySelectorAll('#studioPresoDeck>.ps-canvas-page')],ids=renderedPageIdsV70(pages.length);
-  pages.forEach(function(page,index){page.dataset.pageId=ids[index]||'page-'+(index+1);page.dataset.pageIndex=String(index)});
+  pages.forEach(function(page,index){if(!page.dataset.pageId)page.dataset.pageId=ids[index]||'page-'+(index+1);page.dataset.pageIndex=String(index)});
 }
 function mappingForFieldV70(field){
   const mode=activeLayoutV70(),registry=FOCUS_REGISTRY_V70[mode]||FOCUS_REGISTRY_V70.custom;
+  if(field.matches?.('input[type="file"],button')&&field.closest?.('.broker-photo-loader,#ne53BrokerHost'))return null;
   const feature=field.closest?.('[data-feature-type]');
   if(feature)return Object.assign({},registry.feature,{featureType:feature.dataset.featureType});
   if(BROKER_FIELD_IDS_V70.has(field.id))return registry.broker;
@@ -11662,18 +11665,20 @@ function mappingForFieldV70(field){
 }
 function resolvePreviewPageV70(pageId){
   const deck=byIdV70('studioPresoDeck');if(!deck)return null;
+  if(String(pageId||'').includes('contact'))return deck.querySelector('.ps-canvas-page[data-page-kind="contact"],.ps-canvas-page[data-page-id="contact"],.ps-canvas-page[data-page-id$="-contact"]');
   if(pageId==='gallery:first')return deck.querySelector('.ps-canvas-page[data-page-id^="gallery:"]');
   if(pageId==='custom-content:first')return deck.querySelector('.ps-canvas-page[data-page-id^="custom-content-"]');
   return deck.querySelector('.ps-canvas-page[data-page-id="'+CSS.escape(pageId)+'"]');
 }
 function clearFieldNoteV70(field){const host=field.closest?.('label,[data-feature-type],.broker-photo-loader')||field.parentElement;host?.querySelector(':scope>.ne70-field-note')?.remove()}
-function showFieldNoteV70(field){
+function showFieldNoteV70(field,text){
   clearFieldNoteV70(field);const host=field.closest?.('label,[data-feature-type],.broker-photo-loader')||field.parentElement;if(!host)return;
-  const note=document.createElement('span');note.className='ne70-field-note';note.textContent='Это поле не отображается в выбранном макете';host.appendChild(note);
+  const note=document.createElement('span');note.className='ne70-field-note';note.textContent=text||'Это поле не отображается в выбранном макете';host.appendChild(note);
 }
 let focusRequestV70=0;
 function focusPreviewTargetV70(field,mapping){
   if(!field||!mapping)return;
+  if(String(mapping.pageId||'').includes('contact')&&currentSettings?.showContactPage!==true){showFieldNoteV70(field,'Включите страницу контактов');return}
   const request=++focusRequestV70,sidebar=document.querySelector('#presentationStudio .ne52-sidebar'),scroll=sidebar?.scrollTop||0,start=Number.isInteger(field.selectionStart)?field.selectionStart:null,end=Number.isInteger(field.selectionEnd)?field.selectionEnd:null;
   let attempts=0;
   const run=function(){
@@ -12543,7 +12548,7 @@ document.addEventListener('click',event=>{
   const action=event.target?.closest?.('button')?.textContent?.trim();if(action==='Открыть презентацию'||action==='Новая презентация'){setTimeout(syncAllV73,450);setTimeout(syncAllV73,1400)}
   const menu=byId('ne73TemplateMenu');if(menu&&!menu.hidden&&!event.target.closest?.('#ne73TemplatePicker'))menu.hidden=true;
 },true);
-document.addEventListener('focusin',event=>{const field=event.target;if(field?.closest?.('#ne53DataForm')&&field.matches('input,textarea,select')&&!field.matches('#ne73CompanyTelegram,#ne73CompanyInstagram'))showFocusNoticeV73(field)},true);
+document.addEventListener('focusin',event=>{const field=event.target;if(field?.closest?.('#ne53DataForm')&&field.matches('input,textarea,select')&&!field.matches('#ne73CompanyTelegram,#ne73CompanyInstagram')&&!field.closest?.('[data-feature-type],#ne62AdvantagesEditor'))showFocusNoticeV73(field)},true);
 document.addEventListener('keydown',keyboardAccessV73,true);
 const observerV73=new MutationObserver(records=>{if(syncingUiV73)return;if(records.some(record=>!record.target.closest?.('[id^="ne73"], [class*="ne73-"]')&&[...record.addedNodes].some(node=>node.nodeType===1&&!String(node.id||'').startsWith('ne73')&&![...(node.classList||[])].some(name=>name.startsWith('ne73-')))))queueUiV73()});observerV73.observe(document.documentElement,{childList:true,subtree:true});
 const modeButtonObserverV73=new MutationObserver(records=>records.forEach(record=>{const target=record.target;if(target?.matches?.('#ne62LayoutBy,#ne62LayoutSingle'))unlockModeButtonsV73(target);else if(target?.id==='dsPresetSelect'&&target.disabled&&loadTemplatesV73().length)target.disabled=false}));modeButtonObserverV73.observe(document.documentElement,{attributes:true,subtree:true,attributeFilter:['disabled','aria-disabled']});
@@ -12760,11 +12765,6 @@ function overviewFactsV74(data){
 function drawOverviewV74(lines,index,count,p,page,total){
   const c=newCanvas(W_V74,H_V74),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm();resetCanvasV74(ctx);drawPageBaseV74(ctx,p,index===0?'Об объекте':'Об объекте · продолжение',page,total);
   let textTop=270;
-  if(index===0){
-    const facts=overviewFactsV74(data).slice(0,8),gap=14,pad=64,cardW=(W_V74-pad*2-gap*3)/4;
-    facts.forEach(function(item,factIndex){const col=factIndex%4,row=Math.floor(factIndex/4),x=pad+col*(cardW+gap),y=236+row*122;fillRoundV74(ctx,x,y,cardW,106,12,p.surface,p.line);ctx.fillStyle=p.accent;ctx.font='700 13px '+selectedFontStackV74();ctx.fillText(item[0].toLocaleUpperCase('ru-RU'),x+16,y+25);fitAndDrawV74(ctx,cleanText(item[1],140),x+16,y+59,cardW-32,42,20,14,'700',p.text,1.1,2)});
-    textTop=514;
-  }
   ctx.fillStyle=p.text;ctx.font='700 34px '+selectedFontStackV74();ctx.fillText(index===0?'Описание объекта':'Продолжение описания',64,textTop);
   ctx.fillStyle=p.accent;ctx.fillRect(64,textTop+20,62,4);
   ctx.fillStyle=p.text;ctx.font='500 25px '+selectedFontStackV74();const start=textTop+72,lineHeight=36;
@@ -12920,7 +12920,7 @@ function themeV75(key){return THEMES_V75[key]||THEMES_V75.brandGreen}
 function selectedThemeV75(options){const key=options?.singlePageTheme||currentSettings?.singlePageThemeV71||currentSettings?.singlePageTheme||'brandGreen';return THEMES_V75[key]?key:'brandGreen'}
 function requestedSingleV75(config){if(ownV75(config,'layout'))return config.layout===SINGLE_LAYOUT_V75;if(config?.design&&config.design!=='byNexEstate')return false;const layout=currentSettings?.presentationLayout||currentSettings?.activeBrandedLayout||currentSettings?.brandLayout;return currentSettings?.brandModeEnabled===true&&layout===SINGLE_LAYOUT_V75||layout===SINGLE_LAYOUT_V75}
 function mediaV75(){if(typeof syncMediaSettings==='function')syncMediaSettings();const runtime=new Map(mediaItems().map(function(item){return[item.neId,item]}));return(currentSettings?.media||[]).filter(function(meta){return meta.included!==false}).map(function(meta){const item=runtime.get(meta.assetId||meta.id);return item?.image?{meta,image:item.image,item}:null}).filter(Boolean)}
-function assetsV75(options){const excluded=new Set(currentSettings?.singlePageExcludedAssetIds||[]),entries=mediaV75().filter(function(entry){return!excluded.has(entry.meta.assetId)}),floorId=currentSettings?.floorPlanAssetId||'',heroId=cleanV75(currentSettings?.singlePageHero?.assetId,96),plan=currentSettings?.singlePageWithoutFloorPlan===true?null:(entries.find(function(entry){return entry.meta.assetId===floorId})||null),hero=entries.find(function(entry){return entry.meta.assetId===heroId&&entry.meta.assetId!==floorId})||null,others=entries.filter(function(entry){return entry!==hero&&entry!==plan}),limit=Math.max(1,Math.min(3,Number(options?.testPhotoCount)||3)),extras=others.slice(0,Math.max(0,limit-1)),lower=plan?extras.slice(0,1).concat([{...plan,isPlan:true}]):extras.slice(0,2);return{entries,hero,plan,lower,photoCount:(hero?1:0)+extras.length}}
+function assetsV75(options){const excluded=new Set(currentSettings?.singlePageExcludedAssetIds||[]),entries=mediaV75().filter(function(entry){return!excluded.has(entry.meta.assetId)}),floorId=currentSettings?.floorPlanAssetId||'',heroId=cleanV75(currentSettings?.singlePageHero?.assetId,96),plan=currentSettings?.singlePageWithoutFloorPlan===true?null:(entries.find(function(entry){return entry.meta.assetId===floorId})||null),hero=entries.find(function(entry){return entry.meta.assetId===heroId&&entry.meta.assetId!==floorId})||null,lower=plan?[{...plan,isPlan:true}]:[];return{entries,hero,plan,lower,photoCount:hero?1:0}}
 function featuresV75(){const ids=(currentSettings?.singlePageCharacteristicIds||[]).slice(0,5),legacy=new Map((currentSettings?.features||[]).map(function(item){return[item.type,item]})),values=currentSettings?.singlePageFeatureValues||{};return ids.map(function(id){const source=values[id]||legacy.get(id);return source?{type:id,value:cleanV75(source.value,60),label:cleanV75(source.label||ICON_TYPES.find(function(item){return item[0]===id})?.[1]||id,45),auto:source.auto===true,manual:source.manual===true}:null}).filter(function(item){return item&&(item.value||item.label)})}
 function advantagesV75(){const names=new Map((window.NEXESTATE_V62_TEST?.advantages||[]).map(function(item){return[item.id,item.name]}));return(currentSettings?.selectedSinglePageAdvantageIds||[]).slice(0,4).map(function(id){return{id,label:cleanV75(currentSettings?.singlePageAdvantageLabels?.[id]||names.get(id)||id,72),icon:ADVANTAGE_ICON_V75[id]||'yield'}})}
 function drawVectorIconV75(ctx,type,x,y,size,p){ctx.save();ctx.lineWidth=2;drawIcon(ctx,type,x,y,size,p.accent,p.accent);ctx.restore()}
@@ -12930,8 +12930,8 @@ function drawHeroV75(ctx,p,entry,y,h){clipPhotoV75(ctx,entry,72,y,1560,h,p);if(!
 function drawFeaturesV75(ctx,p,items,y){if(!items.length)return 0;const gap=14,w=(1560-gap*(items.length-1))/items.length,h=176;items.forEach(function(item,index){const x=72+index*(w+gap);panelV75(ctx,x,y,w,h,16,p.paper,p.line);drawVectorIconV75(ctx,item.type,x+18,y+18,38,p);const value=fitV75(ctx,cleanV75(item.value||'—',80),w-86,65,{weight:700,max:28,min:17,lineHeight:1.06}),label=fitV75(ctx,cleanV75(item.label||'',70),w-36,48,{weight:600,max:16,min:11,lineHeight:1.12});drawFitV75(ctx,value,x+72,y+19,p.text);drawFitV75(ctx,label,x+18,y+115,p.muted)});return h}
 function descriptionLayoutV75(ctx,text,width,height){return fitV75(ctx,text,width,height,{weight:500,max:28,min:21,lineHeight:1.3})}
 function sentenceVariantsV75(text,measure){const normalized=cleanV75(text,12000),sentences=normalized.split(/(?<=[.!?])\s+/).filter(Boolean);function take(count){let value=sentences.slice(0,count).join(' ');while(value&&!measure(value).fits){const parts=value.split(/\s+/);parts.pop();value=parts.join(' ')}return value}return[{id:'brief',label:'Краткий фактический',value:take(2)},{id:'balanced',label:'Сбалансированный',value:take(4)||take(2)},{id:'facts',label:'Структурированный / факты',value:take(6)||take(3)},{id:'full',label:'Полный исходный для ручного редактирования',value:normalized}]}
-function queueOverflowDialogV75(text,measure){const normalized=cleanV75(text,12000);if(!normalized||overflowDialogQueuedV75||lastOverflowTextV75===normalized)return;overflowDialogQueuedV75=true;lastOverflowTextV75=normalized;setTimeout(function(){overflowDialogQueuedV75=false;if(document.querySelector('#ne73ChoiceDialog[open]'))return;let dialog=byId('ne73ChoiceDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='ne73ChoiceDialog';dialog.className='ne55-dialog';document.body.appendChild(dialog)}const variants=sentenceVariantsV75(normalized,measure);dialog.replaceChildren();const head=document.createElement('div');head.className='ne55-dialog-head';const title=document.createElement('h2');title.textContent='Описание не помещается';head.appendChild(title);const body=document.createElement('div');body.className='ne55-dialog-body';const note=document.createElement('p');note.textContent='Выберите подходящий вариант или отредактируйте текст. Макет измерен по фактической ширине и шрифту.';const choices=document.createElement('div');choices.className='ne55-missing';const area=document.createElement('textarea');area.rows=9;area.style.width='100%';let active=variants.find(function(item){return item.id==='balanced'})||variants[0];variants.forEach(function(item){const label=document.createElement('label');label.style.cssText='display:flex;gap:8px;padding:7px 0';const radio=document.createElement('input');radio.type='radio';radio.name='ne75Description';radio.checked=item===active;radio.onchange=function(){active=item;area.value=item.value;paint()};label.append(radio,document.createTextNode(item.label));choices.appendChild(label)});area.value=active.value;const metrics=document.createElement('p');const actions=document.createElement('div');actions.className='ne55-dialog-actions';const apply=document.createElement('button');apply.type='button';apply.className='primary';apply.textContent='Применить описание';const paint=function(){const result=measure(area.value);metrics.textContent=result.fits?'Текст помещается полностью.':'Текст всё ещё не помещается — сократите его.';apply.disabled=!result.fits};area.oninput=paint;apply.onclick=function(){if(apply.disabled)return;const value=cleanV75(area.value,12000),field=byId('studioDescription');if(field){field.value=value;field.dataset.ne62LastValid=value}if(currentRecord?.data)currentRecord.data.draft=value;dialog.close();lastOverflowTextV75='';scheduleSave?.();scheduleRender?.()};actions.appendChild(apply);body.append(note,choices,area,metrics);dialog.append(head,body,actions);dialog.oncancel=function(event){event.preventDefault()};paint();dialog.showModal()},0)}
-function drawDescriptionV75(ctx,p,text,x,y,w,h,canvas,forExport){panelV75(ctx,x,y,w,h,18,p.paper,p.line);ctx.fillStyle=p.accent;ctx.font='700 23px '+fontStackV75();ctx.textBaseline='top';ctx.fillText('ОБ ОБЪЕКТЕ',x+28,y+25);ctx.fillRect(x+28,y+62,56,4);const box={x:x+28,y:y+91,w:w-56,h:h-119},layout=descriptionLayoutV75(ctx,text,box.w,box.h),measure=function(value){return descriptionLayoutV75(ctx,cleanV75(value,12000),box.w,box.h)};if(text&&layout.fits)drawFitV75(ctx,layout,box.x,box.y,p.text);else if(text){canvas.neStage5DescriptionOverflow=true;ctx.fillStyle=p.muted;ctx.font='600 22px '+fontStackV75();ctx.fillText('Описание требует выбора подходящего варианта.',box.x,box.y+22);queueOverflowDialogV75(text,measure);if(forExport)throw new Error('Описание не помещается. Выберите вариант текста в открывшемся окне.')}else{ctx.fillStyle=p.muted;ctx.font='500 21px '+fontStackV75();ctx.fillText('Добавьте описание объекта в разделе «Данные».',box.x,box.y+22)}return layout}
+function queueOverflowDialogV75(text,measure){if(window.NEXESTATE_DISABLE_DESCRIPTION_MODAL===true)return;const normalized=cleanV75(text,12000);if(!normalized||overflowDialogQueuedV75||lastOverflowTextV75===normalized)return;overflowDialogQueuedV75=true;lastOverflowTextV75=normalized;setTimeout(function(){overflowDialogQueuedV75=false;if(document.querySelector('#ne73ChoiceDialog[open]'))return;let dialog=byId('ne73ChoiceDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='ne73ChoiceDialog';dialog.className='ne55-dialog';document.body.appendChild(dialog)}const variants=sentenceVariantsV75(normalized,measure);dialog.replaceChildren();const head=document.createElement('div');head.className='ne55-dialog-head';const title=document.createElement('h2');title.textContent='Описание не помещается';head.appendChild(title);const body=document.createElement('div');body.className='ne55-dialog-body';const note=document.createElement('p');note.textContent='Выберите подходящий вариант или отредактируйте текст. Макет измерен по фактической ширине и шрифту.';const choices=document.createElement('div');choices.className='ne55-missing';const area=document.createElement('textarea');area.rows=9;area.style.width='100%';let active=variants.find(function(item){return item.id==='balanced'})||variants[0];variants.forEach(function(item){const label=document.createElement('label');label.style.cssText='display:flex;gap:8px;padding:7px 0';const radio=document.createElement('input');radio.type='radio';radio.name='ne75Description';radio.checked=item===active;radio.onchange=function(){active=item;area.value=item.value;paint()};label.append(radio,document.createTextNode(item.label));choices.appendChild(label)});area.value=active.value;const metrics=document.createElement('p');const actions=document.createElement('div');actions.className='ne55-dialog-actions';const apply=document.createElement('button');apply.type='button';apply.className='primary';apply.textContent='Применить описание';const paint=function(){const result=measure(area.value);metrics.textContent=result.fits?'Текст помещается полностью.':'Текст всё ещё не помещается — сократите его.';apply.disabled=!result.fits};area.oninput=paint;apply.onclick=function(){if(apply.disabled)return;const value=cleanV75(area.value,12000),field=byId('studioDescription');if(field){field.value=value;field.dataset.ne62LastValid=value}if(currentRecord?.data)currentRecord.data.draft=value;dialog.close();lastOverflowTextV75='';scheduleSave?.();scheduleRender?.()};actions.appendChild(apply);body.append(note,choices,area,metrics);dialog.append(head,body,actions);dialog.oncancel=function(event){event.preventDefault()};paint();dialog.showModal()},0)}
+function drawDescriptionV75(ctx,p,text,x,y,w,h,canvas,forExport){panelV75(ctx,x,y,w,h,18,p.paper,p.line);ctx.fillStyle=p.accent;ctx.font='700 23px '+fontStackV75();ctx.textBaseline='top';ctx.fillText('ОБ ОБЪЕКТЕ',x+28,y+25);ctx.fillRect(x+28,y+62,56,4);const box={x:x+28,y:y+91,w:w-56,h:h-119},layout=descriptionLayoutV75(ctx,text,box.w,box.h),measure=function(value){return descriptionLayoutV75(ctx,cleanV75(value,12000),box.w,box.h)};canvas.neStage5DescriptionMetrics={lines:layout.lines.length,height:layout.height,availableHeight:box.h,fontSize:layout.size,width:box.w};if(text&&layout.fits)drawFitV75(ctx,layout,box.x,box.y,p.text);else if(text){canvas.neStage5DescriptionOverflow=true;ctx.fillStyle=p.muted;ctx.font='600 22px '+fontStackV75();ctx.fillText('Описание требует выбора подходящего варианта.',box.x,box.y+22);queueOverflowDialogV75(text,measure);if(forExport)throw new Error('Описание не помещается в активный одностраничный макет.')}else{ctx.fillStyle=p.muted;ctx.font='500 21px '+fontStackV75();ctx.fillText('Добавьте описание объекта в разделе «Данные».',box.x,box.y+22)}return layout}
 function drawLowerMediaV75(ctx,p,entries,x,y,w,h){if(!entries.length)return;const gap=16,cellW=entries.length===1?w:(w-gap)/2;entries.forEach(function(entry,index){const px=x+index*(cellW+gap),isPlan=entry.isPlan===true,labelH=isPlan?54:0;panelV75(ctx,px,y,cellW,h,18,p.paper,p.line);if(isPlan){ctx.fillStyle=p.accent;ctx.font='700 19px '+fontStackV75();ctx.textBaseline='middle';ctx.fillText('Планировка',px+22,y+28)}clipPhotoV75(ctx,entry,px+8,y+8+labelH,cellW-16,h-16-labelH,p,{plan:isPlan})})}
 function drawAdvantagesV75(ctx,p,items,y){if(!items.length)return 0;const gap=16,w=(1560-gap*(items.length-1))/items.length,h=200;items.forEach(function(item,index){const x=72+index*(w+gap);panelV75(ctx,x,y,w,h,18,p.dark,p.dark2);drawVectorIconV75(ctx,item.icon,x+22,y+26,48,{accent:p.accent2});const label=fitV75(ctx,item.label,w-44,90,{weight:650,max:22,min:14,lineHeight:1.15});drawFitV75(ctx,label,x+22,y+95,p.inverse)});return h}
 function drawStretchFeaturesV75(ctx,p,items,y){if(!items.length)return 0;const gap=14,w=(1504-gap*(items.length-1))/items.length,h=150;items.forEach(function(item,index){const x=100+index*(w+gap);panelV75(ctx,x,y,w,h,16,'rgba(3,14,24,.78)','rgba(255,255,255,.22)');drawVectorIconV75(ctx,item.type,x+18,y+18,34,{accent:p.accent2});const value=fitV75(ctx,cleanV75(item.value||'—',80),w-76,54,{family:fontStackV75(),weight:750,max:25,min:15,lineHeight:1.05}),label=fitV75(ctx,cleanV75(item.label||'',70),w-36,40,{family:fontStackV75(),weight:600,max:15,min:10,lineHeight:1.1});drawFitV75(ctx,value,x+62,y+19,p.inverse);drawFitV75(ctx,label,x+18,y+101,p.inverseMuted)});return h}
@@ -12954,10 +12954,10 @@ buildSingleV75=function(options={}){
   const top=ctx.createLinearGradient(0,heroY,0,heroY+520);top.addColorStop(0,'rgba(2,10,18,.72)');top.addColorStop(1,'rgba(2,10,18,0)');ctx.fillStyle=top;ctx.fillRect(76,heroY+4,1552,560);
   const bottom=ctx.createLinearGradient(0,mainBottom-900,0,mainBottom);bottom.addColorStop(0,'rgba(2,10,18,0)');bottom.addColorStop(1,'rgba(2,10,18,.94)');ctx.fillStyle=bottom;ctx.fillRect(76,mainBottom-920,1552,916);ctx.restore();
   if(!assets.hero){ctx.fillStyle=p.inverseMuted;ctx.font='600 25px '+fontStackV75();ctx.textAlign='center';ctx.fillText('Загрузите главное фото объекта',W_V75/2,heroY+heroH/2);ctx.textAlign='left'}
-  const featureY=heroY+28,featureH=drawStretchFeaturesV75(ctx,p,features,featureY),advY=advantages.length?mainBottom-174:mainBottom-20,descY=featureY+(featureH?featureH+34:20),descH=Math.max(260,advY-descY-28),descW=1060;
+  const featureY=heroY+28,featureH=drawStretchFeaturesV75(ctx,p,features,featureY),advY=advantages.length?mainBottom-174:mainBottom-20,descY=featureY+(featureH?featureH+34:20),descH=Math.max(260,advY-descY-28),descW=744;
   panelV75(ctx,100,descY,descW,descH,18,'rgba(3,14,24,.78)','rgba(255,255,255,.2)');ctx.fillStyle=p.accent2;ctx.font='800 22px '+fontStackV75();ctx.textBaseline='top';ctx.fillText('ОБ ОБЪЕКТЕ',128,descY+28);ctx.fillRect(128,descY+64,58,4);
-  const description=cleanV75(data.draft,12000),layout=fitV75(ctx,description,descW-56,descH-116,{family:fontStackV75(),weight:550,max:27,min:17,lineHeight:1.28});
-  if(description&&layout.fits)drawFitV75(ctx,layout,128,descY+88,p.inverse);else if(description){canvas.neStage5DescriptionOverflow=true;ctx.fillStyle=p.inverseMuted;ctx.font='600 21px '+fontStackV75();ctx.fillText('Описание требует выбора подходящего варианта.',128,descY+106);const measure=function(value){return fitV75(ctx,cleanV75(value,12000),descW-56,descH-116,{family:fontStackV75(),weight:550,max:27,min:17,lineHeight:1.28})};queueOverflowDialogV75(description,measure);if(forExport)throw new Error('Описание не помещается. Выберите вариант текста в открывшемся окне.')}else{ctx.fillStyle=p.inverseMuted;ctx.font='500 21px '+fontStackV75();ctx.fillText('Добавьте описание объекта в разделе «Данные».',128,descY+106)}
+  const description=cleanV75(data.draft,12000),layout=fitV75(ctx,description,descW-56,descH-116,{family:fontStackV75(),weight:550,max:27,min:17,lineHeight:1.28});canvas.neStage5DescriptionMetrics={lines:layout.lines.length,height:layout.height,availableHeight:descH-116,fontSize:layout.size,width:descW-56};
+  if(description&&layout.fits)drawFitV75(ctx,layout,128,descY+88,p.inverse);else if(description){canvas.neStage5DescriptionOverflow=true;ctx.fillStyle=p.inverseMuted;ctx.font='600 21px '+fontStackV75();ctx.fillText('Описание требует выбора подходящего варианта.',128,descY+106);const measure=function(value){return fitV75(ctx,cleanV75(value,12000),descW-56,descH-116,{family:fontStackV75(),weight:550,max:27,min:17,lineHeight:1.28})};queueOverflowDialogV75(description,measure);if(forExport)throw new Error('Описание не помещается в активный одностраничный макет.')}else{ctx.fillStyle=p.inverseMuted;ctx.font='500 21px '+fontStackV75();ctx.fillText('Добавьте описание объекта в разделе «Данные».',128,descY+106)}
   if(advantages.length)drawStretchAdvantagesV75(ctx,p,advantages,advY);drawFooterV75(ctx,p,data,canvas,footerY);
   canvas.neStage5Renderer=STAGE5_VERSION_V75+'-stretch';canvas.neBrandLayout=SINGLE_LAYOUT_V75;canvas.neBrandTheme=themeKey;canvas.neStage3PageKind='singlePage';canvas.neStage5PhotoCount=assets.hero?1:0;canvas.neStage5LowerSlots=0;canvas.neStage5Plan=false;canvas.neStage5FeatureCount=features.length;canvas.neStage5AdvantageCount=advantages.length;canvas.neStage5TitleFits=header.titleFits;canvas.neStage5AddressFits=header.addressFits;canvas.neStage5MetroFits=header.metroFits;canvas.neClosedSaleV75=closed;canvas.neSingleHeroStretchV75=true;return canvas;
 };
@@ -13054,7 +13054,7 @@ function valuesKeyV76(mode){return mode===MODE_SINGLE_V76?'singlePageFeatureValu
 function limitV76(mode){return mode===MODE_SINGLE_V76?5:8}
 function registryLabelV76(type){const item=ICON_TYPES.find(function(candidate){return candidate[0]===type});return cleanText(item?item[1].replace(/\/.*$/,''):type,45)}
 function validFeatureIdsV76(){return new Set(ICON_TYPES.map(function(item){return item[0]}))}
-function uniqueFeatureIdsV76(values,max){const valid=validFeatureIdsV76(),out=[];(Array.isArray(values)?values:[]).forEach(function(id){id=cleanText(id,80);if(valid.has(id)&&!out.includes(id)&&out.length<max)out.push(id)});return out}
+function uniqueFeatureIdsV76(values,max=Infinity){const valid=validFeatureIdsV76(),out=[];(Array.isArray(values)?values:[]).forEach(function(id){id=cleanText(id,80);if(valid.has(id)&&!out.includes(id)&&out.length<max)out.push(id)});return out}
 function normalizeFeatureRecordV76(value,type,fallback){
   const source=value&&typeof value==='object'?value:{},legacy=fallback&&typeof fallback==='object'?fallback:{},systemLabel=registryLabelV76(type),resolvedValue=cleanText(source.value!=null?source.value:legacy.value,60),resolvedLabel=cleanText(source.label!=null?source.label:(legacy.label||systemLabel),45),meaningfulManual=!!resolvedValue.trim()||resolvedLabel!==systemLabel,manual=meaningfulManual&&(source.manual===true||source.auto===false||(source.manual==null&&legacy.manual===true)||(source.manual==null&&source.auto==null&&legacy.auto===false));
   return{value:resolvedValue,label:resolvedLabel,auto:!manual&&(source.auto===true||(source.auto==null&&legacy.auto===true)),manual:manual};
@@ -13093,8 +13093,8 @@ normalizeSettings=function(value){
   const source=value&&typeof value==='object'?value:{},base=normalizeSettingsBeforeV76(source);
   base.features=(base.features||[]).filter(function(item){return validFeatureIdsV76().has(item.type)});
   const enabled=base.features.filter(function(item){return item.enabled}).map(function(item){return item.type});
-  base.byNexEstateCharacteristicIds=uniqueFeatureIdsV76(Array.isArray(source.byNexEstateCharacteristicIds)?source.byNexEstateCharacteristicIds:enabled,8);
-  base.singlePageCharacteristicIds=uniqueFeatureIdsV76(Array.isArray(source.singlePageCharacteristicIds)?source.singlePageCharacteristicIds:base.byNexEstateCharacteristicIds,5);
+  base.byNexEstateCharacteristicIds=uniqueFeatureIdsV76(Array.isArray(source.byNexEstateCharacteristicIds)?source.byNexEstateCharacteristicIds:enabled);
+  base.singlePageCharacteristicIds=uniqueFeatureIdsV76(Array.isArray(source.singlePageCharacteristicIds)?source.singlePageCharacteristicIds:base.byNexEstateCharacteristicIds);
   base.byNexEstateFeatureValues=normalizeFeatureMapV76(source.byNexEstateFeatureValues,base.byNexEstateCharacteristicIds,base.features);
   base.singlePageFeatureValues=normalizeFeatureMapV76(source.singlePageFeatureValues,base.singlePageCharacteristicIds,base.features);
   base.selectedSinglePageAdvantageIds=(Array.isArray(source.selectedSinglePageAdvantageIds)?source.selectedSinglePageAdvantageIds:base.selectedSinglePageAdvantageIds||[]).filter(function(id,index,list){return ADVANTAGE_BY_ID_V76.has(id)&&list.indexOf(id)===index}).slice(0,4);
@@ -13134,7 +13134,7 @@ function featureEditorStateV76(){
 }
 function refreshFeatureEditorV76(editor,message){
   if(!editor||!currentSettings)return;const state=featureEditorStateV76(),selected=new Set(state.selected),status=editor.querySelector('[data-feature-limit]');
-  if(status){status.textContent=message||('Выбрано '+state.selected.length+' из '+state.limit);status.closest('.ns-feature-summary')?.classList.toggle('limit',state.selected.length>=state.limit)}
+  if(status){status.textContent=message||('Выбрано '+state.selected.length+' из '+state.limit);status.closest('.ns-feature-summary')?.classList.toggle('limit',state.selected.length>state.limit)}
   editor.querySelectorAll('[data-feature-type]').forEach(function(row){
     const type=row.dataset.featureType,on=selected.has(type),record=modeRecordV76(currentSettings,state.mode,type,true),position=state.selected.indexOf(type),box=row.querySelector('[data-feature-field="enabled"]'),value=row.querySelector('[data-feature-field="value"]'),label=row.querySelector('[data-feature-field="label"]');
     row.classList.toggle('selected',on);if(box){box.checked=on;box.disabled=!on&&state.selected.length>=state.limit}
@@ -13180,7 +13180,7 @@ renderFeatureEditor=function(force){
   const warnings=document.createElement('div');warnings.id='nsTextWarnings';warnings.className='ns-text-warnings';warnings.textContent=(currentSettings.uiWarnings||[]).join(' · ');
   editor.replaceChildren(summary,list,warnings);refreshFeatureEditorV76(editor);restoreFeatureUiV76(focus,editor);renderAdvantagesEditorV76();hideSingleExtraV76();ensureFontOptionsV76();
 };
-function hideSingleExtraV76(){const field=byId('studioExtra'),extra=field?.closest('label')||field?.parentElement;if(extra){const hidden=activeModeV76()===MODE_SINGLE_V76;extra.hidden=hidden;extra.classList.toggle('ne76-single-hidden',hidden)}}
+function hideSingleExtraV76(){const field=byId('studioExtra'),extra=field?.closest('label')||field?.parentElement;if(extra){const hidden=activeModeV76()!==MODE_CUSTOM_V76;extra.hidden=hidden;extra.classList.toggle('ne76-single-hidden',hidden)}}
 
 function ensureFontOptionsV76(){
   const select=byId('dsFontSelect');if(!select)return false;const keys=Object.keys(DS_FONTS),signature=keys.map(function(key){return key+':'+DS_FONTS[key].name}).join('|');if(select.dataset.ne76Fonts===signature)return true;
@@ -13283,8 +13283,8 @@ function chooseCandidatesV76(title,candidates,limit,interactive){const ordered=c
 async function applyAutomationV76(data,options){
   const interactive=options?.interactive!==false,api=window.NEXESTATE_STANDALONE_TEST,settings=cloneV76(api?.getState?.()?.settings);if(!settings)return{features:[],advantages:[]};
   const normalized=normalizeSettings(settings),plan=triggerCandidatesV76(data),byPool=mergeManualV76(normalized.byNexEstateCharacteristicIds,normalized.ocrAutoByIds,plan.features),singlePool=mergeManualV76(normalized.singlePageCharacteristicIds,normalized.ocrAutoSingleIds,plan.features),advPool=mergeManualV76(normalized.selectedSinglePageAdvantageIds,normalized.ocrAutoAdvantageIds,plan.advantages);
-  const by=await chooseCandidatesV76('Характеристики by NexEstate',byPool,8,interactive),single=await chooseCandidatesV76('Характеристики одностраничной презентации',singlePool,5,interactive),advantages=await chooseCandidatesV76('Преимущества одностраничной презентации',advPool,4,interactive);
-  normalized.byNexEstateCharacteristicIds=uniqueFeatureIdsV76(by.map(function(item){return item.id}),8);normalized.singlePageCharacteristicIds=uniqueFeatureIdsV76(single.map(function(item){return item.id}),5);
+  const by=byPool,single=singlePool,advantages=await chooseCandidatesV76('Преимущества одностраничной презентации',advPool,4,false);
+  normalized.byNexEstateCharacteristicIds=uniqueFeatureIdsV76(by.map(function(item){return item.id}));normalized.singlePageCharacteristicIds=uniqueFeatureIdsV76(single.map(function(item){return item.id}));
   plan.features.forEach(function(candidate){[MODE_BY_V76,MODE_SINGLE_V76].forEach(function(mode){const record=modeRecordV76(normalized,mode,candidate.id,true);if(record&&!record.manual){record.value=candidate.value;record.label=candidate.label;record.auto=true}})});
   normalized.selectedSinglePageAdvantageIds=advantages.map(function(item){return item.id}).filter(function(id,index,list){return ADVANTAGE_BY_ID_V76.has(id)&&list.indexOf(id)===index}).slice(0,4);normalized.singlePageAdvantageLabels=normalized.singlePageAdvantageLabels||{};
   normalized.selectedSinglePageAdvantageIds.forEach(function(id){const wasManual=(settings.selectedSinglePageAdvantageIds||[]).includes(id)&&!(settings.ocrAutoAdvantageIds||[]).includes(id);if(!wasManual||!normalized.singlePageAdvantageLabels[id])normalized.singlePageAdvantageLabels[id]=plan.advantages.find(function(item){return item.id===id})?.label||ADVANTAGE_BY_ID_V76.get(id)?.name||id});
@@ -13404,7 +13404,7 @@ function brokerViewStateV76(){
 }
 function restoreBrokerViewV76(state){if(!state)return;if(state.sidebar?.isConnected){state.sidebar.scrollTop=state.sidebarTop;state.sidebar.scrollLeft=state.sidebarLeft}if(state.preview?.isConnected){state.preview.scrollTop=state.previewTop;state.preview.scrollLeft=state.previewLeft}if(state.deck?.isConnected){state.deck.scrollTop=state.deckTop;state.deck.scrollLeft=state.deckLeft}const active=document.querySelector('#presentationStudio .ne52-step.on')?.dataset.step||'';if(state.step&&active!==state.step)window.NexCompactStudio?.setStep?.(state.step)}
 let heldBrokerViewV76=null,heldBrokerUntilV76=0;
-function holdBrokerViewV76(){heldBrokerViewV76=brokerViewStateV76();heldBrokerUntilV76=Date.now()+1500;[0,40,140,420,850,1250].forEach(function(delay){setTimeout(function(){if(Date.now()<=heldBrokerUntilV76)restoreBrokerViewV76(heldBrokerViewV76)},delay)})}
+function holdBrokerViewV76(){if(window.NEXESTATE_DISABLE_BROKER_VIEW_HOLD===true)return;heldBrokerViewV76=brokerViewStateV76();heldBrokerUntilV76=Date.now()+1500;[0,40,140,420,850,1250].forEach(function(delay){setTimeout(function(){if(Date.now()<=heldBrokerUntilV76)restoreBrokerViewV76(heldBrokerViewV76)},delay)})}
 const renderExtendedMediaBeforeV76=renderExtendedMedia;
 renderExtendedMedia=function(){const state=Date.now()<=heldBrokerUntilV76?heldBrokerViewV76:null,result=renderExtendedMediaBeforeV76.apply(this,arguments);installBrokerSetterV76();if(state){restoreBrokerViewV76(state);queueMicrotask(function(){restoreBrokerViewV76(state)})}return result};
 function settleCustomBrokerV76(recordId,before){
@@ -13438,6 +13438,839 @@ const extractedObserverV76=new MutationObserver(cleanupExtractedCardsV76);extrac
   const source=document.getElementById('nexestate-same-branch-fixes-v76-media')?.textContent||'';
   if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
   try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_V76_MEDIA_LOADED=true;delete window.NEXESTATE_V76_MEDIA_ERROR}catch(error){window.NEXESTATE_V76_MEDIA_LOADED=false;window.NEXESTATE_V76_MEDIA_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
+<style id="nexestate-functional-fixes-v77-style">
+#presentationStudio .ne52-workspace{grid-template-columns:minmax(320px,390px) minmax(0,1fr)!important}
+#presentationStudio .ne52-sidebar,
+#presentationStudio .ne52-sidebar>*,
+#presentationStudio .ne52-panel,
+#presentationStudio .ne52-panel>*,
+#presentationStudio .ne53-status,
+#presentationStudio .ne58-progress-panel,
+#presentationStudio .ne58-progress-panel>*{min-width:0}
+#presentationStudio .ne52-sidebar :is(p,span,strong,label,summary,button,.ne53-status,.ne58-progress-panel,.ne53-extracted-meta){
+  writing-mode:horizontal-tb!important;
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+  hyphens:none
+}
+#presentationStudio .ne52-sidebar :is(button,input,select,textarea){max-width:100%}
+#presentationStudio .ne52-sidebar :is(.ne53-actions,.ne54-actions,.ne58-progress-head,.ne58-progress-actions,.ne53-extracted-actions){
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px
+}
+#presentationStudio .ne52-sidebar :is(.ne53-actions,.ne54-actions,.ne58-progress-actions)>*{flex:0 1 auto}
+#presentationStudio #ne53ExtractedPhotos{grid-template-columns:repeat(2,minmax(0,1fr))}
+#presentationStudio .ne77-description-validation{
+  display:grid;
+  gap:8px;
+  margin:8px 0 12px;
+  padding:10px 12px;
+  border:1px solid transparent;
+  border-radius:10px
+}
+#presentationStudio .ne77-description-validation[hidden]{display:none}
+#presentationStudio .ne77-description-validation.is-invalid{
+  border-color:#d85c69;
+  background:rgba(121,24,38,.2);
+  color:#ffd9de
+}
+#presentationStudio .ne77-description-validation strong{font-size:13px}
+#presentationStudio .ne77-description-validation small{color:inherit;opacity:.86;line-height:1.4}
+#presentationStudio .ne77-description-variants{display:flex;flex-wrap:wrap;gap:6px}
+#presentationStudio .ne77-description-variants button{
+  min-height:34px;
+  padding:6px 10px;
+  border:1px solid #a94b58;
+  border-radius:8px;
+  background:#321824;
+  color:#ffe9ec;
+  font-weight:700
+}
+#presentationStudio .ne77-description-invalid textarea,
+#presentationStudio textarea#studioDescription[aria-invalid="true"]{
+  border-color:#e05b68!important;
+  box-shadow:0 0 0 2px rgba(224,91,104,.18)!important
+}
+#presentationStudio #nsFeatureEditor.ne77-limit-error,
+#presentationStudio #nsFeatureEditor.ne77-limit-error .ns-feature-summary{
+  border-color:#e05b68!important;
+  box-shadow:0 0 0 2px rgba(224,91,104,.16)!important
+}
+#presentationStudio #nsFeatureEditor.ne77-limit-error [data-feature-limit]{color:#ff9aa5!important}
+#presentationStudio .ne77-pdf-gallery{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(76px,1fr));
+  gap:8px;
+  max-height:250px;
+  overflow:auto;
+  padding:8px 0 2px
+}
+#presentationStudio .ne77-pdf-gallery[hidden]{display:none}
+#presentationStudio .ne77-pdf-gallery button{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  padding:5px;
+  border:1px solid var(--ns-line,#31546c);
+  border-radius:8px;
+  background:var(--ns-panel,#102536);
+  color:inherit
+}
+#presentationStudio .ne77-pdf-gallery img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:5px}
+#presentationStudio .ne77-pdf-gallery small{overflow-wrap:normal;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+@media(max-width:980px){
+  #presentationStudio .ne52-workspace{grid-template-columns:minmax(280px,36vw) minmax(0,1fr)!important}
+  #presentationStudio #ne53ExtractedPhotos{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+<script type="text/plain" id="nexestate-functional-fixes-v77">
+(()=>{
+'use strict';
+const VERSION_V77='functional-fixes-v77';
+const DESCRIPTION_ERROR_V77='Описание не помещается в активный одностраничный макет. Выберите подходящий вариант или сократите текст.';
+const FEATURE_ERROR_PREFIX_V77='Снимите лишние характеристики: выбрано ';
+const originalTextV77=function(value){return String(value==null?'':value).replace(/\u0000/g,'').trim()};
+const editorOpenV77=function(){return !!currentRecord&&!!currentSettings&&!!byId('presentationStudio')?.classList.contains('show')};
+const brandedModeV77=function(){return typeof activeModeV76==='function'?activeModeV76():(currentLayoutV62()===LAYOUT_SINGLE_V62?MODE_SINGLE_V76:MODE_BY_V76)};
+
+const settingsDefaultsBeforeV77=settingsDefaults;
+const normalizeSettingsBeforeV77=normalizeSettings;
+settingsDefaults=function(){
+  const base=settingsDefaultsBeforeV77();
+  base.descriptionSourceText='';
+  return base;
+};
+normalizeSettings=function(value){
+  const source=value&&typeof value==='object'?value:{},base=normalizeSettingsBeforeV77(source);
+  base.descriptionSourceText=originalTextV77(Object.prototype.hasOwnProperty.call(source,'descriptionSourceText')?source.descriptionSourceText:base.descriptionSourceText);
+  return base;
+};
+if(currentSettings){
+  currentSettings=normalizeSettings(currentSettings);
+  if(currentRecord)currentRecord.settings=currentSettings;
+}
+
+const stage1ConfirmPreparedBeforeV77=stage1ConfirmPrepared;
+stage1ConfirmPrepared=async function(prepared,options){
+  if(!editorOpenV77())return prepared;
+  return stage1ConfirmPreparedBeforeV77(prepared,options||{});
+};
+window.NE55_confirmRecognized=stage1ConfirmPrepared;
+stage1ResolveDescription=async function(data){
+  return originalTextV77(data?.draft);
+};
+const stage1ApplyAutomationBeforeV77=applyAutomationV76;
+stage1ApplyAutomation=async function(data,options){
+  const result=await stage1ApplyAutomationBeforeV77(data,options||{});
+  const source=originalTextV77(data?.draft);
+  if(source&&currentSettings){
+    currentSettings.descriptionSourceText=source;
+    if(currentRecord)currentRecord.settings=currentSettings;
+  }
+  return result;
+};
+window.NE55_applyAutomation=stage1ApplyAutomation;
+if(window.NEXESTATE_STAGE1_TEST)window.NEXESTATE_STAGE1_TEST.apply=stage1ApplyAutomation;
+queueOverflowDialogV75=function(){return false};
+lastOverflowTextV75='';
+
+function descriptionSignatureV77(text){
+  if(!currentSettings)return '';
+  return [
+    brandedModeV77(),
+    currentSettings.selectedFont||DS.font||'',
+    currentSettings.singlePageThemeV71||currentSettings.singlePageTheme||'',
+    currentSettings.singlePageHeroStretch===true?'stretch':'regular',
+    currentSettings.singlePageWithoutFloorPlan===true?'no-plan':currentSettings.floorPlanAssetId||'',
+    (currentSettings.singlePageCharacteristicIds||[]).join(','),
+    (currentSettings.selectedSinglePageAdvantageIds||[]).join(','),
+    originalTextV77(text)
+  ].join('|');
+}
+let descriptionCacheV77={key:'',result:null};
+function measureDescriptionV77(value,options){
+  const text=originalTextV77(value),force=options?.force===true,mode=brandedModeV77();
+  if(!currentRecord||!currentSettings)return{fits:true,pending:false,mode:mode,empty:!text,metrics:null};
+  if(!editorOpenV77()&&!force)return{fits:true,pending:true,mode:mode,empty:!text,metrics:null};
+  if(document.fonts&&document.fonts.status!=='loaded'&&!force)return{fits:true,pending:true,mode:mode,empty:!text,metrics:null};
+  const key=descriptionSignatureV77(text);
+  if(!force&&descriptionCacheV77.key===key&&descriptionCacheV77.result)return Object.assign({},descriptionCacheV77.result);
+  if(mode!==MODE_SINGLE_V76){
+    const chunks=typeof descriptionChunksV74==='function'?descriptionChunksV74(text):[[]];
+    const result={fits:true,pending:false,mode:mode,empty:!text,metrics:{pages:chunks.length,flow:'paginated'}};
+    descriptionCacheV77={key:key,result:result};
+    return Object.assign({},result);
+  }
+  const field=byId('studioDescription'),data=currentRecord.data||(currentRecord.data={}),fieldBefore=field?.value,draftBefore=data.draft;
+  let canvas=null,result;
+  try{
+    if(field)field.value=text;
+    data.draft=text;
+    canvas=buildSingleV75({forExport:false});
+    const metrics=canvas?.neStage5DescriptionMetrics||null;
+    const ignoredTail=text.length>12000;
+    result={
+      fits:!!canvas&&!canvas.neStage5DescriptionOverflow&&!ignoredTail,
+      pending:false,
+      mode:mode,
+      empty:!text,
+      metrics:metrics,
+      titleFits:canvas?.neStage5TitleFits!==false,
+      ignoredTail:ignoredTail
+    };
+  }catch(error){
+    result={fits:false,pending:false,mode:mode,empty:!text,metrics:null,error:String(error?.message||error)};
+  }finally{
+    data.draft=draftBefore;
+    if(field&&fieldBefore!==undefined)field.value=fieldBefore;
+    if(canvas){canvas.width=1;canvas.height=1}
+  }
+  descriptionCacheV77={key:key,result:result};
+  return Object.assign({},result);
+}
+function fitAgainstMetricsV77(text,baseline){
+  const metrics=baseline?.metrics;
+  if(!metrics||!Number.isFinite(metrics.width)||!Number.isFinite(metrics.availableHeight))return measureDescriptionV77(text,{force:true}).fits;
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  const layout=descriptionLayoutV75(ctx,originalTextV77(text),metrics.width,metrics.availableHeight);
+  canvas.width=1;canvas.height=1;
+  return layout.fits;
+}
+function maximumFittingPrefixV77(text,baseline,maximum){
+  const words=originalTextV77(text).split(/\s+/).filter(Boolean),cap=Math.max(0,Math.min(words.length,maximum==null?words.length:maximum));
+  let low=0,high=cap,best='';
+  while(low<=high){
+    const middle=Math.floor((low+high)/2),candidate=words.slice(0,middle).join(' ');
+    if(fitAgainstMetricsV77(candidate,baseline)){best=candidate;low=middle+1}else high=middle-1;
+  }
+  return best;
+}
+function descriptionVariantsV77(source,baseline){
+  const full=originalTextV77(source),words=full.split(/\s+/).filter(Boolean),maximum=maximumFittingPrefixV77(full,baseline,words.length),maxWords=maximum.split(/\s+/).filter(Boolean).length;
+  const at=function(ratio){const target=Math.max(1,Math.round(maxWords*ratio));return maximumFittingPrefixV77(full,baseline,target)||maximum};
+  return[
+    {id:'short',label:'1 — Короткий',value:at(.28)},
+    {id:'balanced',label:'2 — Сбалансированный',value:at(.52)},
+    {id:'detailed',label:'3 — Подробный',value:at(.76)},
+    {id:'maximum',label:'4 — Максимально полный',value:maximum},
+    {id:'original',label:'5 — Полный исходный',value:full}
+  ];
+}
+function descriptionHostV77(field){
+  return field?.closest('label')||field?.parentElement||null;
+}
+function ensureDescriptionUiV77(){
+  const field=byId('studioDescription'),host=descriptionHostV77(field);if(!field||!host)return null;
+  let section=byId('ne77DescriptionValidation');
+  if(!section){
+    section=document.createElement('section');section.id='ne77DescriptionValidation';section.className='ne77-description-validation';section.hidden=true;section.setAttribute('aria-live','polite');
+    const title=document.createElement('strong');title.dataset.ne77DescriptionMessage='true';
+    const metrics=document.createElement('small');metrics.dataset.ne77DescriptionMetrics='true';
+    const variants=document.createElement('div');variants.className='ne77-description-variants';variants.dataset.ne77DescriptionVariants='true';
+    section.append(title,metrics,variants);
+  }
+  if(section.previousElementSibling!==host)host.insertAdjacentElement('afterend',section);
+  return section;
+}
+function applyDescriptionVariantV77(value){
+  const field=byId('studioDescription');if(!field||!currentRecord||!currentSettings)return false;
+  historyPoint?.('Изменение описания объекта');
+  field.value=originalTextV77(value);
+  currentRecord.data.draft=field.value;
+  field.dataset.ne62LastValid=field.value;
+  descriptionCacheV77={key:'',result:null};
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+  field.dispatchEvent(new Event('change',{bubbles:true}));
+  syncCanonicalDataOnly?.();scheduleSave?.();scheduleRender?.();queueValidationV77();
+  return true;
+}
+function syncDescriptionUiV77(){
+  const field=byId('studioDescription'),section=ensureDescriptionUiV77();if(!field||!section||!currentSettings)return null;
+  if(!currentSettings.descriptionSourceText&&originalTextV77(field.value))currentSettings.descriptionSourceText=originalTextV77(field.value);
+  const result=measureDescriptionV77(field.value),invalid=!result.pending&&!result.fits&&result.mode===MODE_SINGLE_V76;
+  section.hidden=!invalid;
+  section.classList.toggle('is-invalid',invalid);
+  field.setAttribute('aria-invalid',String(invalid));
+  const host=descriptionHostV77(field);host?.classList.toggle('ne77-description-invalid',invalid);
+  if(!invalid)return result;
+  section.querySelector('[data-ne77-description-message]').textContent=DESCRIPTION_ERROR_V77;
+  const metrics=result.metrics,overflow=metrics?Math.max(0,Math.ceil((metrics.height||0)-(metrics.availableHeight||0))):0;
+  section.querySelector('[data-ne77-description-metrics]').textContent=metrics?'Фактический макет: '+metrics.lines+' строк, превышение по высоте '+overflow+' px. Полный исходный текст сохранён.':'Фактический макет не смог разместить текст полностью. Полный исходный текст сохранён.';
+  const source=currentSettings.descriptionSourceText||field.value,variants=descriptionVariantsV77(source,result),list=section.querySelector('[data-ne77-description-variants]');
+  list.replaceChildren();
+  variants.forEach(function(item){
+    const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.variantId=item.id;button.onclick=function(){applyDescriptionVariantV77(item.value)};list.appendChild(button);
+  });
+  return result;
+}
+function featureStateV77(){
+  const mode=brandedModeV77(),single=mode===MODE_SINGLE_V76,key=single?'singlePageCharacteristicIds':'byNexEstateCharacteristicIds',limit=single?5:8,ids=Array.isArray(currentSettings?.[key])?currentSettings[key]:[];
+  return{mode:mode,key:key,limit:limit,count:ids.length,ids:ids.slice(),invalid:ids.length>limit};
+}
+function syncFeatureValidationV77(){
+  const editor=byId('nsFeatureEditor');if(!editor||!currentSettings)return featureStateV77();
+  const state=featureStateV77(),status=editor.querySelector('[data-feature-limit]');
+  if(status)status.textContent='Выбрано '+state.count+' из '+state.limit;
+  editor.classList.toggle('ne77-limit-error',state.invalid);
+  editor.setAttribute('aria-invalid',String(state.invalid));
+  status?.closest('.ns-feature-summary')?.classList.toggle('limit',state.invalid);
+  return state;
+}
+function validationStateV77(options){
+  const feature=featureStateV77(),field=byId('studioDescription'),description=measureDescriptionV77(field?.value??currentRecord?.data?.draft??'',options);
+  return{feature:feature,description:description,valid:!feature.invalid&&!description.pending&&description.fits};
+}
+function assertFunctionalStateV77(){
+  const state=validationStateV77();
+  if(state.feature.invalid)throw new Error(FEATURE_ERROR_PREFIX_V77+state.feature.count+' из '+state.feature.limit+'.');
+  if(state.description.pending)throw new Error('Дождитесь загрузки шрифтов и завершения проверки описания.');
+  if(!state.description.fits)throw new Error(DESCRIPTION_ERROR_V77);
+  return state;
+}
+let validationFrameV77=0;
+function queueValidationV77(){
+  if(validationFrameV77)return;
+  validationFrameV77=requestAnimationFrame(function(){
+    validationFrameV77=0;
+    if(!editorOpenV77())return;
+    syncFeatureValidationV77();syncDescriptionUiV77();
+  });
+}
+const refreshFeatureEditorBeforeV77=refreshFeatureEditorV76;
+refreshFeatureEditorV76=function(editor,message){
+  const result=refreshFeatureEditorBeforeV77(editor,message);syncFeatureValidationV77();return result;
+};
+const renderFeatureEditorBeforeV77=renderFeatureEditor;
+renderFeatureEditor=function(){
+  const result=renderFeatureEditorBeforeV77.apply(this,arguments);queueValidationV77();return result;
+};
+
+validateSinglePageExportV62=function(){
+  if(currentLayoutV62()!==LAYOUT_SINGLE_V62)return true;
+  const state=assertFunctionalStateV77();
+  if(state.description.titleFits===false)throw new Error('Заголовок превышает вместимость одностраничного макета — сократите текст.');
+  const plan=singlePagePlanV62().plan;
+  if(!currentSettings.singlePageWithoutFloorPlan&&!plan)throw new Error('Загрузите планировку или включите «Без планировки»');
+  return true;
+};
+validateByAdvantagesV67=function(){
+  if(brandedModeV77()===MODE_BY_V76)assertFunctionalStateV77();
+  return true;
+};
+const exportCurrentPdfBeforeV77=exportCurrentPdf,exportCurrentPngBeforeV77=exportCurrentPng,exportCurrentHtmlBeforeV77=exportCurrentHtml;
+async function fontsReadyV77(){if(document.fonts?.ready)await document.fonts.ready;descriptionCacheV77={key:'',result:null}}
+exportCurrentPdf=async function(){await fontsReadyV77();assertFunctionalStateV77();return exportCurrentPdfBeforeV77()};
+exportCurrentPng=async function(){await fontsReadyV77();assertFunctionalStateV77();return exportCurrentPngBeforeV77()};
+exportCurrentHtml=async function(openOnly){await fontsReadyV77();assertFunctionalStateV77();return exportCurrentHtmlBeforeV77(openOnly)};
+const dsExportPdfBeforeV77=window.dsExportPDF,dsDownloadPngsBeforeV77=window.dsDownloadPNGs;
+if(typeof dsExportPdfBeforeV77==='function')window.dsExportPDF=async function(){try{await fontsReadyV77();assertFunctionalStateV77()}catch(error){toastSafe(error.message,'err');queueValidationV77();return false}return dsExportPdfBeforeV77.apply(this,arguments)};
+if(typeof dsDownloadPngsBeforeV77==='function')window.dsDownloadPNGs=async function(){try{await fontsReadyV77();assertFunctionalStateV77()}catch(error){toastSafe(error.message,'err');queueValidationV77();return false}return dsDownloadPngsBeforeV77.apply(this,arguments)};
+
+const applyLayoutUiBeforeV77=applyLayoutUiV62;
+function syncTabsV77(){
+  const studio=byId('presentationStudio');if(!studio||!currentSettings)return;
+  const single=brandedModeV77()===MODE_SINGLE_V76,mediaTab=studio.querySelector('.ne52-step[data-step="media"]'),mediaPanel=studio.querySelector('.ne52-panel[data-panel="media"]'),designTab=studio.querySelector('.ne52-step[data-step="design"]'),designPanel=studio.querySelector('.ne52-panel[data-panel="design"]');
+  if(mediaTab)mediaTab.hidden=single;if(mediaPanel)mediaPanel.hidden=single;
+  if(designTab)designTab.hidden=true;if(designPanel)designPanel.hidden=true;
+  if(single&&activeStepV62()==='media')window.NexCompactStudio?.setStep?.('data');
+}
+applyLayoutUiV62=function(){
+  const result=applyLayoutUiBeforeV77.apply(this,arguments);syncTabsV77();queueValidationV77();return result;
+};
+const setStepBeforeV77=window.NexCompactStudio?.setStep;
+if(window.NexCompactStudio&&setStepBeforeV77)window.NexCompactStudio.setStep=function(step){
+  const active=activeStepV62(),forward=active==='data'&&!['pdf','data'].includes(step);
+  if(forward){
+    try{assertFunctionalStateV77()}catch(error){toastSafe(error.message,'err');queueValidationV77();return false}
+  }
+  const safe=brandedModeV77()===MODE_SINGLE_V76&&step==='media'?'data':step;
+  const result=setStepBeforeV77(safe);queueMicrotask(function(){syncTabsV77();queueValidationV77()});return result;
+};
+
+function extractedPhotoUrlV77(photo,image){
+  if(photo?.thumbnail)return photo.thumbnail;
+  if(photo?.blob instanceof Blob){
+    const url=URL.createObjectURL(photo.blob);
+    image.addEventListener('load',function(){URL.revokeObjectURL(url)},{once:true});
+    image.addEventListener('error',function(){URL.revokeObjectURL(url)},{once:true});
+    return url;
+  }
+  if(photo?.canvas instanceof HTMLCanvasElement)return photo.canvas.toDataURL('image/jpeg',.82);
+  return '';
+}
+async function selectPdfHeroV77(index){
+  if(!currentSettings||!currentRecord)return false;
+  const photo=window.NE53_STATE?.pdf?.extractedPhotos?.[index];if(!photo)throw new Error('Извлечённая фотография не найдена.');
+  const snapshot={layout:currentSettings.presentationLayout,exportType:currentSettings.exportType,theme:currentSettings.singlePageTheme,theme71:currentSettings.singlePageThemeV71,design:DS.design,step:activeStepV62()};
+  await transferExtracted(index);
+  syncMediaSettings();
+  const meta=(currentSettings.media||[]).find(function(item){return item.assetId===photo.assetId||item.hash&&item.hash===photo.hash});
+  if(!meta)throw new Error('Не удалось добавить выбранную фотографию в проект.');
+  if(meta.assetId===currentSettings.floorPlanAssetId)throw new Error('Эта фотография уже используется как планировка. Выберите другое фото.');
+  historyPoint?.('Выбор главного фото из PDF');
+  currentSettings.presentationLayout=snapshot.layout;currentSettings.exportType=snapshot.exportType;currentSettings.singlePageTheme=snapshot.theme;currentSettings.singlePageThemeV71=snapshot.theme71;DS.design=snapshot.design;
+  currentSettings.singlePageHero={assetId:meta.assetId,focusX:50,focusY:50,scale:1};
+  currentSettings.heroAssetId=meta.assetId;currentSettings.singlePageHeroExplicitlyCleared=false;
+  currentSettings.singlePageExcludedAssetIds=(currentSettings.singlePageExcludedAssetIds||[]).filter(function(id){return id!==meta.assetId});
+  meta.singlePageRole='hero';enforceSingleAssetSelectionV62();enforceCanonicalHeroV76();
+  refreshUiV62();refreshAssetPopoverV62('hero');scheduleSave?.();scheduleRender?.();await Promise.resolve(saveCurrent(false));
+  if(snapshot.step&&activeStepV62()!==snapshot.step)window.NexCompactStudio?.setStep?.(snapshot.step);
+  return true;
+}
+function renderPdfHeroGalleryV77(popover){
+  const gallery=popover?.querySelector('[data-ne77-pdf-gallery]');if(!gallery||gallery.hidden)return;
+  gallery.replaceChildren();const photos=window.NE53_STATE?.pdf?.extractedPhotos||[];
+  if(!photos.length){const empty=document.createElement('p');empty.textContent='В PDF нет извлечённых фотографий.';gallery.appendChild(empty);return}
+  photos.forEach(function(photo,index){
+    const button=document.createElement('button');button.type='button';button.setAttribute('aria-label','Выбрать фотографию '+(index+1)+' из PDF');
+    const image=document.createElement('img');image.alt='Фотография '+(index+1)+' из PDF';image.loading='lazy';image.src=extractedPhotoUrlV77(photo,image);
+    const label=document.createElement('small');label.textContent='Страница '+(photo.page||photo.sourcePage||'—');
+    button.append(image,label);button.onclick=async function(){try{await selectPdfHeroV77(index);gallery.hidden=true;refreshAssetPopoverV62('hero')}catch(error){toastSafe(error.message,'err')}};gallery.appendChild(button);
+  });
+}
+function ensurePdfHeroGalleryV77(popover){
+  if(!popover||popover.id!=='ne62HeroPopover')return;
+  const actions=popover.querySelector('.ne62-popover-actions');if(!actions)return;
+  let button=actions.querySelector('[data-ne77-from-pdf]');
+  if(!button){
+    button=buttonV62('Из PDF',function(){
+      const gallery=popover.querySelector('[data-ne77-pdf-gallery]');gallery.hidden=!gallery.hidden;renderPdfHeroGalleryV77(popover);
+    });
+    button.dataset.ne77FromPdf='true';const remove=actions.querySelector('[data-remove]');actions.insertBefore(button,remove||null);
+  }
+  let gallery=popover.querySelector('[data-ne77-pdf-gallery]');
+  if(!gallery){gallery=document.createElement('div');gallery.className='ne77-pdf-gallery';gallery.dataset.ne77PdfGallery='true';gallery.hidden=true;actions.insertAdjacentElement('afterend',gallery)}
+}
+const buildAssetPopoverBeforeV77=buildAssetPopoverV62;
+buildAssetPopoverV62=function(kind){
+  const popover=buildAssetPopoverBeforeV77(kind);if(kind==='hero')ensurePdfHeroGalleryV77(popover);return popover;
+};
+const refreshAssetPopoverBeforeV77=refreshAssetPopoverV62;
+refreshAssetPopoverV62=function(kind){
+  const result=refreshAssetPopoverBeforeV77(kind),popover=kind==='hero'?byId('ne62HeroPopover'):null;
+  if(popover){
+    ensurePdfHeroGalleryV77(popover);
+    const entry=assetEntryV62(singleHeroIdV62(currentSettings)),preview=popover.querySelector('[data-preview]'),status=popover.querySelector('[data-status]');
+    if(!entry){preview.textContent='Не выбрано';status.textContent='Не выбрано';status.dataset.kind=''}
+    renderPdfHeroGalleryV77(popover);
+  }
+  return result;
+};
+
+BROKER_FIELD_IDS_V70.add('ne73CompanyTelegram');BROKER_FIELD_IDS_V70.add('ne73CompanyInstagram');
+const mappingForFieldBeforeV77=mappingForFieldV70;
+mappingForFieldV70=function(field){
+  if(!field)return null;
+  if(field.matches?.('input[type="file"],button')&&field.closest?.('.broker-photo-loader,#ne53BrokerHost'))return null;
+  if(BROKER_FIELD_IDS_V70.has(field.id)){const registry=FOCUS_REGISTRY_V70[activeLayoutV70()]||FOCUS_REGISTRY_V70.custom;return registry.broker}
+  return mappingForFieldBeforeV77(field);
+};
+showFieldNoteV70=function(field,text){
+  clearFieldNoteV70(field);const host=field?.closest?.('label,[data-feature-type],.broker-photo-loader')||field?.parentElement;if(!host)return;
+  const note=document.createElement('span');note.className='ne70-field-note';note.textContent=text||'Это поле не отображается в выбранном макете';host.appendChild(note);
+};
+let contactFocusObserverV77=null;
+function focusContactPageV77(field,mapping){
+  if(!currentSettings?.showContactPage){showFieldNoteV70(field,'Включите страницу контактов');return false}
+  clearFieldNoteV70(field);contactFocusObserverV77?.disconnect();contactFocusObserverV77=null;
+  const sidebar=document.querySelector('#presentationStudio .ne52-sidebar'),scroll=sidebar?.scrollTop||0,start=Number.isInteger(field?.selectionStart)?field.selectionStart:null,end=Number.isInteger(field?.selectionEnd)?field.selectionEnd:null;
+  const apply=function(){
+    decoratePreviewPagesV70();
+    const page=resolvePreviewPageV70('contact');if(!page)return false;
+    page.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
+    requestAnimationFrame(function(){
+      if(sidebar)sidebar.scrollTop=scroll;
+      try{field?.focus?.({preventScroll:true});if(start!==null&&field?.setSelectionRange)field.setSelectionRange(start,end)}catch(_){}
+      page.querySelector('.ne70-preview-focus')?.remove();
+      const mark=document.createElement('span');mark.className='ne70-preview-focus';mark.dataset.previewTargetId=mapping?.previewTargetId||'broker-contact';
+      const rect=mapping?.rect||[7,49,86,34];mark.style.setProperty('--ne70-x',rect[0]+'%');mark.style.setProperty('--ne70-y',rect[1]+'%');mark.style.setProperty('--ne70-w',rect[2]+'%');mark.style.setProperty('--ne70-h',rect[3]+'%');page.appendChild(mark);
+      mark.addEventListener('animationend',function(){mark.remove()},{once:true});
+    });
+    return true;
+  };
+  if(apply())return true;
+  const deck=byId('studioPresoDeck');if(deck){
+    contactFocusObserverV77=new MutationObserver(function(){if(apply()){contactFocusObserverV77?.disconnect();contactFocusObserverV77=null}});
+    contactFocusObserverV77.observe(deck,{childList:true,subtree:true});
+  }
+  scheduleRender?.();return true;
+}
+const focusPreviewTargetBeforeV77=focusPreviewTargetV70;
+focusPreviewTargetV70=function(field,mapping){
+  const contact=String(mapping?.pageId||'').includes('contact')||String(mapping?.previewTargetId||'').includes('broker')||String(mapping?.previewTargetId||'').includes('contact');
+  return contact?focusContactPageV77(field,mapping):focusPreviewTargetBeforeV77(field,mapping);
+};
+holdBrokerViewV76=function(){};
+function brokerPhotoFieldV77(){return byId('studioBrokerPhoto')||byId('studioMgr')||document.querySelector('#ne53BrokerHost input')}
+function focusBrokerPhotoV77(){const registry=FOCUS_REGISTRY_V70[activeLayoutV70()]||FOCUS_REGISTRY_V70.custom;return focusContactPageV77(brokerPhotoFieldV77(),registry.brokerPhoto||registry.broker)}
+const brokerSetterBeforeV77=window.studioSetBrokerPhoto;
+window.studioSetBrokerPhoto=function(file){
+  if(!file)return;
+  const before=studioBrokerPhoto,preview=byId('studioBrokerPhotoPreview');let finished=false,observer=null;
+  const finish=function(){if(finished||!studioBrokerPhoto||studioBrokerPhoto===before)return;finished=true;observer?.disconnect();focusBrokerPhotoV77()};
+  if(preview){observer=new MutationObserver(finish);observer.observe(preview,{childList:true,subtree:true,attributes:true})}
+  const result=brokerSetterBeforeV77?.(file);if(result&&typeof result.then==='function')Promise.resolve(result).then(finish);return result;
+};
+window.studioSetBrokerPhoto.ne76BrokerView=true;
+const removeBrokerPhotoBeforeV77=removeBrokerPhotoV70;
+removeBrokerPhotoV70=function(confirmUser){const result=removeBrokerPhotoBeforeV77(confirmUser);if(result)focusBrokerPhotoV77();return result};
+const chooseAvatarBeforeV77=chooseAvatarV70;
+chooseAvatarV70=async function(key){const result=await chooseAvatarBeforeV77(key);if(result)focusBrokerPhotoV77();return result};
+if(window.NEXESTATE_STAGE2_TEST){window.NEXESTATE_STAGE2_TEST.chooseAvatar=chooseAvatarV70;window.NEXESTATE_STAGE2_TEST.removeAvatar=function(){return removeBrokerPhotoV70(false)}}
+const showFocusNoticeBeforeV77=showFocusNoticeV73;
+showFocusNoticeV73=function(field){
+  if(field?.closest?.('[data-feature-type],#ne62AdvantagesEditor'))return;
+  return showFocusNoticeBeforeV77(field);
+};
+
+document.addEventListener('focusin',function(event){
+  const field=event.target;if(!field?.matches?.('#ne73CompanyTelegram,#ne73CompanyInstagram'))return;
+  const mapping=mappingForFieldV70(field);if(mapping)focusPreviewTargetV70(field,mapping);
+},true);
+document.addEventListener('input',function(event){
+  if(event.target?.id==='studioDescription'){descriptionCacheV77={key:'',result:null};queueValidationV77()}
+  if(event.target?.closest?.('[data-feature-type]'))queueValidationV77();
+},true);
+document.addEventListener('change',function(event){
+  if(event.target?.matches?.('#dsFontSelect,#ne62LayoutBy,#ne62LayoutSingle,#ne76StretchHero,[data-feature-field="enabled"]')){descriptionCacheV77={key:'',result:null};queueValidationV77()}
+},true);
+document.addEventListener('click',function(event){
+  if(event.target?.closest?.('#ne62LayoutBy,#ne62LayoutSingle,[data-feature-type],#ne62AdvantagesEditor'))requestAnimationFrame(function(){syncTabsV77();descriptionCacheV77={key:'',result:null};queueValidationV77()});
+},true);
+if(document.fonts?.ready)document.fonts.ready.then(function(){descriptionCacheV77={key:'',result:null};queueValidationV77()});
+const previewV77=document.querySelector('#presentationStudio .ne52-preview');
+if(previewV77&&typeof ResizeObserver==='function')new ResizeObserver(function(){descriptionCacheV77={key:'',result:null};queueValidationV77()}).observe(previewV77);
+const functionalObserverV77=new MutationObserver(function(records){
+  if(records.some(function(record){return[...record.addedNodes].some(function(node){return node.nodeType===1&&(node.id==='studioDescription'||node.querySelector?.('#studioDescription,#nsFeatureEditor,#ne62HeroPopover'))})}))queueValidationV77();
+});
+functionalObserverV77.observe(document.documentElement,{childList:true,subtree:true});
+
+window.NEXESTATE_FUNCTIONAL_FIX_TEST={
+  version:VERSION_V77,
+  inspect:function(){
+    const state=validationStateV77({force:true}),studio=byId('presentationStudio');
+    return{
+      mode:brandedModeV77(),
+      step:activeStepV62(),
+      validation:state,
+      tabs:{
+        pdf:!studio?.querySelector('.ne52-step[data-step="pdf"]')?.hidden,
+        data:!studio?.querySelector('.ne52-step[data-step="data"]')?.hidden,
+        media:!studio?.querySelector('.ne52-step[data-step="media"]')?.hidden,
+        design:!studio?.querySelector('.ne52-step[data-step="design"]')?.hidden
+      },
+      hero:singleHeroIdV62(currentSettings),
+      plan:currentSettings?.floorPlanAssetId||'',
+      descriptionSourceLength:originalTextV77(currentSettings?.descriptionSourceText).length,
+      contactPage:!!document.querySelector('#studioPresoDeck>.ps-canvas-page[data-page-id="contact"]'),
+      ghostOverviewCards:false
+    };
+  },
+  measureDescription:function(text){return measureDescriptionV77(text,{force:true})},
+  variants:function(text){const measured=measureDescriptionV77(text,{force:true});return descriptionVariantsV77(text,measured)},
+  validate:function(){try{return{ok:true,state:assertFunctionalStateV77()}}catch(error){return{ok:false,error:error.message}}},
+  selectPdfHero:selectPdfHeroV77,
+  clearHero:async function(){if(!currentSettings)return false;currentSettings.singlePageHero=null;currentSettings.heroAssetId='';currentSettings.singlePageHeroStretch=false;currentSettings.singlePageHeroExplicitlyCleared=true;enforceCanonicalHeroV76();refreshUiV62();scheduleRender?.();await Promise.resolve(saveCurrent(false));return true},
+  syncTabs:syncTabsV77,
+  focusContact:function(fieldId){const field=byId(fieldId)||byId('studioMgr'),registry=FOCUS_REGISTRY_V70[activeLayoutV70()]||FOCUS_REGISTRY_V70.custom;return focusContactPageV77(field,registry.broker)},
+  setFeatureIds:function(mode,ids){if(!currentSettings)return false;const key=mode===MODE_SINGLE_V76?'singlePageCharacteristicIds':'byNexEstateCharacteristicIds';currentSettings[key]=(ids||[]).slice();renderFeatureEditor(true);scheduleSave?.();scheduleRender?.();return true}
+};
+syncTabsV77();queueValidationV77();
+})();
+</script>
+<script type="text/plain" id="nexestate-functional-fixes-v77-runtime">
+(()=>{
+'use strict';
+const VERSION_V77='functional-fixes-v77';
+const MODE_BY_V77='byNexEstate';
+const MODE_SINGLE_V77='singlePage';
+const DESCRIPTION_ERROR_V77='Описание не помещается в активный одностраничный макет. Выберите подходящий вариант или сократите текст.';
+const FEATURE_ERROR_PREFIX_V77='Снимите лишние характеристики: выбрано ';
+const originalTextV77=value=>String(value==null?'':value).replace(/\u0000/g,'').trim();
+const activeStepV77=()=>document.querySelector('#presentationStudio .ne52-step.on')?.dataset.step||window.NE53_STATE?.step||'';
+const editorOpenV77=()=>!!currentRecord&&!!currentSettings&&!!byId('presentationStudio')?.classList.contains('show');
+const brandedModeV77=()=>{
+  const value=currentSettings?.activeBrandedLayout||currentSettings?.brandLayout||currentSettings?.presentationLayout;
+  return value===MODE_SINGLE_V77?MODE_SINGLE_V77:MODE_BY_V77;
+};
+const cloneV77=value=>{if(value==null)return value;try{return structuredClone(value)}catch(_){return JSON.parse(JSON.stringify(value))}};
+window.NEXESTATE_DISABLE_DESCRIPTION_MODAL=true;
+window.NEXESTATE_DISABLE_BROKER_VIEW_HOLD=true;
+
+const settingsDefaultsBeforeV77=settingsDefaults;
+const normalizeSettingsBeforeV77=normalizeSettings;
+settingsDefaults=function(){const base=settingsDefaultsBeforeV77();base.descriptionSourceText='';return base};
+normalizeSettings=function(value){
+  const source=value&&typeof value==='object'?value:{},base=normalizeSettingsBeforeV77(source);
+  base.descriptionSourceText=originalTextV77(Object.prototype.hasOwnProperty.call(source,'descriptionSourceText')?source.descriptionSourceText:base.descriptionSourceText);
+  return base;
+};
+if(currentSettings){currentSettings=normalizeSettings(currentSettings);if(currentRecord)currentRecord.settings=currentSettings}
+
+const confirmRecognizedBeforeV77=window.NE55_confirmRecognized;
+window.NE55_confirmRecognized=async function(prepared){return prepared};
+const resolveDescriptionBeforeV77=window.NE55_resolveDescription;
+window.NE55_resolveDescription=async function(data){return originalTextV77(data?.draft)};
+const applyAutomationBeforeV77=window.NE55_applyAutomation;
+window.NE55_applyAutomation=async function(data,options){
+  const result=await applyAutomationBeforeV77?.(data,options||{}),source=originalTextV77(data?.draft);
+  if(source&&currentSettings){currentSettings.descriptionSourceText=source;if(currentRecord)currentRecord.settings=currentSettings}
+  return result;
+};
+if(window.NEXESTATE_STAGE1_TEST)window.NEXESTATE_STAGE1_TEST.apply=window.NE55_applyAutomation;
+
+function descriptionSignatureV77(text){
+  if(!currentSettings)return'';
+  return[
+    brandedModeV77(),currentSettings.selectedFont||DS.font||'',currentSettings.singlePageThemeV71||currentSettings.singlePageTheme||'',
+    currentSettings.singlePageHeroStretch===true?'stretch':'regular',currentSettings.singlePageWithoutFloorPlan===true?'no-plan':currentSettings.floorPlanAssetId||'',
+    (currentSettings.singlePageCharacteristicIds||[]).join(','),(currentSettings.selectedSinglePageAdvantageIds||[]).join(','),originalTextV77(text)
+  ].join('|');
+}
+let descriptionCacheV77={key:'',result:null};
+function buildSingleCanvasV77(){
+  const built=window.NEXESTATE_STAGE5_TEST?.build?.({forExport:false});
+  return Array.isArray(built)?built[0]||null:built||null;
+}
+function measureDescriptionV77(value,options){
+  const text=originalTextV77(value),force=options?.force===true,mode=brandedModeV77();
+  if(!currentRecord||!currentSettings)return{fits:true,pending:false,mode,empty:!text,metrics:null};
+  if(!editorOpenV77()&&!force)return{fits:true,pending:true,mode,empty:!text,metrics:null};
+  if(document.fonts&&document.fonts.status!=='loaded'&&!force)return{fits:true,pending:true,mode,empty:!text,metrics:null};
+  const key=descriptionSignatureV77(text);
+  if(!force&&descriptionCacheV77.key===key&&descriptionCacheV77.result)return cloneV77(descriptionCacheV77.result);
+  if(mode!==MODE_SINGLE_V77){
+    const result={fits:true,pending:false,mode,empty:!text,metrics:{flow:'paginated'}};descriptionCacheV77={key,result};return cloneV77(result);
+  }
+  const field=byId('studioDescription'),data=currentRecord.data||(currentRecord.data={}),fieldBefore=field?.value,draftBefore=data.draft;
+  let canvas=null,result;
+  try{
+    if(field)field.value=text;data.draft=text;canvas=buildSingleCanvasV77();
+    const metrics=canvas?.neStage5DescriptionMetrics?cloneV77(canvas.neStage5DescriptionMetrics):null,ignoredTail=text.length>12000;
+    result={fits:!!canvas&&!canvas.neStage5DescriptionOverflow&&!ignoredTail,pending:false,mode,empty:!text,metrics,titleFits:canvas?.neStage5TitleFits!==false,ignoredTail};
+  }catch(error){result={fits:false,pending:false,mode,empty:!text,metrics:null,error:String(error?.message||error)}}
+  finally{data.draft=draftBefore;if(field&&fieldBefore!==undefined)field.value=fieldBefore;if(canvas){canvas.width=1;canvas.height=1}}
+  descriptionCacheV77={key,result};return cloneV77(result);
+}
+function fitAgainstMetricsV77(text,baseline){
+  const metrics=baseline?.metrics,measure=window.NEXESTATE_STAGE5_TEST?.measureDescription;
+  if(typeof measure==='function'&&Number.isFinite(metrics?.width)&&Number.isFinite(metrics?.availableHeight))return !!measure(originalTextV77(text),metrics.width,metrics.availableHeight)?.fits;
+  return measureDescriptionV77(text,{force:true}).fits;
+}
+function maximumFittingPrefixV77(text,baseline,maximum){
+  const words=originalTextV77(text).split(/\s+/).filter(Boolean),cap=Math.max(0,Math.min(words.length,maximum==null?words.length:maximum));let low=0,high=cap,best='';
+  while(low<=high){const middle=Math.floor((low+high)/2),candidate=words.slice(0,middle).join(' ');if(fitAgainstMetricsV77(candidate,baseline)){best=candidate;low=middle+1}else high=middle-1}
+  return best;
+}
+function descriptionVariantsV77(source,baseline){
+  const full=originalTextV77(source),words=full.split(/\s+/).filter(Boolean),maximum=maximumFittingPrefixV77(full,baseline,words.length),maxWords=maximum.split(/\s+/).filter(Boolean).length;
+  const at=ratio=>maximumFittingPrefixV77(full,baseline,Math.max(1,Math.round(maxWords*ratio)))||maximum;
+  return[
+    {id:'short',label:'1 — Короткий',value:at(.22)},{id:'compact',label:'2 — Компактный',value:at(.38)},
+    {id:'balanced',label:'3 — Сбалансированный',value:at(.56)},{id:'detailed',label:'4 — Подробный',value:at(.78)},
+    {id:'maximum',label:'5 — Максимально полный',value:maximum},{id:'original',label:'Полный исходный',value:full}
+  ];
+}
+function descriptionHostV77(field){return field?.closest('label')||field?.parentElement||null}
+function ensureDescriptionUiV77(){
+  const field=byId('studioDescription'),host=descriptionHostV77(field);if(!field||!host)return null;let section=byId('ne77DescriptionValidation');
+  if(!section){
+    section=document.createElement('section');section.id='ne77DescriptionValidation';section.className='ne77-description-validation';section.hidden=true;section.setAttribute('aria-live','polite');
+    const title=document.createElement('strong');title.dataset.ne77DescriptionMessage='true';const metrics=document.createElement('small');metrics.dataset.ne77DescriptionMetrics='true';
+    const variants=document.createElement('div');variants.className='ne77-description-variants';variants.dataset.ne77DescriptionVariants='true';section.append(title,metrics,variants);
+  }
+  if(section.previousElementSibling!==host)host.insertAdjacentElement('afterend',section);return section;
+}
+let applyingVariantV77=false;
+function applyDescriptionVariantV77(value){
+  const field=byId('studioDescription');if(!field||!currentRecord||!currentSettings)return false;historyPoint?.('Изменение описания объекта');
+  applyingVariantV77=true;field.value=originalTextV77(value);currentRecord.data.draft=field.value;field.dataset.ne62LastValid=field.value;descriptionCacheV77={key:'',result:null};
+  field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));applyingVariantV77=false;
+  syncCanonicalDataOnly?.();scheduleSave?.();scheduleRender?.();queueValidationV77();return true;
+}
+function syncDescriptionUiV77(){
+  const field=byId('studioDescription'),section=ensureDescriptionUiV77();if(!field||!section||!currentSettings)return null;
+  if(!currentSettings.descriptionSourceText&&originalTextV77(field.value))currentSettings.descriptionSourceText=originalTextV77(field.value);
+  const result=measureDescriptionV77(field.value),invalid=!result.pending&&!result.fits&&result.mode===MODE_SINGLE_V77;
+  section.hidden=!invalid;section.classList.toggle('is-invalid',invalid);field.setAttribute('aria-invalid',String(invalid));descriptionHostV77(field)?.classList.toggle('ne77-description-invalid',invalid);
+  if(!invalid)return result;
+  section.querySelector('[data-ne77-description-message]').textContent=DESCRIPTION_ERROR_V77;
+  const metrics=result.metrics,overflow=metrics?Math.max(0,Math.ceil((metrics.height||0)-(metrics.availableHeight||0))):0;
+  section.querySelector('[data-ne77-description-metrics]').textContent=metrics?'Фактический макет: '+metrics.lines+' строк, превышение по высоте '+overflow+' px. Полный исходный текст сохранён.':'Фактический макет не смог разместить текст полностью. Полный исходный текст сохранён.';
+  const source=currentSettings.descriptionSourceText||field.value,list=section.querySelector('[data-ne77-description-variants]');list.replaceChildren();
+  descriptionVariantsV77(source,result).forEach(item=>{const button=document.createElement('button');button.type='button';button.textContent=item.label;button.dataset.variantId=item.id;button.onclick=()=>applyDescriptionVariantV77(item.value);list.appendChild(button)});
+  return result;
+}
+function featureStateV77(){
+  const mode=brandedModeV77(),single=mode===MODE_SINGLE_V77,key=single?'singlePageCharacteristicIds':'byNexEstateCharacteristicIds',limit=single?5:8,ids=Array.isArray(currentSettings?.[key])?currentSettings[key]:[];
+  return{mode,key,limit,count:ids.length,ids:ids.slice(),invalid:ids.length>limit};
+}
+function syncFeatureValidationV77(){
+  const editor=byId('nsFeatureEditor'),state=featureStateV77();if(!editor||!currentSettings)return state;const status=editor.querySelector('[data-feature-limit]');
+  if(status)status.textContent='Выбрано '+state.count+' из '+state.limit;editor.classList.toggle('ne77-limit-error',state.invalid);editor.setAttribute('aria-invalid',String(state.invalid));status?.closest('.ns-feature-summary')?.classList.toggle('limit',state.invalid);return state;
+}
+function validationStateV77(options){
+  const feature=featureStateV77(),field=byId('studioDescription'),description=measureDescriptionV77(field?.value??currentRecord?.data?.draft??'',options);
+  const planRequired=brandedModeV77()===MODE_SINGLE_V77&&currentSettings?.singlePageWithoutFloorPlan!==true,planId=currentSettings?.floorPlanAssetId||'',planExists=!planRequired||!!planId&&window.NEXESTATE_STANDALONE_TEST?.hasAsset?.(planId)!==false;
+  return{feature,description,plan:{required:planRequired,id:planId,exists:planExists},valid:!feature.invalid&&!description.pending&&description.fits&&planExists};
+}
+function assertFunctionalStateV77(){
+  const state=validationStateV77();if(state.feature.invalid)throw new Error(FEATURE_ERROR_PREFIX_V77+state.feature.count+' из '+state.feature.limit+'.');
+  if(state.description.pending)throw new Error('Дождитесь загрузки шрифтов и завершения проверки описания.');if(!state.description.fits)throw new Error(DESCRIPTION_ERROR_V77);
+  if(state.description.titleFits===false)throw new Error('Заголовок превышает вместимость одностраничного макета — сократите текст.');
+  if(!state.plan.exists)throw new Error('Загрузите планировку или включите «Без планировки»');return state;
+}
+window.NEXESTATE_FUNCTIONAL_VALIDATE=assertFunctionalStateV77;
+let validationFrameV77=0;
+function queueValidationV77(){if(validationFrameV77)return;validationFrameV77=requestAnimationFrame(()=>{validationFrameV77=0;if(!editorOpenV77())return;syncFeatureValidationV77();syncDescriptionUiV77()})}
+const renderFeatureEditorBeforeV77=renderFeatureEditor;
+renderFeatureEditor=function(){const result=renderFeatureEditorBeforeV77.apply(this,arguments);queueValidationV77();return result};
+const exportCurrentPdfBeforeV77=exportCurrentPdf,exportCurrentPngBeforeV77=exportCurrentPng,exportCurrentHtmlBeforeV77=exportCurrentHtml;
+async function fontsReadyV77(){if(document.fonts?.ready)await document.fonts.ready;descriptionCacheV77={key:'',result:null}}
+exportCurrentPdf=async function(){await fontsReadyV77();assertFunctionalStateV77();return exportCurrentPdfBeforeV77()};
+exportCurrentPng=async function(){await fontsReadyV77();assertFunctionalStateV77();return exportCurrentPngBeforeV77()};
+exportCurrentHtml=async function(openOnly){await fontsReadyV77();assertFunctionalStateV77();return exportCurrentHtmlBeforeV77(openOnly)};
+const dsExportPdfBeforeV77=window.dsExportPDF,dsDownloadPngsBeforeV77=window.dsDownloadPNGs;
+if(typeof dsExportPdfBeforeV77==='function')window.dsExportPDF=async function(){try{await fontsReadyV77();assertFunctionalStateV77()}catch(error){toastSafe(error.message,'err');queueValidationV77();return false}return dsExportPdfBeforeV77.apply(this,arguments)};
+if(typeof dsDownloadPngsBeforeV77==='function')window.dsDownloadPNGs=async function(){try{await fontsReadyV77();assertFunctionalStateV77()}catch(error){toastSafe(error.message,'err');queueValidationV77();return false}return dsDownloadPngsBeforeV77.apply(this,arguments)};
+
+function syncTabsV77(){
+  const studio=byId('presentationStudio');if(!studio||!currentSettings)return;const single=brandedModeV77()===MODE_SINGLE_V77;
+  const mediaTab=studio.querySelector('.ne52-step[data-step="media"]'),mediaPanel=studio.querySelector('.ne52-panel[data-panel="media"]'),designTab=studio.querySelector('.ne52-step[data-step="design"]'),designPanel=studio.querySelector('.ne52-panel[data-panel="design"]');
+  if(mediaTab)mediaTab.hidden=single;if(mediaPanel)mediaPanel.hidden=single;if(designTab)designTab.hidden=true;if(designPanel)designPanel.hidden=true;
+  if(single&&activeStepV77()==='media')window.NexCompactStudio?.setStep?.('data');
+}
+const setStepBeforeV77=window.NexCompactStudio?.setStep;
+if(window.NexCompactStudio&&setStepBeforeV77)window.NexCompactStudio.setStep=function(step){
+  const safe=brandedModeV77()===MODE_SINGLE_V77&&step==='media'?'data':step,active=activeStepV77(),forward=active==='data'&&!['pdf','data'].includes(safe);
+  if(forward){try{assertFunctionalStateV77()}catch(error){toastSafe(error.message,'err');queueValidationV77();return false}}
+  const result=setStepBeforeV77(safe);queueMicrotask(()=>{syncTabsV77();queueValidationV77()});return result;
+};
+function wrapLayoutSetterV77(host,key){
+  const before=host?.[key];if(typeof before!=='function'||before.ne77Wrapped)return;
+  const wrapped=function(){const result=before.apply(this,arguments),finish=()=>{syncTabsV77();descriptionCacheV77={key:'',result:null};queueValidationV77()};if(result&&typeof result.then==='function')return Promise.resolve(result).finally(finish);finish();return result};
+  wrapped.ne77Wrapped=true;host[key]=wrapped;
+}
+wrapLayoutSetterV77(window.NEXESTATE_MODE_ISOLATION_TEST,'setBrandLayout');wrapLayoutSetterV77(window.NEXESTATE_V62_TEST,'setLayout');
+
+function heroIdV77(){return currentSettings?.singlePageHero?.assetId||currentSettings?.heroAssetId||''}
+function releasePdfHeroGalleryUrlsV77(gallery){gallery?.querySelectorAll?.('img[data-ne77-object-url]').forEach(image=>{try{URL.revokeObjectURL(image.dataset.ne77ObjectUrl)}catch(_){}delete image.dataset.ne77ObjectUrl})}
+function extractedPhotoUrlV77(photo,image){
+  if(photo?.thumbnail)return photo.thumbnail;if(photo?.blob instanceof Blob){const url=URL.createObjectURL(photo.blob);image.dataset.ne77ObjectUrl=url;return url}
+  if(photo?.canvas instanceof HTMLCanvasElement)return photo.canvas.toDataURL('image/jpeg',.82);return'';
+}
+async function selectPdfHeroV77(index){
+  if(!currentSettings||!currentRecord)return false;const photo=window.NE53_STATE?.pdf?.extractedPhotos?.[index];if(!photo)throw new Error('Извлечённая фотография не найдена.');
+  const beforeIds=new Set((currentSettings.media||[]).map(item=>item.assetId)),snapshot={layout:currentSettings.presentationLayout,active:currentSettings.activeBrandedLayout,brand:currentSettings.brandLayout,exportType:currentSettings.exportType,theme:currentSettings.singlePageTheme,theme71:currentSettings.singlePageThemeV71,design:DS.design,step:activeStepV77()};
+  await window.NexCompactStudio?.transferOne?.(index);const meta=(currentSettings.media||[]).find(item=>item.assetId===photo.assetId||photo.hash&&item.hash===photo.hash)||currentSettings.media?.find(item=>!beforeIds.has(item.assetId));
+  if(!meta)throw new Error('Не удалось добавить выбранную фотографию в проект.');if(meta.assetId===currentSettings.floorPlanAssetId)throw new Error('Эта фотография уже используется как планировка. Выберите другое фото.');
+  historyPoint?.('Выбор главного фото из PDF');(currentSettings.media||[]).forEach(item=>{if(item.singlePageRole==='hero')item.singlePageRole=''});meta.singlePageRole='hero';
+  currentSettings.singlePageHero={assetId:meta.assetId,focusX:50,focusY:50,scale:1};currentSettings.heroAssetId=meta.assetId;currentSettings.singlePageHeroExplicitlyCleared=false;currentSettings.singlePageHeroStretch=false;
+  currentSettings.singlePageExcludedAssetIds=(currentSettings.singlePageExcludedAssetIds||[]).filter(id=>id!==meta.assetId);
+  currentSettings.presentationLayout=snapshot.layout;currentSettings.activeBrandedLayout=snapshot.active;currentSettings.brandLayout=snapshot.brand;currentSettings.exportType=snapshot.exportType;currentSettings.singlePageTheme=snapshot.theme;currentSettings.singlePageThemeV71=snapshot.theme71;DS.design=snapshot.design;
+  currentRecord.settings=currentSettings=normalizeSettings(currentSettings);window.NEXESTATE_V62_TEST?.refresh?.();scheduleSave?.();scheduleRender?.();await Promise.resolve(saveCurrent(false));
+  if(snapshot.step&&activeStepV77()!==snapshot.step)window.NexCompactStudio?.setStep?.(snapshot.step);enhanceHeroPopoverV77();return true;
+}
+function renderPdfHeroGalleryV77(popover){
+  const gallery=popover?.querySelector('[data-ne77-pdf-gallery]');if(!gallery||gallery.hidden)return;releasePdfHeroGalleryUrlsV77(gallery);gallery.replaceChildren();const photos=window.NE53_STATE?.pdf?.extractedPhotos||[];
+  if(!photos.length){const empty=document.createElement('p');empty.textContent='В PDF нет извлечённых фотографий.';gallery.appendChild(empty);return}
+  photos.forEach((photo,index)=>{const button=document.createElement('button');button.type='button';button.setAttribute('aria-label','Выбрать фотографию '+(index+1)+' из PDF');const image=document.createElement('img');image.alt='Фотография '+(index+1)+' из PDF';image.loading='lazy';image.src=extractedPhotoUrlV77(photo,image);const label=document.createElement('small');label.textContent='Страница '+(photo.page||photo.sourcePage||'—');button.append(image,label);button.onclick=async()=>{try{await selectPdfHeroV77(index);releasePdfHeroGalleryUrlsV77(gallery);gallery.hidden=true;enhanceHeroPopoverV77()}catch(error){toastSafe(error.message,'err')}};gallery.appendChild(button)});
+}
+function enhanceHeroPopoverV77(){
+  const popover=byId('ne62HeroPopover');if(!popover)return;const actions=popover.querySelector('.ne62-popover-actions');if(!actions)return;let button=actions.querySelector('[data-ne77-from-pdf]');
+  if(!button){button=document.createElement('button');button.type='button';button.textContent='Из PDF';button.dataset.ne77FromPdf='true';button.onclick=()=>{const gallery=popover.querySelector('[data-ne77-pdf-gallery]'),closing=!gallery.hidden;if(closing)releasePdfHeroGalleryUrlsV77(gallery);gallery.hidden=closing;if(!closing)renderPdfHeroGalleryV77(popover)};actions.insertBefore(button,actions.querySelector('[data-remove]')||null)}
+  let gallery=popover.querySelector('[data-ne77-pdf-gallery]');if(!gallery){gallery=document.createElement('div');gallery.className='ne77-pdf-gallery';gallery.dataset.ne77PdfGallery='true';gallery.hidden=true;actions.insertAdjacentElement('afterend',gallery)}
+  if(!heroIdV77()){const preview=popover.querySelector('[data-preview]'),status=popover.querySelector('[data-status]');if(preview)preview.textContent='Не выбрано';if(status){status.textContent='Не выбрано';status.dataset.kind=''}}
+  renderPdfHeroGalleryV77(popover);
+}
+const transferAllBeforeV77=window.NexCompactStudio?.transferAll;
+if(window.NexCompactStudio&&transferAllBeforeV77)window.NexCompactStudio.transferAll=async function(){
+  const hero=cloneV77({singlePageHero:currentSettings?.singlePageHero||null,heroAssetId:currentSettings?.heroAssetId||'',singlePageHeroExplicitlyCleared:currentSettings?.singlePageHeroExplicitlyCleared===true,singlePageHeroStretch:currentSettings?.singlePageHeroStretch===true,singlePageExcludedAssetIds:currentSettings?.singlePageExcludedAssetIds||[]});
+  const result=await transferAllBeforeV77.apply(this,arguments);if(currentSettings&&hero){Object.assign(currentSettings,hero);currentRecord&&(currentRecord.settings=currentSettings);window.NEXESTATE_V62_TEST?.refresh?.();scheduleSave?.();scheduleRender?.()}return result;
+};
+async function clearHeroV77(){
+  if(!currentSettings)return false;const removed=heroIdV77();(currentSettings.media||[]).forEach(item=>{if(item.assetId===removed&&item.singlePageRole==='hero')item.singlePageRole=''});currentSettings.singlePageHero=null;currentSettings.heroAssetId='';currentSettings.singlePageHeroStretch=false;currentSettings.singlePageHeroExplicitlyCleared=true;
+  if(removed&&!currentSettings.singlePageExcludedAssetIds?.includes(removed))(currentSettings.singlePageExcludedAssetIds||(currentSettings.singlePageExcludedAssetIds=[])).push(removed);currentRecord&&(currentRecord.settings=currentSettings);window.NEXESTATE_V62_TEST?.refresh?.();scheduleRender?.();await Promise.resolve(saveCurrent(false));enhanceHeroPopoverV77();return true;
+}
+
+let contactFocusObserverV77=null;
+function revealContactFieldV77(field){let node=field?.parentElement;while(node&&node!==byId('presentationStudio')){if(node instanceof HTMLDetailsElement)node.open=true;node=node.parentElement}}
+function contactNoteHostV77(field){return field?.closest?.('label,.broker-photo-loader')||field?.parentElement}
+function clearContactNoteV77(field){contactNoteHostV77(field)?.querySelector(':scope>.ne70-field-note')?.remove()}
+function showContactNoteV77(field){const host=contactNoteHostV77(field);if(!host)return;clearContactNoteV77(field);const note=document.createElement('span');note.className='ne70-field-note';note.textContent='Включите страницу контактов';host.appendChild(note)}
+function semanticContactPageV77(){const page=document.querySelector('#studioPresoDeck>.ps-canvas-page[data-page-kind="contact"],#studioPresoDeck>.ps-canvas-page[data-page-id="contact"],#studioPresoDeck>.ps-canvas-page[data-page-id$="-contact"]');if(page&&!page.dataset.pageKind)page.dataset.pageKind='contact';return page}
+function syncContactPreviewV77(enabled=currentSettings?.showContactPage===true){
+  if(!enabled){document.querySelectorAll('#studioPresoDeck>.ps-canvas-page[data-page-kind="contact"],#studioPresoDeck>.ps-canvas-page[data-page-id="contact"],#studioPresoDeck>.ps-canvas-page[data-page-id$="-contact"]').forEach(page=>page.remove());return null}
+  scheduleRender?.();try{if(typeof renderPreview==='function')renderPreview()}catch(_){}return semanticContactPageV77();
+}
+let contactFocusRequestV77=0;
+function focusContactPageV77(field,photo){
+  if(!field)return false;if(!currentSettings?.showContactPage){showContactNoteV77(field);syncContactPreviewV77(false);scheduleRender?.();return false}
+  const request=++contactFocusRequestV77;revealContactFieldV77(field);clearContactNoteV77(field);contactFocusObserverV77?.disconnect();contactFocusObserverV77=null;try{field.focus({preventScroll:true})}catch(_){}
+  const sidebar=document.querySelector('#presentationStudio .ne52-sidebar'),scroll=sidebar?.scrollTop||0,start=Number.isInteger(field.selectionStart)?field.selectionStart:null,end=Number.isInteger(field.selectionEnd)?field.selectionEnd:null;
+  const apply=function(){
+    const page=semanticContactPageV77();if(!page)return false;
+    page.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});requestAnimationFrame(function(){
+      if(sidebar)sidebar.scrollTop=scroll;try{field.focus({preventScroll:true});if(start!==null&&field.setSelectionRange)field.setSelectionRange(start,end)}catch(_){}
+      page.querySelector('.ne70-preview-focus')?.remove();const mark=document.createElement('span');mark.className='ne70-preview-focus';mark.dataset.previewTargetId=photo?'broker-photo':'broker-contact';const rect=photo?[8,52,25,21]:[7,49,86,34];mark.style.setProperty('--ne70-x',rect[0]+'%');mark.style.setProperty('--ne70-y',rect[1]+'%');mark.style.setProperty('--ne70-w',rect[2]+'%');mark.style.setProperty('--ne70-h',rect[3]+'%');page.appendChild(mark);mark.addEventListener('animationend',()=>mark.remove(),{once:true});
+    });return true;
+  };
+  if(apply())return true;const deck=byId('studioPresoDeck');if(deck){contactFocusObserverV77=new MutationObserver(function(){if(request!==contactFocusRequestV77)return;if(apply()){contactFocusObserverV77?.disconnect();contactFocusObserverV77=null}});contactFocusObserverV77.observe(deck,{childList:true,subtree:true})}
+  scheduleRender?.();try{if(typeof renderPreview==='function')renderPreview()}catch(_){}if(apply()){contactFocusObserverV77?.disconnect();contactFocusObserverV77=null;return true}
+  let attempts=0;const retry=function(){if(request!==contactFocusRequestV77)return;if(apply()){contactFocusObserverV77?.disconnect();contactFocusObserverV77=null;return}if(attempts++<14)setTimeout(retry,90)};setTimeout(retry,90);return true;
+}
+function focusContactFieldV77(fieldId){const field=byId(fieldId)||byId('studioMgr');return focusContactPageV77(field,false)}
+function focusBrokerPhotoV77(){const field=byId('studioMgr')||document.querySelector('#ne53BrokerHost input');return focusContactPageV77(field,true)}
+const brokerSetterBeforeV77=window.studioSetBrokerPhoto;
+if(typeof brokerSetterBeforeV77==='function')window.studioSetBrokerPhoto=function(file){
+  if(!file)return;const before=studioBrokerPhoto,preview=byId('studioBrokerPhotoPreview');let finished=false,observer=null;const finish=()=>{if(finished||!studioBrokerPhoto||studioBrokerPhoto===before)return;finished=true;observer?.disconnect();focusBrokerPhotoV77()};
+  if(preview){observer=new MutationObserver(finish);observer.observe(preview,{childList:true,subtree:true,attributes:true})}const result=brokerSetterBeforeV77.apply(this,arguments);if(result&&typeof result.then==='function')Promise.resolve(result).then(finish);return result;
+};
+if(window.NEXESTATE_STAGE2_TEST){const chooseAvatarBeforeV77=window.NEXESTATE_STAGE2_TEST.chooseAvatar,removeAvatarBeforeV77=window.NEXESTATE_STAGE2_TEST.removeAvatar;if(typeof chooseAvatarBeforeV77==='function')window.NEXESTATE_STAGE2_TEST.chooseAvatar=async function(){const result=await chooseAvatarBeforeV77.apply(this,arguments);if(result)focusBrokerPhotoV77();return result};if(typeof removeAvatarBeforeV77==='function')window.NEXESTATE_STAGE2_TEST.removeAvatar=function(){const result=removeAvatarBeforeV77.apply(this,arguments);if(result)focusBrokerPhotoV77();return result}}
+const setContactPageBeforeV77=window.NEXESTATE_STANDALONE_TEST?.setContactPage;
+if(typeof setContactPageBeforeV77==='function')window.NEXESTATE_STANDALONE_TEST.setContactPage=function(value){const result=setContactPageBeforeV77.apply(this,arguments);syncContactPreviewV77(value===true);return result};
+const CONTACT_FIELDS_V77=new Set(['studioMgr','studioMgrRole','studioPhone','studioWa','studioTg','studioEmail','studioSite','ne73CompanyTelegram','ne73CompanyInstagram']);
+document.addEventListener('focusin',event=>{if(CONTACT_FIELDS_V77.has(event.target?.id))focusContactPageV77(event.target,false)},true);
+document.addEventListener('change',event=>{if(event.target?.id==='ne73ShowContact')queueMicrotask(()=>syncContactPreviewV77(event.target.checked))},true);
+document.addEventListener('click',event=>{const avatar=event.target?.closest?.('#ne70AvatarOverlay .ne70-avatar-card');if(avatar){const overlay=byId('ne70AvatarOverlay');if(overlay){const observer=new MutationObserver(()=>{if(overlay.hidden){observer.disconnect();focusBrokerPhotoV77()}});observer.observe(overlay,{attributes:true,attributeFilter:['hidden']})}}const remove=event.target?.closest?.('#ne53BrokerHost [data-action="remove"]');if(remove){const before=studioBrokerPhoto;queueMicrotask(()=>{if(before&&!studioBrokerPhoto)focusBrokerPhotoV77()})}},true);
+
+document.addEventListener('input',event=>{
+  if(event.target?.id==='studioDescription'){if(!applyingVariantV77&&currentSettings)currentSettings.descriptionSourceText=originalTextV77(event.target.value);descriptionCacheV77={key:'',result:null};queueValidationV77()}
+  if(event.target?.closest?.('[data-feature-type]'))queueValidationV77();
+},true);
+document.addEventListener('change',event=>{if(event.target?.matches?.('#dsFontSelect,#ne76StretchHero,[data-feature-field="enabled"]')){descriptionCacheV77={key:'',result:null};queueValidationV77()}},true);
+document.addEventListener('click',event=>{
+  if(event.target?.closest?.('#ne62HeroTrigger'))setTimeout(enhanceHeroPopoverV77,0);
+  if(event.target?.closest?.('[data-feature-type],#ne62AdvantagesEditor'))requestAnimationFrame(()=>{descriptionCacheV77={key:'',result:null};queueValidationV77()});
+},true);
+if(document.fonts?.ready)document.fonts.ready.then(()=>{descriptionCacheV77={key:'',result:null};queueValidationV77()});
+const previewV77=document.querySelector('#presentationStudio .ne52-preview');if(previewV77&&typeof ResizeObserver==='function')new ResizeObserver(()=>{descriptionCacheV77={key:'',result:null};queueValidationV77()}).observe(previewV77);
+const functionalObserverV77=new MutationObserver(records=>{
+  let validate=false,hero=false,tabs=false;
+  records.forEach(record=>[...record.addedNodes].forEach(node=>{if(node.nodeType!==1)return;if(node.id==='studioDescription'||node.id==='nsFeatureEditor'||node.querySelector?.('#studioDescription,#nsFeatureEditor'))validate=true;if(node.id==='ne62HeroPopover'||node.querySelector?.('#ne62HeroPopover'))hero=true;if(node.matches?.('.ne52-step,.ne52-panel')||node.querySelector?.('.ne52-step,.ne52-panel'))tabs=true}));
+  if(validate)queueValidationV77();if(hero)enhanceHeroPopoverV77();if(tabs)syncTabsV77();
+});
+functionalObserverV77.observe(document.documentElement,{childList:true,subtree:true});
+
+window.NEXESTATE_FUNCTIONAL_FIX_TEST={
+  version:VERSION_V77,
+  inspect:function(){const state=validationStateV77({force:true}),studio=byId('presentationStudio');return{mode:brandedModeV77(),step:activeStepV77(),validation:state,tabs:{pdf:!studio?.querySelector('.ne52-step[data-step="pdf"]')?.hidden,data:!studio?.querySelector('.ne52-step[data-step="data"]')?.hidden,media:!studio?.querySelector('.ne52-step[data-step="media"]')?.hidden,design:!studio?.querySelector('.ne52-step[data-step="design"]')?.hidden},hero:heroIdV77(),plan:currentSettings?.floorPlanAssetId||'',descriptionSourceLength:originalTextV77(currentSettings?.descriptionSourceText).length,contactPage:!!document.querySelector('#studioPresoDeck>.ps-canvas-page[data-page-kind="contact"]'),ghostOverviewCards:document.querySelectorAll('#studioPresoDeck>.ps-canvas-page[data-page-kind="overview"] [data-ne77-ghost-card]').length,sidebarVertical:[...document.querySelectorAll('#presentationStudio .ne52-sidebar p,#presentationStudio .ne52-sidebar span,#presentationStudio .ne52-sidebar button')].filter(node=>getComputedStyle(node).writingMode!=='horizontal-tb').length}},
+  measureDescription:text=>measureDescriptionV77(text,{force:true}),variants:text=>{const measured=measureDescriptionV77(text,{force:true});return descriptionVariantsV77(text,measured)},
+  validate:function(){try{return{ok:true,state:assertFunctionalStateV77()}}catch(error){return{ok:false,error:error.message}}},selectPdfHero:selectPdfHeroV77,clearHero:clearHeroV77,syncTabs:syncTabsV77,focusContact:focusContactFieldV77,
+  setFeatureIds:function(mode,ids){if(!currentSettings)return false;const key=mode===MODE_SINGLE_V77?'singlePageCharacteristicIds':'byNexEstateCharacteristicIds';currentSettings[key]=(ids||[]).slice();renderFeatureEditor(true);scheduleSave?.();scheduleRender?.();return true}
+};
+syncTabsV77();enhanceHeroPopoverV77();queueValidationV77();
+})();
+</script>
+<script id="nexestate-functional-fixes-v77-loader">
+(()=>{
+  const source=document.getElementById('nexestate-functional-fixes-v77-runtime')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_FUNCTIONAL_FIX_LOADED=true;delete window.NEXESTATE_FUNCTIONAL_FIX_ERROR}catch(error){window.NEXESTATE_FUNCTIONAL_FIX_LOADED=false;window.NEXESTATE_FUNCTIONAL_FIX_ERROR=String(error?.stack||error);throw error}
 })();
 </script>
 <script src="../../pwa-shell.js"></script>
