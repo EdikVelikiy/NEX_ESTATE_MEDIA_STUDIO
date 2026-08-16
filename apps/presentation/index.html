@@ -6411,15 +6411,27 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
   function perceptualDistance(left,right){if(!left||!right)return 64;let value=BigInt('0x'+left)^BigInt('0x'+right),count=0;while(value){count+=Number(value&1n);value>>=1n}return count}
   function sameVisual(left,right){if(left.hash&&right.hash&&left.hash===right.hash)return true;const leftRatio=left.width/Math.max(1,left.height),rightRatio=right.width/Math.max(1,right.height);return Math.abs(leftRatio-rightRatio)<=.045&&perceptualDistance(left.perceptualHash,right.perceptualHash)<=3}
   function candidateDecision(canvas,analysis,pageText=''){
-    const width=canvas.width,height=canvas.height,area=width*height,technicalContext=/\b(?:планировк|поэтажн|карта|схем|генплан|экспликац|лицензи|документ)\b/i.test(pageText),textLike=analysis.whiteRatio>.68&&analysis.chroma<11&&analysis.dominantRatio>.70&&analysis.edgeRatio<.12,decorative=analysis.dominantRatio>.94&&analysis.distinctRatio<.045&&analysis.variance<170;
+    const width=canvas.width,height=canvas.height,area=width*height;
+    const technicalContext=/\b(?:планировк|поэтажн|карта|схем|генплан|экспликац|черт[её]ж|план\s+бти)\b/i.test(pageText);
+    const directionalEdges=(Number(analysis.horizontalEdgeRatio)||0)+(Number(analysis.verticalEdgeRatio)||0);
+    const meaningfulEdges=Math.max(Number(analysis.edgeRatio)||0,directionalEdges);
+    const meaningfulPixels=Math.max(Number(analysis.distinctRatio)||0,1-(Number(analysis.dominantRatio)||1));
+    const entropy=Number(analysis.colorEntropy)||0,variance=Number(analysis.variance)||0,chroma=Number(analysis.chroma)||0;
+    const almostFlat=(analysis.dominantRatio>.965&&meaningfulPixels<.045&&variance<145&&meaningfulEdges<.026)||(entropy<.5&&meaningfulPixels<.025&&meaningfulEdges<.015);
+    const lightLineWork=analysis.whiteRatio>.72&&meaningfulPixels>.018&&meaningfulEdges>.018&&(directionalEdges>.009||variance>95);
+    const unlabeledPlanLineWork=analysis.whiteRatio>.82&&directionalEdges>.018&&meaningfulPixels>.035&&entropy<1.45&&variance<1600;
+    const planLike=technicalContext&&lightLineWork||unlabeledPlanLineWork;
+    const mapOrPhoto=entropy>2.85&&meaningfulPixels>.12&&variance>210||chroma>12&&meaningfulPixels>.10||Number(analysis.photoConfidence)>.5;
+    const textOnly=!technicalContext&&analysis.whiteRatio>.70&&chroma<12&&analysis.dominantRatio>.68&&meaningfulPixels<.28&&entropy<2.2;
+    const technicalMask=analysis.alphaRatio<.08||analysis.dominantRatio>.91&&meaningfulPixels<.065&&meaningfulEdges<.018;
     if(analysis.blank)return{keep:false,reason:analysis.reason||'пустое изображение'};
     if(width<220||height<140||area<60000)return{keep:false,reason:'слишком маленький ресурс'};
-    if(decorative)return{keep:false,reason:'однотонный фон или декоративная текстура'};
-    if(textLike&&!technicalContext)return{keep:false,reason:'текстовый блок на пустом фоне'};
-    const documentLike=analysis.flattenedRegion&&height>width*1.18&&analysis.edgeRatio>.38&&analysis.horizontalEdgeRatio>.12&&analysis.horizontalEdgeRatio>analysis.verticalEdgeRatio*1.25;
-    if(analysis.flattenedRegion&&(technicalContext||documentLike))return{keep:false,reason:'карта / план / документ — требуется подтверждение'};
-    if(analysis.flattenedRegion&&!technicalContext&&(Number(analysis.photoConfidence)<.43||Number(analysis.colorEntropy)<3.15||analysis.dominantRatio>.72))return{keep:false,reason:'недостаточно признаков самостоятельной фотографии'};
-    return{keep:true,reason:technicalContext?'карта / план / документ':'самостоятельное изображение'};
+    if(almostFlat||technicalMask)return{keep:false,reason:'однотонный фон или служебная подложка'};
+    if(textOnly&&!planLike)return{keep:false,reason:'текстовая область без самостоятельного изображения'};
+    if(planLike)return{keep:true,reason:'планировка / схема'};
+    if(mapOrPhoto)return{keep:true,reason:technicalContext?'карта / содержательная схема':'самостоятельное изображение'};
+    if(analysis.flattenedRegion&&meaningfulPixels<.12&&meaningfulEdges<.03)return{keep:false,reason:'служебная область PDF без содержательного рисунка'};
+    return{keep:true,reason:technicalContext?'содержательная схема':'самостоятельное изображение'};
   }
   async function originalBlobForPdfObject(object,canvas){
     const source=object?.bitmap||object,src=source instanceof HTMLImageElement?(source.currentSrc||source.src):'';
@@ -12857,7 +12869,7 @@ function buildDescriptorsV74(model){
   return descriptors;
 }
 function buildBySlidesV74(options){
-  const model=mediaModelV74();syncGalleryPages();syncPageOrder();const themeKey=selectedThemeV74(options),p=themeV74(themeKey),descriptors=buildDescriptorsV74(model),total=descriptors.length;
+  const model=mediaModelV74();syncGalleryPages();syncPageOrder();const themeKey=selectedThemeV74(options),p=themeV74(themeKey),descriptors=buildDescriptorsV74(model).filter(function(descriptor){return descriptor.kind!=='overview'}),total=descriptors.length;
   const slides=descriptors.map(function(descriptor,index){
     const page=index+1;let canvas;
     if(descriptor.kind==='cover')canvas=drawCoverV74(model,descriptor.entries,p,themeKey,total);
@@ -15968,7 +15980,7 @@ function activateSyncV78(source,scroll=true){
   if(!descriptor)return;
   activeSyncV78={source,descriptor};const host=sourceHostV78(source);studioV78()?.querySelectorAll('.ne78-source-active').forEach(node=>node.classList.toggle('ne78-source-active',node===host));host?.classList.add('ne78-source-active');
   if(mapping&&scroll){
-    const page=resolvePageV78(mapping.pageId);page?.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
+    const page=resolvePageV78(mapping.pageId);page?.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
   }
   queueSyncV78();if(mapping&&!resolvePageV78(mapping.pageId)){scheduleRender?.();setTimeout(queueSyncV78,180)}
 }
@@ -16047,6 +16059,729 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   const source=document.getElementById('nexestate-ui-redesign-v78-runtime')?.textContent||'';
   if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
   try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_UI_REDESIGN_LOADED=true;delete window.NEXESTATE_UI_REDESIGN_ERROR}catch(error){window.NEXESTATE_UI_REDESIGN_LOADED=false;window.NEXESTATE_UI_REDESIGN_ERROR=String(error?.stack||error);throw error}
+})();
+</script>
+<style id="nexestate-post-redesign-v79-style">
+.ns-home-actions.ne79-home-actions{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(150px,1fr))!important;
+  align-items:stretch!important;
+  gap:10px!important;
+  width:min(900px,100%)!important;
+}
+.ns-home-actions.ne79-home-actions>.ns-primary,
+.ns-home-actions.ne79-home-actions>.ns-button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:46px!important;
+  margin:0!important;
+  text-align:center!important;
+}
+.ns-home-actions.ne79-home-actions .ne79-home-secondary{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:2px;
+}
+.ne79-import-progress{
+  position:fixed;
+  z-index:2147482500;
+  top:72px;
+  right:18px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px 12px;
+  width:min(430px,calc(100vw - 36px));
+  padding:14px;
+  border:1px solid #2f6587;
+  border-radius:10px;
+  background:#071c2c;
+  color:#edf7fd;
+  box-shadow:0 18px 52px rgba(0,0,0,.36);
+}
+.ne79-import-progress[hidden]{display:none!important}
+.ne79-import-progress strong{font-size:13px}
+.ne79-import-progress p{grid-column:1/-1;margin:0;color:#b8cedb;font-size:11px;line-height:1.45}
+.ne79-import-progress progress{grid-column:1/-1;width:100%;height:8px;accent-color:#159cff}
+.ne79-import-progress .ne79-import-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:7px}
+.ne79-import-progress button{
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid #315d78;
+  border-radius:6px;
+  background:#0b2b42;
+  color:#eaf6fc;
+  font:650 10px/1 "Segoe UI",Arial,sans-serif;
+}
+.ne79-import-progress button.primary{border-color:#168fdc;background:#0d5f96}
+.ne79-import-progress.is-error{border-color:#ba4653}
+.ne79-import-progress.is-success{border-color:#278f71}
+
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-shell{
+  grid-template-rows:58px minmax(0,1fr) 64px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-topbar{
+  position:relative!important;
+  display:block!important;
+  min-height:58px!important;
+  height:58px!important;
+  padding:0!important;
+  overflow:visible!important;
+  background:#061827!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{
+  position:absolute!important;
+  z-index:4;
+  top:10px;
+  left:12px;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  width:332px!important;
+  height:38px!important;
+  justify-self:auto!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-step{
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 12px!important;
+  font-size:10px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{
+  position:absolute!important;
+  z-index:4;
+  top:10px;
+  left:358px;
+  display:flex!important;
+  width:auto!important;
+  max-width:310px;
+  height:38px;
+  gap:0!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left .ne52-brand{display:none!important}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left .ds-toolbar{
+  display:flex!important;
+  width:auto!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left .ds-toolbar>.group{
+  display:flex!important;
+  gap:2px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left .ds-toolbar button{
+  min-width:32px!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 8px!important;
+  font-size:10px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{
+  position:absolute;
+  z-index:3;
+  top:0;
+  left:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:430px;
+  height:58px;
+  transform:translateX(-50%);
+  color:#eff7fc;
+  font-size:13px;
+  line-height:1.2;
+  font-weight:680;
+  letter-spacing:-.01em;
+  text-align:center;
+  white-space:nowrap;
+  pointer-events:none;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{
+  position:absolute;
+  z-index:5;
+  top:10px;
+  left:calc(50% + 225px);
+  display:flex;
+  align-items:center;
+  gap:4px;
+  height:38px;
+  white-space:nowrap;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav a,
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0 9px!important;
+  border:1px solid #244c66!important;
+  border-radius:7px!important;
+  background:#092438!important;
+  color:#dbeaf3!important;
+  font-size:9px!important;
+  line-height:1!important;
+  font-weight:650!important;
+  text-decoration:none!important;
+  box-shadow:none!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav a:hover,
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav button:hover,
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav a:focus-visible,
+#presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav button:focus-visible{
+  border-color:#159cff!important;
+  background:#0d3150!important;
+  color:#fff!important;
+  outline:0!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right{
+  position:absolute!important;
+  z-index:5;
+  top:10px;
+  right:10px;
+  display:flex!important;
+  width:auto!important;
+  max-width:420px;
+  height:38px;
+  gap:4px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right #dsFullscreenBtn,
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right>.group button{
+  height:34px!important;
+  min-height:34px!important;
+  padding-inline:7px!important;
+  font-size:9px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-menu-body .app-module-home-link,
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-head-menu-body .ne52-close{display:none!important}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-workspace{
+  grid-template-columns:420px minmax(0,1fr)!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-sidebar{
+  padding:12px 13px!important;
+  background:#071d2d!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections #ne53PreviewSlot{
+  padding:18px 24px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-panel-head h3{font-size:16px!important}
+#presentationStudio.ne78-redesign.ne79-corrections .ne52-panel-head>p:last-child{max-width:350px}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-source-active{
+  border-color:#169fff!important;
+  box-shadow:inset 3px 0 0 #169fff,inset 0 0 0 1px #169fff!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-preview-target{
+  border-color:#169fff!important;
+  background:rgba(22,159,255,.035)!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-connector path{stroke:#169fff!important}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-connector circle{fill:#169fff!important}
+#presentationStudio.ne78-redesign.ne79-corrections .ne78-brand-mode-wrap,
+#presentationStudio.ne78-redesign.ne79-corrections #ne65BrandMode,
+#presentationStudio.ne78-redesign.ne79-corrections label:has(>#ne65BrandMode){display:none!important}
+#presentationStudio.ne78-redesign.ne79-corrections .ne62-layout-switch{
+  display:flex!important;
+  align-items:center!important;
+  gap:0!important;
+  padding:2px!important;
+  border:1px solid #284e68!important;
+  border-radius:8px!important;
+  background:#071b2a!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutBy,
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutSingle{
+  min-height:30px!important;
+  height:30px!important;
+  padding:0 10px!important;
+  border:1px solid transparent!important;
+  border-radius:6px!important;
+  background:transparent!important;
+  color:#b9cedb!important;
+  font-size:9px!important;
+  font-weight:700!important;
+  box-shadow:none!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutBy.ne79-mode-active,
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutSingle.ne79-mode-active{
+  border-color:#31adff!important;
+  background:#0d75b7!important;
+  color:#fff!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutBy:not(.ne79-mode-active):hover,
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutSingle:not(.ne79-mode-active):hover{
+  border-color:#315d78!important;
+  background:#0c2a40!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutBy:focus-visible,
+#presentationStudio.ne78-redesign.ne79-corrections #ne62LayoutSingle:focus-visible{
+  outline:2px solid #71caff!important;
+  outline-offset:2px!important;
+}
+#presentationStudio.ne78-redesign.ne79-corrections .ps-bottom-bar{
+  grid-template-columns:minmax(390px,1fr) minmax(520px,1.05fr) auto!important;
+  background:#071923!important;
+}
+
+@media(max-width:1700px){
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{width:294px!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{left:314px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{width:350px;font-size:11px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{left:calc(50% + 180px)}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav a,
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav button{padding-inline:7px!important;font-size:8px!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right #dsState,
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right #ne62Autosave{max-width:88px;overflow:hidden;text-overflow:ellipsis}
+}
+@media(max-width:1250px){
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-shell{grid-template-rows:92px minmax(0,1fr) 64px!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-topbar{height:92px!important;min-height:92px!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{top:50px;left:8px;width:300px!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{top:8px;left:8px;max-width:280px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{top:0;width:390px;height:48px;font-size:11px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{top:8px;left:auto;right:8px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right{top:50px;right:8px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-workspace{grid-template-columns:390px minmax(0,1fr)!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ps-bottom-bar{grid-template-columns:minmax(330px,1fr) minmax(440px,1fr) auto!important}
+}
+@media(max-width:900px){
+  .ns-home-actions.ne79-home-actions{grid-template-columns:repeat(2,minmax(130px,1fr))!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-shell{grid-template-rows:124px minmax(0,1fr) 58px!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-topbar{height:124px!important;min-height:124px!important;overflow-x:auto!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{top:0;left:50%;height:42px;width:320px;font-size:10px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{top:42px;left:8px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{top:42px;right:8px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{top:82px;left:8px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right{top:82px;right:8px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-workspace{grid-template-columns:minmax(300px,42vw) minmax(0,1fr)!important}
+}
+@media(max-width:680px){
+  .ns-home-actions.ne79-home-actions{grid-template-columns:1fr!important}
+  .ns-home-actions.ne79-home-actions .ne79-home-secondary{grid-column:1;flex-wrap:wrap;justify-content:stretch}
+  .ns-home-actions.ne79-home-actions .ne79-home-secondary>*{flex:1 1 180px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-workspace{display:block!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne52-sidebar{width:100%!important}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{left:8px;transform:none;width:calc(100% - 16px);justify-content:flex-start}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{max-width:calc(100% - 16px);overflow-x:auto}
+}
+</style>
+<script type="text/plain" id="nexestate-post-redesign-v79-runtime">
+(()=>{
+'use strict';
+const VERSION_V79='79.0';
+const PRODUCT_TITLE_V79='NexEstate Presentation Studio by Эдик Великий';
+const byIdV79=id=>document.getElementById(id);
+let ensureFrameV79=0,importBusyV79=false,focusEpochV79=0,lastFocusSourceV79=null;
+let photoImportV79=null;
+
+function importPanelV79(){
+  let panel=byIdV79('ne79ImportProgress');
+  if(panel)return panel;
+  panel=document.createElement('section');
+  panel.id='ne79ImportProgress';
+  panel.className='ne79-import-progress';
+  panel.hidden=true;
+  panel.setAttribute('role','status');
+  panel.setAttribute('aria-live','polite');
+  const title=document.createElement('strong');title.id='ne79ImportTitle';
+  const close=document.createElement('button');close.type='button';close.textContent='Закрыть';close.setAttribute('aria-label','Закрыть сообщение об импорте');close.onclick=()=>{panel.hidden=true};
+  const message=document.createElement('p');message.id='ne79ImportMessage';
+  const progress=document.createElement('progress');progress.id='ne79ImportMeter';progress.max=100;progress.value=0;
+  const actions=document.createElement('div');actions.className='ne79-import-actions';
+  const retry=document.createElement('button');retry.type='button';retry.id='ne79ImportRetry';retry.className='primary';retry.textContent='Повторить прерванные';retry.hidden=true;retry.onclick=()=>retryPhotoOcrV79();
+  actions.append(retry,close);panel.append(title,close,message,progress,actions);document.body.appendChild(panel);return panel;
+}
+function setImportStateV79(title,message,percent,kind='progress',retry=false){
+  const panel=importPanelV79(),meter=byIdV79('ne79ImportMeter'),retryButton=byIdV79('ne79ImportRetry');
+  panel.hidden=false;panel.classList.toggle('is-error',kind==='error');panel.classList.toggle('is-success',kind==='success');
+  byIdV79('ne79ImportTitle').textContent=title||'Импорт';
+  byIdV79('ne79ImportMessage').textContent=message||'';
+  meter.value=Math.max(0,Math.min(100,Number(percent)||0));
+  retryButton.hidden=!retry;
+  if(typeof setHomeStatus==='function')setHomeStatus((title?title+'. ':'')+(message||''),kind==='error'?'err':kind==='success'?'ok':'');
+}
+function setLabelCopyV79(label,text){
+  if(!label)return;
+  let copy=label.querySelector(':scope>.ne79-label-copy');
+  if(!copy){copy=document.createElement('span');copy.className='ne79-label-copy';Array.from(label.childNodes).filter(node=>node.nodeType===Node.TEXT_NODE).forEach(node=>node.remove());label.prepend(copy)}
+  if(copy.textContent!==text)copy.textContent=text;
+}
+function createHomeImportV79(id,labelText,accept,multiple){
+  let input=byIdV79(id),label=input?.closest('label');
+  if(!input){
+    label=document.createElement('label');label.className='ns-button';
+    const copy=document.createElement('span');copy.className='ne79-label-copy';copy.textContent=labelText;
+    input=document.createElement('input');input.id=id;input.type='file';input.accept=accept;input.multiple=!!multiple;input.hidden=true;
+    label.append(copy,input);
+  }
+  setLabelCopyV79(label,labelText);return{input,label};
+}
+function ensureHomeActionsV79(){
+  const actions=document.querySelector('#studioHome .ns-home-actions');
+  if(!actions)return false;
+  actions.classList.add('ne79-home-actions');
+  const newButton=byIdV79('nsNewProject'),pdfInput=byIdV79('nsBulkPdf'),pdfLabel=pdfInput?.closest('label');
+  setLabelCopyV79(pdfLabel,'Загрузить PDF');
+  const text=createHomeImportV79('ne79TextImport','Загрузить текст','.txt,.md,text/plain,text/markdown',false);
+  const photo=createHomeImportV79('ne79PhotoImport','Загрузить фото','.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp',true);
+  if(text.input.dataset.ne79Bound!=='1'){
+    text.input.dataset.ne79Bound='1';
+    text.input.addEventListener('change',event=>{const file=event.target.files?.[0];event.target.value='';if(file)importTextFileV79(file)});
+  }
+  if(photo.input.dataset.ne79Bound!=='1'){
+    photo.input.dataset.ne79Bound='1';
+    photo.input.addEventListener('change',event=>{const files=[...(event.target.files||[])];event.target.value='';if(files.length)importPhotoFilesV79(files)});
+  }
+  let secondary=actions.querySelector(':scope>.ne79-home-secondary');
+  if(!secondary){secondary=document.createElement('div');secondary.className='ne79-home-secondary'}
+  const projectImport=byIdV79('nsImportProject')?.closest('label'),catalog=byIdV79('nsOpenCatalog');
+  [newButton,pdfLabel,text.label,photo.label].filter(Boolean).forEach(node=>actions.insertBefore(node,secondary.isConnected?secondary:null));
+  [projectImport,catalog].filter(Boolean).forEach(node=>secondary.appendChild(node));
+  if(secondary.parentElement!==actions)actions.appendChild(secondary);
+  return true;
+}
+
+function decodeUtf16BeV79(bytes,offset){
+  const length=bytes.length-offset-(bytes.length-offset)%2,swapped=new Uint8Array(length);
+  for(let index=0;index<length;index+=2){swapped[index]=bytes[offset+index+1];swapped[index+1]=bytes[offset+index]}
+  return new TextDecoder('utf-16le').decode(swapped);
+}
+function decodeTextBufferV79(buffer){
+  const bytes=new Uint8Array(buffer);
+  if(bytes.length>=3&&bytes[0]===0xef&&bytes[1]===0xbb&&bytes[2]===0xbf)return new TextDecoder('utf-8').decode(bytes.subarray(3));
+  if(bytes.length>=2&&bytes[0]===0xff&&bytes[1]===0xfe)return new TextDecoder('utf-16le').decode(bytes.subarray(2));
+  if(bytes.length>=2&&bytes[0]===0xfe&&bytes[1]===0xff)return decodeUtf16BeV79(bytes,2);
+  const probe=bytes.subarray(0,Math.min(bytes.length,1024));let evenZero=0,oddZero=0;
+  for(let index=0;index<probe.length;index++){if(probe[index]===0){if(index%2)oddZero++;else evenZero++}}
+  if(oddZero>probe.length*.16&&oddZero>evenZero*2)return new TextDecoder('utf-16le').decode(bytes);
+  if(evenZero>probe.length*.16&&evenZero>oddZero*2)return decodeUtf16BeV79(bytes,0);
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch(_){}
+  try{return new TextDecoder('windows-1251').decode(bytes)}catch(_){return new TextDecoder('utf-8').decode(bytes)}
+}
+function sourceNameV79(name,fallback){
+  const cleanName=String(name||'').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+  return cleanName||fallback;
+}
+function normalizeSourceTextV79(value){
+  const normalize=window.NEXESTATE_V55_TEST?.normalizeText;
+  if(typeof normalize==='function')return normalize(value);
+  return String(value||'').normalize('NFKC').replace(/[\u00a0\u202f]/g,' ').replace(/[ \t]+/g,' ').replace(/\s*\n\s*/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function semanticPagesV79(texts){
+  return texts.map((text,index)=>({page:index+1,text:normalizeSourceTextV79(text||''),ocrText:''}));
+}
+function beginSemanticSourceV79(kind,fileName,text,pages){
+  const pdf=window.NE53_STATE?.pdf;
+  const sourceId=kind+':'+(kind==='photo'&&photoImportV79?.sourceId?photoImportV79.sourceId:uuid());
+  if(pdf){
+    const normalizedPages=(pages||[]).map((page,index)=>({page:Number(page?.page)||index+1,text:normalizeSourceTextV79(page?.text||page?.ocrText||''),ocrText:'',rawText:String(page?.rawText||page?.text||page?.ocrText||'')}));
+    pdf.fileName=fileName||'';
+    pdf.sourcePdfId=sourceId;
+    pdf.rawTextOriginal=text;
+    pdf.rawText=text;
+    pdf.normalizedText=normalizeSourceTextV79(text);
+    pdf.pageCount=normalizedPages.length;
+    pdf.sourcePages=normalizedPages;
+    pdf.extractedPhotos=[];
+    pdf.rejectedCandidates=[];
+    pdf.fieldSources={};
+  }
+  return sourceId;
+}
+async function applySemanticTextV79(rawText,pages,fileName,kind){
+  const text=normalizeSourceTextV79(rawText||'');
+  if(!text)throw new Error('В файле не найден текст для автозаполнения.');
+  beginSemanticSourceV79(kind,fileName,text,pages);
+  historyPoint(kind==='text'?'Импорт текста':'OCR фотографий');
+  if(typeof window.NE55_afterPdfTextReady!=='function')throw new Error('Канонический модуль автозаполнения недоступен.');
+  const applied=await window.NE55_afterPdfTextReady();
+  if(!applied||applied.error)throw new Error(applied?.error||'Автозаполнение не завершено.');
+  syncCanonical();renderFeatureEditor?.(true);renderExtendedMedia?.();scheduleRender?.();scheduleSave?.();
+  await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false);
+  return{...applied,data:window.NEXESTATE_STANDALONE_TEST?.getState?.()?.data||dataFromForm()};
+}
+async function importTextFileV79(file){
+  if(importBusyV79)return;
+  importBusyV79=true;setImportStateV79('Загрузка текста','Чтение '+file.name,8);
+  try{
+    const text=decodeTextBufferV79(await file.arrayBuffer());
+    setImportStateV79('Загрузка текста','Создание презентации и семантический разбор',32);
+    await createBlankProject();
+    if(currentRecord)currentRecord.name=sourceNameV79(file.name,'Презентация из текста');
+    const result=await applySemanticTextV79(text,[{page:1,text:text,ocrText:''}],file.name,'text');
+    setImportStateV79('Текст импортирован','Заполнено полей: '+result.changed+'. Проект сохранён без медиакарточек.',100,'success');
+    return result;
+  }catch(error){
+    console.error('NexEstate text import',error);
+    setImportStateV79('Ошибка импорта текста',String(error?.message||error),100,'error');
+    return false;
+  }finally{importBusyV79=false;window.NE55_ALLOW_DEFAULT_RECOGNITION=false}
+}
+
+async function recognizePhotoV79(file,index,total,ocrOverride){
+  if(typeof ocrOverride==='function')return normalizeSourceTextV79(await ocrOverride(file,index));
+  await window.neEnsureTesseract();
+  const result=await window.Tesseract.recognize(file,'rus+eng',{logger:message=>{
+    if(message?.status==='recognizing text'&&Number.isFinite(message.progress)){
+      const base=36+(index/Math.max(1,total))*50,part=message.progress*(50/Math.max(1,total));
+      setImportStateV79('OCR фотографий','Файл '+(index+1)+' из '+total+': '+file.name,Math.round(base+part));
+    }
+  }});
+  return normalizeSourceTextV79(result?.data?.text||'');
+}
+function clearAutomaticCoverV79(){
+  if(!currentSettings)return;
+  currentSettings.coverPhotoIds=[];
+  currentSettings.coverAutoAssignedId='';
+  currentSettings.coverExplicitlyCleared=true;
+}
+async function processPhotoOcrV79(indices,ocrOverride){
+  if(!photoImportV79)return false;
+  const total=photoImportV79.files.length;
+  for(const index of indices){
+    const file=photoImportV79.files[index];
+    setImportStateV79('OCR фотографий','Файл '+(index+1)+' из '+total+': '+file.name,36+Math.round(index/Math.max(1,total)*50));
+    try{
+      const text=await recognizePhotoV79(file,index,total,ocrOverride);
+      photoImportV79.texts[index]=text;
+      photoImportV79.errors.delete(index);
+    }catch(error){
+      console.error('NexEstate photo OCR',file.name,error);
+      photoImportV79.errors.set(index,String(error?.message||error));
+    }
+  }
+  const texts=photoImportV79.texts.filter(Boolean),merged=texts.join('\n\n--- ФОТО ---\n\n');
+  if(merged){
+    setImportStateV79('OCR фотографий','Автозаполнение полей и триггеров',91);
+    await applySemanticTextV79(merged,semanticPagesV79(photoImportV79.texts),photoImportV79.files.map(file=>file.name).join(', '),'photo');
+  }
+  clearAutomaticCoverV79();syncMediaSettings?.();renderExtendedMedia?.();scheduleRender?.();scheduleSave?.();
+  await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false);
+  const failed=photoImportV79.errors.size;
+  if(failed){
+    setImportStateV79('Импорт фото завершён частично','Добавленные изображения сохранены. Не распознано: '+failed+'. Можно безопасно повторить только прерванный OCR.',100,'error',true);
+  }else{
+    setImportStateV79('Фотографии импортированы','Изображения добавлены в Медиа без автоматического назначения обложки. OCR и автозаполнение завершены.',100,'success');
+  }
+  return{failed,texts:photoImportV79.texts.slice()};
+}
+async function importPhotoFilesV79(files,options={}){
+  const valid=[...(files||[])].filter(file=>/^image\/(png|jpeg|webp)$/i.test(String(file.type||''))||/\.(png|jpe?g|webp)$/i.test(file.name||''));
+  if(!valid.length||importBusyV79)return false;
+  importBusyV79=true;setImportStateV79('Загрузка фото','Создание презентации',5);
+  let previousCoverEnabledV79;
+  try{
+    await createBlankProject();
+    if(currentRecord)currentRecord.name=sourceNameV79(valid[0].name,'Презентация из фотографий');
+    photoImportV79={files:valid,texts:new Array(valid.length).fill(''),errors:new Map(),sourceId:uuid()};
+    previousCoverEnabledV79=currentSettings?.coverEnabled;
+    clearAutomaticCoverV79();if(currentSettings)currentSettings.coverEnabled=false;
+    setImportStateV79('Загрузка фото','Добавление исходных изображений в Медиа',18);
+    const added=await addMediaFiles(valid);
+    if(currentSettings)currentSettings.coverEnabled=previousCoverEnabledV79!==false;
+    clearAutomaticCoverV79();
+    if(!added)throw new Error('Новые изображения не добавлены: выбранные файлы не поддерживаются или уже присутствуют.');
+    setImportStateV79('OCR фотографий','Подготовка локального распознавания',34);
+    const result=await processPhotoOcrV79(valid.map((_,index)=>index),options.ocr);
+    return{added,...result};
+  }catch(error){
+    console.error('NexEstate photo import',error);
+    setImportStateV79('Ошибка импорта фото',String(error?.message||error),100,'error',!!photoImportV79?.errors?.size);
+    return false;
+  }finally{
+    importBusyV79=false;
+    if(currentSettings&&typeof previousCoverEnabledV79==='boolean')currentSettings.coverEnabled=previousCoverEnabledV79;
+    clearAutomaticCoverV79();
+  }
+}
+async function retryPhotoOcrV79(){
+  if(importBusyV79||!photoImportV79?.errors?.size)return false;
+  importBusyV79=true;byIdV79('ne79ImportRetry').hidden=true;
+  try{return await processPhotoOcrV79([...photoImportV79.errors.keys()])}
+  catch(error){setImportStateV79('Повтор OCR не завершён',String(error?.message||error),100,'error',true);return false}
+  finally{importBusyV79=false}
+}
+
+function ensureHeaderV79(){
+  const studio=byIdV79('presentationStudio'),top=studio?.querySelector('.ne52-topbar');
+  if(!studio||!top)return false;
+  studio.classList.add('ne79-corrections');
+  let title=top.querySelector(':scope>.ne79-header-title');
+  if(!title){title=document.createElement('div');title.className='ne79-header-title';top.appendChild(title)}
+  if(title.textContent!==PRODUCT_TITLE_V79)title.textContent=PRODUCT_TITLE_V79;
+  let nav=top.querySelector(':scope>.ne79-header-nav');
+  if(!nav){
+    nav=document.createElement('nav');nav.className='ne79-header-nav';nav.setAttribute('aria-label','Навигация Studio');
+    const apps=document.createElement('a');apps.href='../../';apps.textContent='К приложениям';
+    apps.addEventListener('click',async event=>{event.preventDefault();try{await window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false)}catch(_){}location.assign(apps.href)});
+    const presentations=document.createElement('button');presentations.type='button';presentations.textContent='К презентациям';presentations.onclick=()=>window.closePresentationStudio?.();
+    nav.append(apps,presentations);top.appendChild(nav);
+  }
+  return true;
+}
+function canonicalLayoutV79(){
+  const settings=window.NEXESTATE_STANDALONE_TEST?.getState?.()?.settings||currentSettings||{};
+  return(settings.activeBrandedLayout||settings.brandLayout||settings.presentationLayout)==='singlePage'?'singlePage':'byNexEstate';
+}
+function normalizeModeV79(){
+  if(currentSettings&&currentSettings.brandModeEnabled!==true){
+    const layout=canonicalLayoutV79();
+    currentSettings.brandModeEnabled=true;
+    currentSettings.activeBrandedLayout=layout;
+    currentSettings.brandLayout=layout;
+    currentSettings.presentationLayout=layout;
+    DS.design='byNexEstate';
+    window.NEXESTATE_STANDALONE_TEST?.replaceSettings?.(currentSettings);
+  }
+  const legacy=byIdV79('ne65BrandMode'),legacyLabel=legacy?.closest('label');
+  if(legacy){legacy.checked=true;legacy.hidden=true;legacy.setAttribute('aria-hidden','true');legacy.tabIndex=-1}
+  if(legacyLabel){legacyLabel.hidden=true;legacyLabel.setAttribute('aria-hidden','true')}
+  const by=byIdV79('ne62LayoutBy'),single=byIdV79('ne62LayoutSingle'),layout=canonicalLayoutV79(),group=by?.closest('.ne62-layout-switch');
+  if(group){group.setAttribute('role','radiogroup');group.setAttribute('aria-label','Режим презентации')}
+  [[by,'byNexEstate'],[single,'singlePage']].forEach(pair=>{
+    const button=pair[0],value=pair[1];if(!button)return;const active=layout===value;
+    button.setAttribute('role','radio');button.setAttribute('aria-checked',String(active));button.setAttribute('aria-pressed',String(active));button.classList.toggle('ne79-mode-active',active);
+  });
+  return layout;
+}
+
+function centerPreviewTargetV79(source){
+  if(!source||!source.closest?.('#presentationStudio'))return;
+  if(lastFocusSourceV79===source)return;
+  lastFocusSourceV79=source;const epoch=++focusEpochV79;let attempts=0;
+  const seek=()=>{
+    if(epoch!==focusEpochV79||attempts++>36)return;
+    const studio=byIdV79('presentationStudio'),slot=byIdV79('ne53PreviewSlot'),target=studio?.querySelector('.ne78-preview-target');
+    if(!slot||!target||!target.isConnected){requestAnimationFrame(seek);return}
+    const scrollHost=slot.querySelector('.ps-preview-stage')||slot,hostRect=scrollHost.getBoundingClientRect(),targetRect=target.getBoundingClientRect();
+    const desired=scrollHost.scrollTop+(targetRect.top+targetRect.height/2)-(hostRect.top+scrollHost.clientHeight/2);
+    const maximum=Math.max(0,scrollHost.scrollHeight-scrollHost.clientHeight),next=Math.max(0,Math.min(maximum,desired));
+    scrollHost.scrollTo({top:next,behavior:'auto'});
+    if(new URLSearchParams(location.search).has('ne79-selftest')){
+      let output=byIdV79('ne79FocusDiagnostics');
+      if(!output){output=document.createElement('output');output.id='ne79FocusDiagnostics';output.hidden=true;document.body.appendChild(output)}
+      output.textContent=JSON.stringify({attempts,scrollTop:scrollHost.scrollTop,scrollHeight:scrollHost.scrollHeight,clientHeight:scrollHost.clientHeight,targetTop:targetRect.top,targetHeight:targetRect.height,hostTop:hostRect.top,hostHeight:hostRect.height,desired,next,maximum,targetId:target.dataset.previewTargetId||''});
+    }
+    if(attempts<=36)requestAnimationFrame(seek);
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(seek));
+}
+function bindFocusV79(){
+  if(document.documentElement.dataset.ne79Focus==='1')return;
+  document.documentElement.dataset.ne79Focus='1';
+  document.addEventListener('focusin',event=>{
+    const target=event.target;
+    if(target?.closest?.('#presentationStudio')&&target.matches?.('input:not([type="file"]),textarea,select,button[data-feature-type],button[data-advantage-id]'))centerPreviewTargetV79(target);
+    else if(!target?.closest?.('#presentationStudio')){lastFocusSourceV79=null;focusEpochV79++}
+  },true);
+  document.addEventListener('pointerdown',event=>{
+    const source=event.target?.closest?.('#presentationStudio .ns-media-source,#presentationStudio .ns-page-card,#presentationStudio .studio-floorplan-block');
+    if(source)centerPreviewTargetV79(source);
+  },true);
+  const cancel=event=>{if(event.target?.closest?.('#ne53PreviewSlot'))focusEpochV79++};
+  document.addEventListener('wheel',cancel,{capture:true,passive:true});document.addEventListener('touchstart',cancel,{capture:true,passive:true});
+}
+
+function fixtureCanvasV79(kind){
+  const canvas=document.createElement('canvas');canvas.width=360;canvas.height=240;const ctx=canvas.getContext('2d');
+  if(kind==='white'){ctx.fillStyle='#fff';ctx.fillRect(0,0,360,240)}
+  if(kind==='black'){ctx.fillStyle='#050505';ctx.fillRect(0,0,360,240)}
+  if(kind==='text'){
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,360,240);ctx.fillStyle='#222';ctx.font='16px Arial';
+    for(let row=0;row<8;row++)ctx.fillText('Обычный текст документа без фотографии',22,34+row*23);
+  }
+  if(kind==='floor'){
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,360,240);ctx.strokeStyle='#8b949a';ctx.lineWidth=3;
+    ctx.strokeRect(34,24,292,190);ctx.strokeRect(34,24,128,88);ctx.strokeRect(162,24,164,88);ctx.strokeRect(34,112,92,102);ctx.strokeRect(126,112,200,102);
+    ctx.lineWidth=1;for(let x=46;x<320;x+=18){ctx.beginPath();ctx.moveTo(x,112);ctx.lineTo(x,125);ctx.stroke()}
+  }
+  if(kind==='map'){
+    const gradient=ctx.createLinearGradient(0,0,360,240);gradient.addColorStop(0,'#dbe9d2');gradient.addColorStop(1,'#e8dec8');ctx.fillStyle=gradient;ctx.fillRect(0,0,360,240);
+    ctx.fillStyle='#b6d7a8';for(let x=0;x<360;x+=70)ctx.fillRect(x+8,(x*3)%170,52,48);
+    ctx.strokeStyle='#fff';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(-20,210);ctx.bezierCurveTo(80,80,230,190,390,28);ctx.stroke();
+    ctx.strokeStyle='#e2aa42';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(20,20);ctx.lineTo(330,220);ctx.stroke();
+    ctx.fillStyle='#d94747';ctx.beginPath();ctx.arc(190,115,12,0,Math.PI*2);ctx.fill();
+  }
+  return canvas;
+}
+function runAssetFixturesV79(){
+  const analyzer=window.NEXESTATE_V54_TEST?.analyzeMediaCandidate;
+  const decide=window.NEXESTATE_V54_TEST?.candidateDecision;
+  if(typeof analyzer!=='function'||typeof decide!=='function')throw new Error('Классификатор PDF-недоступен для проверки.');
+  const cases=[
+    {id:'white',expected:false,text:''},
+    {id:'black',expected:false,text:''},
+    {id:'text',expected:false,text:'Описание объекта и обычный текст'},
+    {id:'floor',expected:true,text:'Планировка БТИ'},
+    {id:'map',expected:true,text:'Карта расположения'}
+  ];
+  return cases.map(item=>{const canvas=fixtureCanvasV79(item.id),analysis=analyzer(canvas),decision=decide(canvas,analysis,item.text);return{id:item.id,expected:item.expected,keep:decision.keep,pass:decision.keep===item.expected,reason:decision.reason,analysis}});
+}
+function semanticSnapshotV79(text,fileName='source.txt'){
+  const normalized=normalizeSourceTextV79(text),data=window.NEXESTATE_STAGE1_TEST?.parse?.(normalized,fileName)?.data||window.NEXESTATE_V55_TEST?.parseStructured?.(normalized,fileName)||{},triggers=window.NEXESTATE_V76_CORE_TEST?.trigger?.(data)||window.NEXESTATE_STAGE1_TEST?.triggers?.(data)||{};
+  return{data,triggers};
+}
+
+function ensureV79(){
+  ensureFrameV79=0;
+  ensureHomeActionsV79();ensureHeaderV79();normalizeModeV79();bindFocusV79();
+}
+function queueEnsureV79(){if(!ensureFrameV79)ensureFrameV79=requestAnimationFrame(ensureV79)}
+const observerV79=new MutationObserver(records=>{
+  if(records.some(record=>record.type==='childList'&&record.addedNodes.length||record.type==='attributes'))queueEnsureV79();
+});
+observerV79.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-pressed','aria-checked','hidden']});
+document.addEventListener('click',event=>{if(event.target?.closest?.('#ne62LayoutBy,#ne62LayoutSingle'))requestAnimationFrame(()=>requestAnimationFrame(()=>{normalizeModeV79();lastFocusSourceV79=null}))},true);
+document.addEventListener('change',event=>{if(event.target?.matches?.('#nsStudioTheme,#dsFontSelect'))requestAnimationFrame(normalizeModeV79)},true);
+
+window.NEXESTATE_POST_REDESIGN_TEST={
+  version:VERSION_V79,
+  inspect:()=>({
+    branchFeature:'post-redesign-corrections',
+    title:document.querySelector('#presentationStudio .ne79-header-title')?.textContent||'',
+    homeActions:[...document.querySelectorAll('#studioHome .ne79-home-actions>:not(.ne79-home-secondary)')].map(node=>node.textContent.trim()),
+    navigation:[...document.querySelectorAll('#presentationStudio .ne79-header-nav>*')].map(node=>node.textContent.trim()),
+    mode:canonicalLayoutV79(),
+    activeModes:[...document.querySelectorAll('#ne62LayoutBy.ne79-mode-active,#ne62LayoutSingle.ne79-mode-active')].map(node=>node.id),
+    legacyVisible:!!byIdV79('ne65BrandMode')?.getClientRects().length,
+    overviewPages:[...document.querySelectorAll('#studioPresoDeck .ps-canvas-page[data-page-kind="overview"]')].length,
+    previewTarget:document.querySelector('#presentationStudio .ne78-preview-target')?.getBoundingClientRect()||null
+  }),
+  decodeText:decodeTextBufferV79,
+  semanticSnapshot:semanticSnapshotV79,
+  equivalentSources:text=>{
+    const pdf=semanticSnapshotV79(text,'source.pdf'),txt=semanticSnapshotV79(text,'source.txt'),photo=semanticSnapshotV79(text,'source.png');
+    return{pdf,txt,photo,equal:JSON.stringify(pdf.data)===JSON.stringify(txt.data)&&JSON.stringify(txt.data)===JSON.stringify(photo.data)};
+  },
+  runAssetFixtures:runAssetFixturesV79,
+  importTextFile:importTextFileV79,
+  importPhotoFiles:(files,ocrTexts=[])=>importPhotoFilesV79(files,{ocr:(_file,index)=>ocrTexts[index]||''}),
+  retryPhotoOcr:retryPhotoOcrV79,
+  centerField:id=>{const field=byIdV79(id);if(!field)return false;lastFocusSourceV79=null;field.focus();centerPreviewTargetV79(field);return true},
+  refresh:()=>{ensureV79();return true}
+};
+if(new URLSearchParams(location.search).has('ne79-selftest')){
+  const output=document.createElement('output');
+  output.id='ne79SelfTest';
+  output.hidden=true;
+  const semanticProbe='Аренда офиса, 210,5 м², 950 000 ₽. Москва, Краснопрудная улица, 3-5. Метро Красные ворота.';
+  const fixtureResults=runAssetFixturesV79();
+  output.textContent=JSON.stringify({
+    version:VERSION_V79,
+    fixtures:fixtureResults,
+    fixturesPassed:fixtureResults.every(item=>item.pass),
+    equivalentSources:window.NEXESTATE_POST_REDESIGN_TEST.equivalentSources(semanticProbe)
+  });
+  document.body.appendChild(output);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueEnsureV79,{once:true});else queueEnsureV79();
+})();
+</script>
+<script id="nexestate-post-redesign-v79-loader">
+(()=>{
+  const source=document.getElementById('nexestate-post-redesign-v79-runtime')?.textContent||'';
+  if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');
+  try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_POST_REDESIGN_LOADED=true;delete window.NEXESTATE_POST_REDESIGN_ERROR}catch(error){window.NEXESTATE_POST_REDESIGN_LOADED=false;window.NEXESTATE_POST_REDESIGN_ERROR=String(error?.stack||error);throw error}
 })();
 </script>
 <script src="../../pwa-shell.js"></script>
