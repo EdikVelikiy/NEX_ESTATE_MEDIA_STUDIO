@@ -5889,7 +5889,10 @@ window.NEXESTATE_BUILD_INFO = Object.freeze({
     const pdf=NE53_STATE.pdf,source=field('ne53SourcePages'),photos=field('ne53ExtractedPhotos'),sourceCount=field('ne53SourceCount');if(sourceCount)sourceCount.textContent=pdf.pageCount+' '+(pdf.pageCount===1?'страница':'страниц');if(source){source.innerHTML='';pdf.sourcePages.forEach((page,index)=>{const card=document.createElement('figure');card.className='ne53-source-card';card.innerHTML=`<button type="button" aria-label="Открыть страницу ${index+1}"><img alt="Исходная страница PDF ${index+1}" width="${page.canvas.width}" height="${page.canvas.height}"></button><figcaption>Страница ${index+1} из ${pdf.pageCount}</figcaption>`;card.querySelector('img').src=page.canvas.toDataURL('image/jpeg',.76);card.querySelector('button').onclick=()=>openPage(index);source.appendChild(card)})}
     if(photos){photos.innerHTML='';pdf.extractedPhotos.forEach((photo,index)=>{const card=document.createElement('article');card.className='ne53-extracted-card';card.innerHTML=`<img alt="Извлечённая фотография ${index+1}" width="${photo.width}" height="${photo.height}"><div class="ne53-extracted-meta"><span>${photo.width} × ${photo.height} px<br>Страница ${photo.page}</span><button type="button" class="ne53-arrow" title="Перенести в Медиа" aria-label="Перенести фотографию ${index+1} в Медиа">→</button></div>`;card.querySelector('img').src=photo.canvas.toDataURL('image/jpeg',.8);card.querySelector('button').onclick=()=>transferOne(index);photos.appendChild(card)})}
     const note=field('ne53ExtractedNote');if(note){if(pdf.flattened&&!pdf.extractedPhotos.length)note.textContent='В этом PDF фотографии объединены с макетом страницы и не могут быть извлечены как оригинальные отдельные файлы.';else if(!pdf.extractedPhotos.length)note.textContent='Отдельные растровые фотографии в PDF не найдены. Исходные страницы не считаются фотографиями объекта.';else note.textContent='Найдено фотографий: '+pdf.extractedPhotos.length+'. В Медиа нет искусственного лимита фотографий; полные дубли пропускаются.'}
-    const empty=!pdf.extractedPhotos.length;for(const id of ['ne53DownloadExtracted','ne53TransferAll']){const button=field(id);if(button)button.disabled=empty}
+    const empty=!pdf.extractedPhotos.length,transferable=pdf.extractedPhotos.some(photo=>!photo.transferred);
+    const downloadButton=field('ne53DownloadExtracted'),transferButton=field('ne53TransferAll');
+    if(downloadButton)downloadButton.disabled=empty;
+    if(transferButton){transferButton.disabled=!transferable;transferButton.title=transferable?'Перенести все ещё не перенесённые фотографии в Медиа.':'Все извлечённые фотографии уже находятся в Медиа.'}
   }
   async function loadPdf(file){
     const token=++NE53_STATE.pdf.loadToken;setStep('pdf');status('warn','Проверяю PDF…');try{neValidatePdfFile(file);await window.neEnsurePdfJs();const buffer=await file.arrayBuffer(),documentPdf=await pdfjsLib.getDocument({data:new Uint8Array(buffer),isEvalSupported:false}).promise;neValidatePdfDocument(documentPdf);const pages=[],extracted=[],hashes=new Set(),texts=[];let flattened=false,totalPixels=0;
@@ -6681,7 +6684,9 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
       else if(!pdf.extractedPhotos.length)note.textContent='Отдельные растровые фотографии автоматически не подтверждены. Требуют ручной проверки: '+stats.rejected+' · пустых пропущено: '+stats.blank+' · дублей пропущено: '+stats.duplicates+'.';
       else note.textContent='Извлечено: '+pdf.extractedPhotos.length+' · требуют ручной проверки: '+stats.rejected+' · пустых пропущено: '+stats.blank+' · дублей пропущено: '+stats.duplicates+'. Полные и визуальные дубли пропускаются.';
     }
-    ['ne53DownloadExtracted','ne53TransferAll'].forEach(id=>{const button=byId(id);if(button)button.disabled=!(pdf.extractedPhotos||[]).length});
+    const extracted=pdf.extractedPhotos||[],downloadButton=byId('ne53DownloadExtracted'),transferButton=byId('ne53TransferAll'),transferable=extracted.some(photo=>!photo.transferred);
+    if(downloadButton)downloadButton.disabled=!extracted.length;
+    if(transferButton){transferButton.disabled=!transferable;transferButton.title=transferable?'Перенести все ещё не перенесённые фотографии в Медиа.':'Все извлечённые фотографии уже находятся в Медиа.';transferButton.setAttribute('aria-disabled',String(!transferable))}
     const deleteButton=byId('ne54DeletePdf');
     if(deleteButton)deleteButton.classList.toggle('show',!!pdf.pageCount);
     const appendix=byId('ne53AppendixToggle');
@@ -6767,11 +6772,12 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     const photo=(fromRejected?app.pdf.rejectedCandidates:app.pdf.extractedPhotos)?.[index];if(!photo?.blob)return false;
     const file=new File([photo.blob],'plan-page-'+String(photo.page||1).padStart(2,'0')+'.'+(photo.ext||'png'),{type:photo.mime||photo.blob.type||'image/png'});await window.studioSetFloorPlan?.(file);try{if(typeof syncPageOrder==='function')syncPageOrder();if(typeof renderExtendedMedia==='function')renderExtendedMedia();if(typeof syncCanonical==='function')syncCanonical()}catch(_){}notify('Изображение назначено планировкой');return true;
   }
-  function deleteExtracted(index){
+  async function deleteExtracted(index){
     const photo=app.pdf.extractedPhotos?.[index];
     if(!photo)return;
     const api=window.NEXESTATE_STANDALONE_TEST,placements=Number(api?.placementCount?.(photo.assetId))||0,linked=api?.hasAsset?.(photo.assetId);
-    if(!confirm('Удалить извлечённую фотографию'+(linked?' и связанный asset из Media':'')+(placements?' вместе с размещениями: '+placements:'')+'? Это действие можно отменить.'))return;
+    const approved=await api?.confirmRuntime?.({title:'Удалить извлечённую фотографию?',message:'Фотография будет удалена'+(linked?' вместе со связанным элементом Media':'')+(placements?' и размещениями: '+placements:'')+'. Это действие можно отменить.',confirmText:'Удалить',danger:true});
+    if(approved!==true)return;
     beforeMutation('Удаление извлечённой фотографии');
     if(linked)api.removeAssetById?.(photo.assetId,{confirmUser:false,recordHistory:false});
     app.pdf.extractedPhotos.splice(index,1);
@@ -6822,10 +6828,11 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     notify('Перенесено фотографий: '+added+(skipped?' · дубли пропущены: '+skipped:'')+'.');
     return added;
   }
-  function deletePdfV54(){
+  async function deletePdfV54(){
     if(!app.pdf.pageCount)return;
     const api=window.NEXESTATE_STANDALONE_TEST,sourcePdfId=app.pdf.sourcePdfId||'',linked=api?.sourceAssetStats?.(sourcePdfId)||{assets:0,placements:0},extracted=app.pdf.extractedPhotos?.length||0;
-    if(!confirm('Удалить текущий PDF, '+extracted+' извлечённых фотографий, '+linked.assets+' связанных assets и '+linked.placements+' размещений? Вручную загруженные фотографии и данные других PDF останутся.'))return;
+    const approved=await api?.confirmRuntime?.({title:'Удалить загруженный PDF?',message:'Будут удалены текущий PDF, '+extracted+' извлечённых фотографий, '+linked.assets+' связанных элементов Media и '+linked.placements+' размещений. Вручную загруженные фотографии и данные других PDF останутся.',confirmText:'Удалить PDF',danger:true});
+    if(approved!==true)return;
     beforeMutation('Удаление PDF');
     api?.removeAssetsBySource?.(sourcePdfId,{recordHistory:false});
     window.NE58_clearRecognizedData?.({confirmUser:false,recordHistory:false,sourcePdfId});
@@ -6929,13 +6936,14 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
 
   function tooltip(){
     if(tooltipNode)return tooltipNode;
-    tooltipNode=document.createElement('div');tooltipNode.className='ne54-tooltip';tooltipNode.id='ne54Tooltip';tooltipNode.role='tooltip';document.body.appendChild(tooltipNode);return tooltipNode;
+    tooltipNode=document.createElement('div');tooltipNode.className='ne54-tooltip';tooltipNode.id='ne54Tooltip';tooltipNode.role='tooltip';tooltipNode.setAttribute('aria-hidden','true');document.body.appendChild(tooltipNode);return tooltipNode;
   }
   function showTooltip(target){
     const text=target?.dataset?.tooltip;
-    if(!text)return;
+    if(!text||target.dataset.tooltipSuppressed==='1')return;
+    if(tooltipTarget&&tooltipTarget!==target)tooltipTarget.removeAttribute('aria-describedby');
     tooltipTarget=target;
-    const node=tooltip();node.textContent=text;node.classList.add('show');
+    const node=tooltip();node.textContent=text;node.classList.add('show');node.setAttribute('aria-hidden','false');
     target.setAttribute('aria-describedby',node.id);
     const rect=target.getBoundingClientRect(),box=node.getBoundingClientRect(),gap=8;
     let left=rect.left+(rect.width-box.width)/2,top=rect.top-box.height-gap;
@@ -6946,13 +6954,34 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
   function hideTooltip(target){
     if(target&&tooltipTarget!==target)return;
     tooltipTarget?.removeAttribute('aria-describedby');tooltipTarget=null;
-    tooltipNode?.classList.remove('show');
+    tooltipNode?.classList.remove('show');tooltipNode?.setAttribute('aria-hidden','true');
   }
-  document.addEventListener('pointerover',event=>{const target=event.target.closest?.('[data-tooltip]');if(target)showTooltip(target)});
-  document.addEventListener('pointerout',event=>{const target=event.target.closest?.('[data-tooltip]');if(target&&!target.contains(event.relatedTarget))hideTooltip(target)});
+  document.addEventListener('pointerenter',event=>{const target=event.target?.closest?.('[data-tooltip]');if(target)showTooltip(target)},true);
+  document.addEventListener('pointerleave',event=>{const target=event.target?.closest?.('[data-tooltip]');if(target){delete target.dataset.tooltipSuppressed;hideTooltip(target)}},true);
+  document.addEventListener('pointerout',event=>{
+    const target=event.target?.closest?.('[data-tooltip]');
+    if(target&&!target.contains(event.relatedTarget)){delete target.dataset.tooltipSuppressed;hideTooltip(target)}
+  },true);
+  document.addEventListener('pointermove',event=>{
+    if(tooltipTarget&&!tooltipTarget.contains(event.target))hideTooltip();
+  },true);
   document.addEventListener('focusin',event=>{const target=event.target.closest?.('[data-tooltip]');if(target)showTooltip(target)});
   document.addEventListener('focusout',event=>{const target=event.target.closest?.('[data-tooltip]');if(target)hideTooltip(target)});
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){hideTooltip();return}
+    const target=event.target?.closest?.('[data-tooltip]');
+    if(target)showTooltip(target);
+  },true);
+  document.addEventListener('pointerdown',event=>{if(tooltipTarget&&!tooltipTarget.contains(event.target))hideTooltip()},true);
+  document.addEventListener('click',event=>{if(event.target?.matches?.('input[type="file"]'))hideTooltip()},true);
   window.addEventListener('scroll',()=>hideTooltip(),true);
+  window.addEventListener('hashchange',()=>hideTooltip());
+  window.addEventListener('popstate',()=>hideTooltip());
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)hideTooltip()});
+  const tooltipScreenObserver=new MutationObserver(()=>{
+    if(tooltipTarget&&(!tooltipTarget.isConnected||!tooltipTarget.getClientRects().length))hideTooltip();
+  });
+  [byId('studioHome'),byId('presentationStudio'),byId('studioCatalog')].filter(Boolean).forEach(node=>tooltipScreenObserver.observe(node,{attributes:true,attributeFilter:['class','hidden','style']}));
 
   function bindPdfInput(){
     const oldDrop=byId('ne53PdfDrop');
@@ -7045,8 +7074,14 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     }
   };
   window.dsToggleFullscreen=function(){return window.dsSetFullscreen(!(document.fullscreenElement||byId('presentationStudio')?.classList.contains('ne54-fallback-fullscreen'))) };
-  document.addEventListener('fullscreenchange',()=>syncFullscreenUi(!!document.fullscreenElement));
-  document.addEventListener('webkitfullscreenchange',()=>syncFullscreenUi(!!document.webkitFullscreenElement));
+  document.addEventListener('fullscreenchange',()=>{
+    const active=!!document.fullscreenElement,modal=byId('presentationStudio');
+    if(active||!modal?.classList.contains('ne54-fallback-fullscreen'))syncFullscreenUi(active);
+  });
+  document.addEventListener('webkitfullscreenchange',()=>{
+    const active=!!document.webkitFullscreenElement,modal=byId('presentationStudio');
+    if(active||!modal?.classList.contains('ne54-fallback-fullscreen'))syncFullscreenUi(active);
+  });
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&byId('presentationStudio')?.classList.contains('ne54-fallback-fullscreen')){
       event.preventDefault();window.dsSetFullscreen(false);
@@ -7526,10 +7561,28 @@ function renderProjectCards(){
   const selected=cachedProjects.filter(item=>item.catalogSelected&&item.status==='ready').length,button=byId('nsOpenCatalog');if(button){button.disabled=selected<2;button.title=selected<2?'Выберите минимум две готовые презентации':''}
 }
 async function createBlankProject(){const record=projectDefaults();record.statusText='Новый проект ещё не сохранён';await ensureStudioShell();byId('studioHome').hidden=true;byId('nsCatalogScreen').hidden=true;const modal=byId('presentationStudio');modal.classList.add('show');modal.setAttribute('aria-hidden','false');document.body.classList.add('ne53-no-scroll');await restoreRecord(record);modal.querySelector('.ne52-step[data-step="pdf"]')?.focus()}
-async function renameProject(id){const record=await projectDb.get(id);if(!record)return;const value=prompt('Новое название презентации:',projectTitle(record));if(value===null)return;const name=cleanText(value,100).trim();if(!name)return;record.name=name;record.updatedAt=new Date().toISOString();await projectDb.put(record);refreshProjects()}
+function nsRuntimeDialog({title='Подтверждение',message='',defaultValue=null,confirmText='Подтвердить',cancelText='Отмена',danger=false}={}){
+  return new Promise(resolve=>{
+    const dialog=document.createElement('dialog');dialog.className='ns-runtime-dialog';
+    const form=document.createElement('form');form.method='dialog';form.style.cssText='min-width:min(460px,88vw);max-width:560px;padding:24px;background:var(--ns-surface);color:var(--ns-text);border:1px solid var(--ns-line);border-radius:16px;box-shadow:var(--ns-shadow)';
+    const heading=document.createElement('h2');heading.textContent=title;heading.style.cssText='margin:0 0 9px;font:700 23px Georgia,serif';
+    const copy=document.createElement('p');copy.textContent=message;copy.style.cssText='margin:0 0 16px;color:var(--ns-muted);line-height:1.55';
+    let input=null;if(defaultValue!==null){input=document.createElement('input');input.type='text';input.value=String(defaultValue);input.setAttribute('aria-label',title);input.style.cssText='width:100%;margin:0 0 17px'}
+    const actions=document.createElement('div');actions.style.cssText='display:flex;justify-content:flex-end;gap:9px';
+    const cancel=document.createElement('button');cancel.type='button';cancel.className='ns-button';cancel.textContent=cancelText;
+    const confirm=document.createElement('button');confirm.type='submit';confirm.className=danger?'ns-button danger':'ns-primary';confirm.textContent=confirmText;confirm.value='confirm';
+    actions.append(cancel,confirm);form.append(heading,copy);if(input)form.append(input);form.append(actions);dialog.append(form);document.body.append(dialog);
+    let settled=false;const finish=value=>{if(settled)return;settled=true;dialog.remove();resolve(value)};
+    cancel.addEventListener('click',()=>dialog.close('cancel'));dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close('cancel')});
+    dialog.addEventListener('close',()=>finish(dialog.returnValue==='confirm'?(input?input.value:true):null),{once:true});
+    form.addEventListener('submit',event=>{event.preventDefault();dialog.close('confirm')});
+    dialog.showModal();requestAnimationFrame(()=>{(input||confirm).focus();if(input)input.select()});
+  });
+}
+async function renameProject(id){const record=await projectDb.get(id);if(!record)return;const value=await nsRuntimeDialog({title:'Переименовать презентацию',message:'Введите новое название презентации.',defaultValue:projectTitle(record),confirmText:'Сохранить'});if(value===null)return;const name=cleanText(value,100).trim();if(!name)return;record.name=name;record.updatedAt=new Date().toISOString();await projectDb.put(record);refreshProjects()}
 async function duplicateProject(id){const source=await projectDb.get(id);if(!source)return;const copy=deepClone(source);copy.id=uuid();copy.name=projectTitle(source)+' — копия';copy.order=Math.max(0,...cachedProjects.map(item=>Number(item.order)||0))+1;copy.createdAt=copy.updatedAt=new Date().toISOString();copy.catalogSelected=false;await projectDb.put(copy);setHomeStatus('Создана независимая копия «'+copy.name+'»','ok');refreshProjects()}
 async function moveProject(id,direction){const index=cachedProjects.findIndex(item=>item.id===id),target=index+direction;if(index<0||target<0||target>=cachedProjects.length)return;[cachedProjects[index],cachedProjects[target]]=[cachedProjects[target],cachedProjects[index]];for(let i=0;i<cachedProjects.length;i++){cachedProjects[i].order=i;await projectDb.put(cachedProjects[i])}refreshProjects()}
-async function deleteProject(id){const record=await projectDb.get(id);if(!record||!confirm('Удалить презентацию «'+projectTitle(record)+'»? Это действие нельзя отменить.'))return;await projectDb.delete(id);const checkpoints=await checkpointsFor(id);for(const item of checkpoints)await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.delete(item.id));if(currentRecord?.id===id)currentRecord=null;setHomeStatus('Презентация удалена','ok');refreshProjects()}
+async function deleteProject(id){const record=await projectDb.get(id);if(!record)return;const approved=await nsRuntimeDialog({title:'Удалить презентацию',message:'Удалить презентацию «'+projectTitle(record)+'»? Это действие нельзя отменить.',confirmText:'Удалить',danger:true});if(approved!==true)return;await projectDb.delete(id);const checkpoints=await checkpointsFor(id);for(const item of checkpoints)await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.delete(item.id));if(currentRecord?.id===id)currentRecord=null;setHomeStatus('Презентация удалена','ok');refreshProjects()}
 
 function ensureChoiceDialog(){let dialog=byId('nsNewDialog');if(dialog)return dialog;dialog=document.createElement('dialog');dialog.id='nsNewDialog';dialog.innerHTML='<form method="dialog" style="min-width:min(440px,88vw);padding:24px;background:var(--ns-surface);color:var(--ns-text);border:1px solid var(--ns-line);border-radius:16px"><h2 style="margin:0 0 8px">Новая презентация</h2><p style="margin:0 0 18px;color:var(--ns-muted)">Начните с чистого проекта или выберите PDF.</p><div style="display:grid;gap:9px"><button type="button" value="blank" class="ns-primary">Создать пустую презентацию</button><label class="ns-button">Загрузить PDF<input id="nsNewPdf" type="file" accept="application/pdf,.pdf" hidden></label><button type="button" value="cancel" class="ns-button">Отмена</button></div></form>';document.body.appendChild(dialog);dialog.querySelector('[value="blank"]').addEventListener('click',()=>{dialog.close('cancel');createBlankProject()});dialog.querySelector('[value="cancel"]').addEventListener('click',()=>dialog.close('cancel'));dialog.querySelector('#nsNewPdf').addEventListener('change',event=>{const files=event.target.files;dialog.close('cancel');if(files?.length)importPdfFiles(files)});return dialog}
 
@@ -7632,7 +7685,7 @@ function reorderPage(fromKey,toKey){const order=currentSettings?.pageOrder||[];i
 function movePageBy(pageKey,direction){const order=currentSettings?.pageOrder||[],movable=isByNexEstateDesign()?order.filter(key=>key.startsWith('gallery:')):order,index=movable.indexOf(pageKey),target=index+direction;if(index<0||target<0||target>=movable.length)return false;return reorderPage(pageKey,movable[target])}
 function addGalleryPage(){if(!currentSettings)return;historyPoint('Добавление фотостраницы');const page={id:'gallery-'+uuid(),title:'Фотографии объекта',assetIds:[],userCreated:true};currentSettings.galleryPages.push(page);syncPageOrder();const key='gallery:'+page.id,order=currentSettings.pageOrder,old=order.indexOf(key);if(old>=0)order.splice(old,1);const contact=order.indexOf('contact');order.splice(contact>=0?contact:order.length,0,key);renderExtendedMedia();syncCanonical();return page.id}
 function restoreHiddenPage(key){if(!currentSettings)return;historyPoint('Восстановление страницы');currentSettings.hiddenPages=(currentSettings.hiddenPages||[]).filter(item=>item!==key);if(key==='cover')currentSettings.coverEnabled=true;syncPageOrder();renderExtendedMedia();syncCanonical()}
-function deletePagePlacement(pageKey){if(!currentSettings)return false;if(isByNexEstateDesign()&&!pageKey.startsWith('gallery:'))return false;const label=pageKey==='cover'?'фирменную обложку':pageKey.startsWith('gallery:')?'фотостраницу':'страницу';if(!confirm('Удалить '+label+'? Фотографии останутся в Media.'))return false;historyPoint('Удаление страницы');if(pageKey==='cover'){currentSettings.coverEnabled=false;currentSettings.hiddenPages=[...new Set([...(currentSettings.hiddenPages||[]),'cover'])]}else if(pageKey.startsWith('gallery:')){const id=pageKey.slice(8),page=currentSettings.galleryPages.find(item=>item.id===id);(page?.assetIds||[]).forEach(assetId=>{const meta=assetMeta(assetId);if(meta)meta.included=false});currentSettings.galleryPages=currentSettings.galleryPages.filter(item=>item.id!==id);currentSettings.pageOrder=currentSettings.pageOrder.filter(item=>item!==pageKey)}else{currentSettings.hiddenPages=[...new Set([...(currentSettings.hiddenPages||[]),pageKey])];currentSettings.pageOrder=currentSettings.pageOrder.filter(item=>item!==pageKey)}syncGalleryPages();renderExtendedMedia();syncCanonical();return true}
+async function deletePagePlacement(pageKey){if(!currentSettings)return false;if(isByNexEstateDesign()&&!pageKey.startsWith('gallery:'))return false;const label=pageKey==='cover'?'фирменную обложку':pageKey.startsWith('gallery:')?'фотостраницу':'страницу',approved=await nsRuntimeDialog({title:'Удалить '+label+'?',message:'Фотографии останутся в Media.',confirmText:'Удалить страницу',danger:true});if(approved!==true)return false;historyPoint('Удаление страницы');if(pageKey==='cover'){currentSettings.coverEnabled=false;currentSettings.hiddenPages=[...new Set([...(currentSettings.hiddenPages||[]),'cover'])]}else if(pageKey.startsWith('gallery:')){const id=pageKey.slice(8),page=currentSettings.galleryPages.find(item=>item.id===id);(page?.assetIds||[]).forEach(assetId=>{const meta=assetMeta(assetId);if(meta)meta.included=false});currentSettings.galleryPages=currentSettings.galleryPages.filter(item=>item.id!==id);currentSettings.pageOrder=currentSettings.pageOrder.filter(item=>item!==pageKey)}else{currentSettings.hiddenPages=[...new Set([...(currentSettings.hiddenPages||[]),pageKey])];currentSettings.pageOrder=currentSettings.pageOrder.filter(item=>item!==pageKey)}syncGalleryPages();renderExtendedMedia();syncCanonical();return true}
 function removePlacement(pageKey,slot){if(!currentSettings)return false;historyPoint('Удаление размещения фотографии');if(pageKey==='cover'){const assetId=currentSettings.coverPhotoIds[slot];currentSettings.coverPhotoIds=currentSettings.coverPhotoIds.filter(id=>id!==assetId)}else{const page=currentSettings.galleryPages.find(item=>'gallery:'+item.id===pageKey),assetId=page?.assetIds?.[slot];if(page&&assetId){page.assetIds.splice(slot,1);const meta=assetMeta(assetId);if(meta)meta.included=false}}syncGalleryPages();renderExtendedMedia();syncCanonical();return true}
 function placeAsset(assetId,pageKey,slot){const meta=assetMeta(assetId);if(!meta||!currentSettings)return false;if(pageKey==='cover'){const list=currentSettings.coverPhotoIds.filter(id=>id!==assetId),occupied=list[slot];if(occupied&&occupied!==assetId&&!confirm('Этот слот обложки занят. Заменить фотографию? Заменённый оригинал останется в Media.'))return false;historyPoint('Размещение фотографии на обложке');if(occupied)list.splice(slot,1,assetId);else list.splice(Math.min(slot,list.length),0,assetId);currentSettings.coverPhotoIds=list.slice(0,3);currentSettings.coverEnabled=true;currentSettings.hiddenPages=(currentSettings.hiddenPages||[]).filter(key=>key!=='cover');syncPageOrder();renderExtendedMedia();syncCanonical();return true}
   const page=currentSettings.galleryPages.find(item=>'gallery:'+item.id===pageKey);if(!page)return false;const limit=currentSettings.galleryMode===1?1:2,occupied=page.assetIds[slot];if(occupied&&occupied!==assetId&&!confirm('Этот слот занят. Заменить фотографию? Заменённый оригинал останется в Media.')){toastSafe('Размещение не изменено. Можно добавить новую фотостраницу.');return false}historyPoint('Перемещение фотографии между страницами');currentSettings.galleryPages.forEach(item=>item.assetIds=item.assetIds.filter(id=>id!==assetId));if(occupied&&occupied!==assetId){page.assetIds=page.assetIds.filter(id=>id!==occupied);const replaced=assetMeta(occupied);if(replaced)replaced.included=false}page.assetIds.splice(Math.min(slot,page.assetIds.length),0,assetId);page.assetIds=page.assetIds.slice(0,limit);meta.included=true;syncGalleryPages();renderExtendedMedia();syncCanonical();return true}
@@ -7924,7 +7977,7 @@ async function packPortable(value,seen=new WeakSet()){
 }
 async function unpackPortable(value){if(value&&value.__nexestateBlob===1)return base64ToBlob(value.data,value.type);if(Array.isArray(value)){const result=[];for(const item of value)result.push(await unpackPortable(item));return result}if(value&&typeof value==='object'){const result={};for(const [key,item] of Object.entries(value))result[key]=await unpackPortable(item);return result}return value}
 async function exportProject(id){try{const record=await projectDb.get(id);if(!record)throw new Error('Проект не найден');setHomeStatus('Экспортирую «'+projectTitle(record)+'»…');const payload={kind:'NexEstatePresentationProject',schema:PROJECT_SCHEMA,exportedAt:new Date().toISOString(),record:await packPortable(record)},blob=new Blob([JSON.stringify(payload)],{type:'application/vnd.nexestate.project+json'});downloadBlob(blob,projectTitle(record)+'.nexestate-project');setHomeStatus('Проект экспортирован в один переносимый файл','ok')}catch(error){setHomeStatus('Экспорт проекта не выполнен: '+error.message,'error')}}
-async function importProjectFile(file){setHomeStatus('Проверяю файл проекта…');try{if(!file||file.size>900*1024*1024)throw new Error('Файл проекта отсутствует или слишком велик');const payload=JSON.parse(await file.text());if(payload?.kind!=='NexEstatePresentationProject'||!Number.isFinite(Number(payload.schema))||!payload.record)throw new Error('Это не файл проекта NexEstate');if(Number(payload.schema)>PROJECT_SCHEMA)throw new Error('Файл создан более новой несовместимой версией Studio');const record=await unpackPortable(payload.record);if(!record||typeof record!=='object')throw new Error('Структура проекта повреждена');const existing=record.id?await projectDb.get(record.id):null;if(existing){if(confirm('Проект с таким идентификатором уже существует. Заменить его импортированной версией?'))record.id=existing.id;else{record.id=uuid();record.name=projectTitle(record)+' — импорт'}}else record.id=record.id||uuid();record.schema=PROJECT_SCHEMA;record.order=Math.max(0,...cachedProjects.map(item=>Number(item.order)||0))+1;record.catalogSelected=false;record.status='ready';record.statusText='Импортирован '+formatDate(new Date().toISOString());record.createdAt=record.createdAt||new Date().toISOString();record.updatedAt=new Date().toISOString();record.settings=normalizeSettings(record.settings);await projectDb.put(record);setHomeStatus('Импортирован проект «'+projectTitle(record)+'»','ok');await refreshProjects()}catch(error){console.error('Project import',error);setHomeStatus('Импорт не выполнен: '+error.message,'error')}}
+async function importProjectFile(file){setHomeStatus('Проверяю файл проекта…');try{if(!file||file.size>900*1024*1024)throw new Error('Файл проекта отсутствует или слишком велик');const payload=JSON.parse(await file.text());if(payload?.kind!=='NexEstatePresentationProject'||!Number.isFinite(Number(payload.schema))||!payload.record)throw new Error('Это не файл проекта NexEstate');if(Number(payload.schema)>PROJECT_SCHEMA)throw new Error('Файл создан более новой несовместимой версией Studio');const record=await unpackPortable(payload.record);if(!record||typeof record!=='object')throw new Error('Структура проекта повреждена');const existing=record.id?await projectDb.get(record.id):null;if(existing){const replace=await nsRuntimeDialog({title:'Проект уже существует',message:'Проект с таким идентификатором уже существует. Заменить его импортированной версией?',confirmText:'Заменить',cancelText:'Импортировать копию'});if(replace===true)record.id=existing.id;else{record.id=uuid();record.name=projectTitle(record)+' — импорт'}}else record.id=record.id||uuid();record.schema=PROJECT_SCHEMA;record.order=Math.max(0,...cachedProjects.map(item=>Number(item.order)||0))+1;record.catalogSelected=false;record.status='ready';record.statusText='Импортирован '+formatDate(new Date().toISOString());record.createdAt=record.createdAt||new Date().toISOString();record.updatedAt=new Date().toISOString();record.settings=normalizeSettings(record.settings);await projectDb.put(record);setHomeStatus('Импортирован проект «'+projectTitle(record)+'»','ok');await refreshProjects()}catch(error){const message=String(error?.message||error);const expected=error instanceof SyntaxError||error?.name==='NotFoundError'||/^(Файл проекта отсутствует|Это не файл проекта|Файл создан более новой|Структура проекта повреждена)/.test(message);if(!expected)console.error('Project import',error);setHomeStatus('Импорт не выполнен: '+message,'error')}}
 
 async function maybeAutoBackup(record){const items=(await checkpointsFor(record.id)).filter(item=>item.kind==='auto'),last=items[0],now=Date.now();if(last&&now-new Date(last.createdAt).getTime()<10*60*1000)return;const backup={id:'backup-'+record.id+'-'+now,projectId:record.id,kind:'auto',name:'Автоматическая резервная копия',createdAt:new Date(now).toISOString(),record:deepClone(record)};await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.put(backup));for(const item of items.slice(4))await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.delete(item.id))}
 async function createProjectCheckpoint(){if(!currentRecord)return;const ok=await saveCurrent(false);if(!ok)return;const name=cleanText(prompt('Название контрольной точки:','Контрольная точка '+formatDate(new Date().toISOString()))||'',80).trim();if(!name)return;const checkpoint={id:'checkpoint-'+currentRecord.id+'-'+Date.now(),projectId:currentRecord.id,kind:'manual',name,createdAt:new Date().toISOString(),record:deepClone(currentRecord)};await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.put(checkpoint));toastSafe('Контрольная точка создана')}
@@ -7989,7 +8042,7 @@ function activateByNexEstate({restoreCover=false}={}){if(!currentSettings)return
 function clearAutoFeatures(){if(!currentSettings)return false;currentSettings.features=currentSettings.features.filter(item=>item.auto!==true);renderFeatureEditor();syncCanonical();return true}
 
 window.NEXESTATE_STANDALONE_TEST={
-  schema:PROJECT_SCHEMA,dbName:DB_NAME,iconTypes:ICON_TYPES.map(item=>item[0]),refreshProjects,getProjects:()=>projectDb.all(),getProject:id=>projectDb.get(id),putProject:record=>projectDb.put(record),createBlankProject,openProject,closeProject:()=>window.closePresentationStudio(),saveCurrent,addMediaFiles,addExtractedAsset,buildSlides:buildCanonicalSlides,buildCatalogPdf,openCatalogScreen,exportProject,importProjectFile,importPdfFiles,activateByNexEstate,clearAutoFeatures,removeAssetById,removeAssetsBySource,placementCount,sourceAssetStats,hasAsset:assetId=>!!assetMeta(assetId),deletePage:deletePagePlacement,placeAsset,addGalleryPage,
+  schema:PROJECT_SCHEMA,dbName:DB_NAME,iconTypes:ICON_TYPES.map(item=>item[0]),refreshProjects,getProjects:()=>projectDb.all(),getProject:id=>projectDb.get(id),putProject:record=>projectDb.put(record),createBlankProject,openProject,closeProject:()=>window.closePresentationStudio(),saveCurrent,addMediaFiles,addExtractedAsset,buildSlides:buildCanonicalSlides,buildCatalogPdf,openCatalogScreen,exportProject,importProjectFile,importPdfFiles,activateByNexEstate,clearAutoFeatures,confirmRuntime:nsRuntimeDialog,removeAssetById,removeAssetsBySource,placementCount,sourceAssetStats,hasAsset:assetId=>!!assetMeta(assetId),deletePage:deletePagePlacement,placeAsset,addGalleryPage,
   getState:()=>({projectId:currentRecord?.id||null,data:currentRecord?.data?deepClone(currentRecord.data):null,settings:currentSettings?deepClone(currentSettings):null,design:typeof DS!=='undefined'?deepClone(DS):null,mediaCount:mediaItems().length,includedCount:currentSettings?includedMedia().length:0,activeStep:window.NE53_STATE?.step||null}),
   setData:data=>{if(!currentRecord)return;currentRecord.data={...(currentRecord.data||{}),...(data&&typeof data==='object'?data:{})};applyDataToForm(currentRecord.data);syncCanonical()},replaceData:data=>{if(!currentRecord)return false;currentRecord.data=deepClone(data&&typeof data==='object'?data:{});applyDataToForm(currentRecord.data);syncCanonical();return true},replaceSettings:settings=>{if(!currentRecord||!settings)return false;currentSettings=normalizeSettings(deepClone(settings));syncPageOrder();renderExtendedMedia();renderFeatureEditor(true);syncCanonical();return true},setDesign:design=>{if(DS_DESIGNS[design]){if(currentSettings&&design!=='byNexEstate')currentSettings.previousDesign=design;DS.design=design;if(currentSettings){syncPageOrder();renderExtendedMedia()}window.dsApply?.()}},setGalleryMode:mode=>{if(currentSettings){historyPoint('Изменение количества фотографий на странице');reflowGalleryPagesForMode(mode);renderExtendedMedia();syncCanonical()}},setFeatures:features=>{if(currentSettings){currentSettings.features=normalizeSettings({...currentSettings,features}).features;renderFeatureEditor();syncCanonical()}},updateMediaMeta:(index,patch)=>{if(!currentSettings?.media?.[index])return false;historyPoint('Изменение кадрирования фотографии');Object.assign(currentSettings.media[index],patch||{});currentSettings.media=normalizeSettings({...currentSettings,media:currentSettings.media}).media;renderExtendedMedia();syncCanonical();return true},moveMedia:(index,direction)=>moveMediaExtended(Number(index),Number(direction)),removeMedia:index=>removeMediaExtended(Number(index)),getMedia:()=>currentSettings?deepClone(currentSettings.media):[],updateBrokerMeta:patch=>{if(!currentSettings)return false;currentSettings.broker=Object.assign({focusX:50,focusY:50,scale:1},currentSettings.broker||{},patch||{});renderBrokerEditorMeta();syncCanonical();return true},getBrokerMeta:()=>currentSettings?deepClone(currentSettings.broker||{focusX:50,focusY:50,scale:1}):null,lastCatalog:()=>window.NEXESTATE_LAST_CATALOG
 };
@@ -8265,7 +8318,7 @@ async function runByAction(button){if(button.disabled)return false;const api=win
 function updateByAction(){const button=byId('ne55ByNexEstateAction'),active=window.NEXESTATE_STANDALONE_TEST?.getState?.()?.design?.design==='byNexEstate';if(!button)return;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));button.dataset.tooltip=active?'Оформление by NexEstate активно. Нажмите, чтобы вернуться к предыдущему дизайну.':'Применяет фирменное оформление by NexEstate. Скачивание PDF запускается отдельно.'}
 function removeBrokerPhoto(){if(typeof studioBrokerPhoto==='undefined'||!studioBrokerPhoto)return false;if(!confirm('Удалить фотографию брокера? Это действие можно отменить.'))return false;window.ne54BeforeProjectMutation?.('Удаление фотографии брокера');studioBrokerPhoto=null;const preview=byId('studioBrokerPhotoPreview'),input=byId('studioBrokerPhoto')||document.createElement('input');input.id='studioBrokerPhoto';input.type='file';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.onchange=()=>{const file=input.files?.[0];input.value='';if(file)window.studioSetBrokerPhoto(file)};if(preview){const placeholder=document.createElement('span');placeholder.innerHTML='Фото<br>брокера';preview.replaceChildren(placeholder,input)}window.syncStudioPreview?.();window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(false);enhanceBrokerControls();return true}
 function enhanceBrokerControls(){const preview=byId('studioBrokerPhotoPreview'),loader=preview?.closest('.broker-photo-loader');if(!preview||!loader)return;const input=byId('studioBrokerPhoto');if(input)input.accept='image/jpeg,image/png,image/webp';preview.title='Выбрать фотографию брокера';let label=loader.querySelector('.ne58-broker-label');if(!label){label=document.createElement('strong');label.className='ne58-broker-label';label.textContent='Фотография брокера';loader.insertBefore(label,preview)}let controls=loader.querySelector('.ne58-broker-controls');if(!controls){controls=document.createElement('div');controls.className='ne58-broker-controls';const old=loader.querySelector('button');if(old)old.remove();controls.innerHTML='<button type="button" class="btn ghost ne58-broker-upload"></button><button type="button" class="btn ghost ne58-broker-remove">Удалить</button><div class="hint">JPEG, PNG или WebP. Исходный файл сохраняется без повторного сжатия.</div>';loader.appendChild(controls)}const hasImage=!!preview.querySelector('img'),upload=controls.querySelector('.ne58-broker-upload'),remove=controls.querySelector('.ne58-broker-remove'),uploadLabel=hasImage?'Заменить':'Загрузить фотографию';if(upload.textContent!==uploadLabel)upload.textContent=uploadLabel;upload.onclick=()=>byId('studioBrokerPhoto')?.click();remove.hidden=!hasImage;remove.onclick=removeBrokerPhoto}
-function enhanceOcrActions(){const button=byId('ne53OcrButton');if(!button)return;const label=ocrBusy?'Распознавание…':'Распознать заново';if(button.textContent!==label)button.textContent=label;button.dataset.tooltip='Повторно использует текстовый слой и запускает OCR только для страниц без пригодного текста.';if(!byId('ne58ClearOcr')){const clear=document.createElement('button');clear.id='ne58ClearOcr';clear.type='button';clear.className='ne53-btn';clear.textContent='Очистить распознанные данные';clear.dataset.tooltip='Удаляет значения, автоматически заполненные из текущего PDF. Исходный PDF, фотографии и значения, изменённые вручную, останутся.';clear.onclick=()=>clearRecognizedData({confirmUser:true,recordHistory:true});button.parentNode?.insertBefore(clear,button.nextSibling)}const clear=byId('ne58ClearOcr'),sources=window.NE53_STATE?.pdf?.fieldSources||{};if(clear)clear.disabled=!Object.keys(sources).length}
+function enhanceOcrActions(){const button=byId('ne53OcrButton');if(!button)return;const label=ocrBusy?'Распознавание…':'Распознать заново';if(button.textContent!==label)button.textContent=label;button.dataset.tooltip='Повторно использует текстовый слой и запускает OCR только для страниц без пригодного текста.';if(!byId('ne58ClearOcr')){const clear=document.createElement('button');clear.id='ne58ClearOcr';clear.type='button';clear.className='ne53-btn';clear.textContent='Очистить распознанные данные';clear.dataset.tooltip='Удаляет значения, автоматически заполненные из текущего PDF. Исходный PDF, фотографии и значения, изменённые вручную, останутся.';clear.onclick=async()=>{const approved=await window.NEXESTATE_STANDALONE_TEST?.confirmRuntime?.({title:'Очистить распознанные данные?',message:'Будут удалены только автоматически заполненные значения текущего PDF. Вручную изменённые значения, PDF и фотографии останутся.',confirmText:'Очистить',danger:true});if(approved===true)clearRecognizedData({confirmUser:false,recordHistory:true})};button.parentNode?.insertBefore(clear,button.nextSibling)}const clear=byId('ne58ClearOcr'),sources=window.NE53_STATE?.pdf?.fieldSources||{};if(clear)clear.disabled=!Object.keys(sources).length}
 function enhanceShell(){const shell=byId('presentationStudio')?.querySelector('.ne52-shell');if(!shell)return;shell.querySelector('.ne52-version')?.remove();shell.querySelector('.ne53-design-card[data-ds-val="byNexEstate"]')?.remove();const right=shell.querySelector('.ne53-exportbar .right');if(right&&!byId('nsExplicitSave')){const save=document.createElement('button');save.id='nsExplicitSave';save.type='button';save.className='ne55-action ne55-save';save.innerHTML=saveIcon+'<span>Сохранить</span>';save.dataset.tooltip='Сохраняет данные, медиапорядок, дизайн и настройки текущей презентации.';save.setAttribute('aria-label','Сохранить текущую презентацию');save.onclick=()=>window.NEXESTATE_STANDALONE_TEST?.saveCurrent?.(true);const by=document.createElement('button');by.id='ne55ByNexEstateAction';by.type='button';by.className='ne55-action ne55-by-action';by.textContent='by NexEstate';by.onclick=()=>runByAction(by);right.insertBefore(save,right.firstChild);right.insertBefore(by,right.firstChild)}enhanceOcrActions();enhanceBrokerControls();enhanceMedia();renderBrokerMeta();updateByAction()}
 function queueDom(){if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE===true||domQueued)return;domQueued=true;queueMicrotask(()=>{domQueued=false;if(window.NE72_PDF_IMPORT_QUEUE_ACTIVE!==true)enhanceShell()})}
 function markFieldSourceManual(event){const field=event.target,key=Object.entries(FIELD_IDS).find(([,id])=>id===field?.id)?.[0]||({studioScenario:'scenario',studioType:'otype',studioMetro:'metro'}[field?.id]),source=key&&window.NE53_STATE?.pdf?.fieldSources?.[key];if(!source)return;source.manual=valueToCompare(currentValue(key))!==valueToCompare(source.autoValue);enhanceOcrActions()}
@@ -8650,7 +8703,12 @@ function formatLabelV61(type){return{pdf:'Скачать PDF',web:'Открыт�
 function selectExportTypeV61(type){if(!currentSettings||!['pdf','web','html','png'].includes(type))return;currentSettings.exportType=type;const menu=byId('ne61ExportMenu');if(menu)menu.open=false;refreshSinglePageControlsV61();scheduleSave()}
 function runSelectedExportV61(){const type=currentSettings?.exportType||'pdf';return type==='web'?window.dsOpenNewTab?.():type==='html'?window.dsDownloadHTML?.():type==='png'?window.dsDownloadPNGs?.():window.dsExportPDF?.()}
 async function createBackupNowV61(){if(!currentRecord)return false;const saved=await saveCurrent(false);if(!saved)return false;const now=Date.now(),checkpoint={id:'checkpoint-'+currentRecord.id+'-'+now,projectId:currentRecord.id,kind:'manual',name:'Резервная копия '+formatDate(new Date(now).toISOString()),createdAt:new Date(now).toISOString(),record:deepClone(currentRecord)};await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.put(checkpoint));byId('ne61BackupDialog')?.close();toastSafe('Резервная копия создана');return true}
-function backupDialogV61(){let dialog=byId('ne61BackupDialog');if(dialog)return dialog;dialog=document.createElement('dialog');dialog.id='ne61BackupDialog';dialog.className='ne61-backup-dialog';dialog.innerHTML='<h2>Резервные копии проекта</h2><p>Ручная копия — это полный снимок текущего проекта. Автоматические и ранее созданные точки остаются доступны отдельно.</p><div class="ne61-backup-actions"></div><button type="button" data-close>Закрыть</button>';const actions=dialog.querySelector('.ne61-backup-actions');actions.append(buttonV61('Создать резервную копию сейчас',createBackupNowV61),buttonV61('Открыть ручные резервные копии',()=>window.dsManageCheckpoints?.()),buttonV61('Открыть автоматические резервные копии',()=>window.dsRestoreBackup?.()));dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close()});document.body.appendChild(dialog);return dialog}
+function closeProjectBackupsV61(){const modal=byId('ne61ProjectBackupModal');modal?.classList.remove('show');modal?.setAttribute('aria-hidden','true');modal?.replaceChildren()}
+async function restoreProjectBackupItemV61(item){if(!currentRecord||item.projectId!==currentRecord.id)return;const approved=await nsRuntimeDialog({title:'Восстановить резервную копию',message:'Восстановить «'+item.name+'» для текущего проекта? Текущее состояние будет заменено сохранённым снимком.',confirmText:'Восстановить'});if(approved!==true)return;const restored=deepClone(item.record);restored.id=currentRecord.id;restored.name=currentRecord.name;restored.updatedAt=new Date().toISOString();closeProjectBackupsV61();await projectDb.put(restored);await restoreRecord(restored);toastSafe('Состояние проекта восстановлено')}
+async function deleteProjectBackupItemV61(item,kind){const approved=await nsRuntimeDialog({title:'Удалить резервную копию',message:'Удалить «'+item.name+'»? Это действие нельзя отменить.',confirmText:'Удалить',danger:true});if(approved!==true)return;await storeRun(CHECKPOINT_STORE,'readwrite',store=>store.delete(item.id));toastSafe('Резервная копия удалена');await openProjectBackupsV61(kind)}
+async function openProjectBackupsV61(kind){if(!currentRecord)return;let modal=byId('ne61ProjectBackupModal');if(!modal){modal=document.createElement('div');modal.id='ne61ProjectBackupModal';modal.className='ne53-modal';modal.setAttribute('aria-hidden','true');document.querySelector('#presentationStudio .ne52-shell')?.appendChild(modal)}modal.replaceChildren();const dialog=document.createElement('section');dialog.className='ne54-backup-dialog';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','ne61ProjectBackupTitle');const head=document.createElement('header');head.className='ne54-backup-head';const title=document.createElement('h3');title.id='ne61ProjectBackupTitle';title.textContent=kind==='manual'?'Ручные резервные копии':'Автоматические резервные копии';head.append(title,buttonV61('Закрыть',closeProjectBackupsV61));const list=document.createElement('div');list.className='ne54-backup-list';const items=(await checkpointsFor(currentRecord.id)).filter(item=>item.kind===kind);if(!items.length){const empty=document.createElement('div');empty.className='ne54-empty';empty.textContent=kind==='manual'?'У текущего проекта нет ручных резервных копий.':'У текущего проекта нет автоматических резервных копий.';list.appendChild(empty)}items.forEach(item=>{const row=document.createElement('article');row.className='ne54-backup-item';const info=document.createElement('div'),name=document.createElement('b'),date=document.createElement('span');name.textContent=item.name;date.textContent=(kind==='manual'?'Ручная копия · ':'Автоматическая копия · ')+formatDate(item.createdAt);info.append(name,date);const actions=document.createElement('div');actions.className='ne54-backup-actions';actions.append(buttonV61('Восстановить',()=>restoreProjectBackupItemV61(item)));if(kind==='manual')actions.append(buttonV61('Удалить',()=>deleteProjectBackupItemV61(item,kind)));row.append(info,actions);list.appendChild(row)});const foot=document.createElement('footer');foot.className='ne54-backup-foot';foot.appendChild(buttonV61('Закрыть',closeProjectBackupsV61));dialog.append(head,list,foot);modal.appendChild(dialog);modal.classList.add('show');modal.setAttribute('aria-hidden','false');requestAnimationFrame(()=>head.querySelector('button')?.focus())}
+function openBackupManagerV61(kind){const dialog=byId('ne61BackupDialog');if(dialog?.open)dialog.close();requestAnimationFrame(()=>openProjectBackupsV61(kind))}
+function backupDialogV61(){let dialog=byId('ne61BackupDialog');if(dialog)return dialog;dialog=document.createElement('dialog');dialog.id='ne61BackupDialog';dialog.className='ne61-backup-dialog';dialog.innerHTML='<h2>Резервные копии проекта</h2><p>Ручная копия — это полный снимок текущего проекта. Автоматические и ранее созданные точки остаются доступны отдельно.</p><div class="ne61-backup-actions"></div><button type="button" data-close>Закрыть</button>';const actions=dialog.querySelector('.ne61-backup-actions');actions.append(buttonV61('Создать резервную копию сейчас',createBackupNowV61),buttonV61('Открыть ручные резервные копии',()=>openBackupManagerV61('manual')),buttonV61('Открыть автоматические резервные копии',()=>openBackupManagerV61('auto')));dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close()});document.body.appendChild(dialog);return dialog}
 function openBackupsV61(){const dialog=backupDialogV61();if(!dialog.open)dialog.showModal()}
 function validateFromBarV61(){try{validateSinglePageExportV61();window.dsValidateProject?.()}catch(error){toastSafe(error.message,'err');const status=byId('ne61PlanStatus');if(status){status.dataset.kind='error';status.textContent=error.message}}}
 function layoutControlsV61(){
@@ -10807,7 +10865,8 @@ removePlacement=function(pageKey,slot){if(pageKey==='cover')transferEpochV67++;c
 const placeAssetBeforeV67=placeAsset;
 placeAsset=function(assetId,pageKey,slot){const result=placeAssetBeforeV67(assetId,pageKey,slot);if(result&&pageKey==='cover'&&currentSettings){transferEpochV67++;currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=false}return result};
 function runClearCoverV67(){transferEpochV67++;if(!currentSettings?.coverPhotoIds?.length){toastSafe('Фирменная обложка уже очищена','warn');return false}historyPoint('Очистка фирменной обложки');currentSettings.coverPhotoIds=[];currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=true;renderExtendedMedia();scheduleSave();scheduleRender();toastSafe('Фотографии убраны с фирменной обложки');return true}
-function runDeleteAllV67(){transferEpochV67++;const sourceCount=currentSettings?.media?.length||0,placements=(currentSettings?.media||[]).reduce((sum,item)=>sum+placementCount(item.assetId),0);if(!sourceCount){toastSafe('В Media нет фотографий','warn');return false}if(!confirm(`Удалить все фотографии из Media?\nИсходников: ${sourceCount}\nРазмещений: ${placements}\nPDF, данные, оформление, шаблоны и фото брокера останутся.`))return false;historyPoint('Удаление всех фотографий из Media');const snapshot=window.ne53UnifiedMedia?.snapshot?.()||{items:[]};window.ne53UnifiedMedia?.restore?.({items:snapshot.items.filter(item=>item.type!=='photo')});currentSettings.media=[];currentSettings.coverPhotoIds=[];currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=true;currentSettings.heroAssetId='';currentSettings.floorPlanAssetId='';currentSettings.galleryPages.forEach(page=>page.assetIds=[]);(window.NE53_STATE?.pdf?.extractedPhotos||[]).forEach(photo=>photo.transferred=false);syncMediaSettings();renderExtendedMedia();window.NEXESTATE_V54_TEST?.renderPdfState?.();syncCanonical();toastSafe(`Удалено исходников: ${sourceCount} · размещений: ${placements}`);return true}
+async function runDeleteAllV67(){transferEpochV67++;const sourceCount=currentSettings?.media?.length||0,placements=(currentSettings?.media||[]).reduce((sum,item)=>sum+placementCount(item.assetId),0);if(!sourceCount){toastSafe('В Media нет фотографий','warn');return false}const approved=await nsRuntimeDialog({title:'Удалить все фотографии из Media?',message:`Исходников: ${sourceCount}. Размещений: ${placements}. PDF, данные, оформление, шаблоны и фото брокера останутся.`,confirmText:'Удалить все',danger:true});if(approved!==true)return false;historyPoint('Удаление всех фотографий из Media');const snapshot=window.ne53UnifiedMedia?.snapshot?.()||{items:[]};window.ne53UnifiedMedia?.restore?.({items:snapshot.items.filter(item=>item.type!=='photo')});currentSettings.media=[];currentSettings.coverPhotoIds=[];currentSettings.coverAutoAssignedId='';currentSettings.coverExplicitlyCleared=true;currentSettings.heroAssetId='';currentSettings.floorPlanAssetId='';currentSettings.galleryPages.forEach(page=>page.assetIds=[]);(window.NE53_STATE?.pdf?.extractedPhotos||[]).forEach(photo=>photo.transferred=false);syncMediaSettings();renderExtendedMedia();window.NEXESTATE_V54_TEST?.renderPdfState?.();syncCanonical();toastSafe(`Удалено исходников: ${sourceCount} · размещений: ${placements}`);return true}
+window.studioClearAllPhotos=runDeleteAllV67;
 
 let clearOverlayV67=null,clearTriggerV67=null;
 function closeClearOverlayV67(restoreFocus=true){if(!clearOverlayV67||clearOverlayV67.hidden)return;clearOverlayV67.hidden=true;clearTriggerV67?.setAttribute('aria-expanded','false');const trigger=clearTriggerV67;clearTriggerV67=null;if(restoreFocus){const target=trigger?.isConnected?trigger:document.querySelector('#presentationStudio .ne67-clear-trigger');target?.focus({preventScroll:true})}}
@@ -11720,6 +11779,7 @@ function focusPreviewTargetV70(field,mapping){
 }
 function handleFocusInV70(event){
   const field=event.target;if(!field?.closest?.('#presentationStudio')||!field.matches('input,textarea,select,button'))return;
+  if(BROKER_FIELD_IDS_V70.has(field.id))return;
   if(field.dataset.featureField==='enabled')return;
   const mapping=mappingForFieldV70(field);if(mapping)focusPreviewTargetV70(field,mapping);
 }
@@ -13958,10 +14018,6 @@ showFocusNoticeV73=function(field){
   return showFocusNoticeBeforeV77(field);
 };
 
-document.addEventListener('focusin',function(event){
-  const field=event.target;if(!field?.matches?.('#ne73CompanyTelegram,#ne73CompanyInstagram'))return;
-  const mapping=mappingForFieldV70(field);if(mapping)focusPreviewTargetV70(field,mapping);
-},true);
 document.addEventListener('input',function(event){
   if(event.target?.id==='studioDescription'){descriptionCacheV77={key:'',result:null};queueValidationV77()}
   if(event.target?.closest?.('[data-feature-type]'))queueValidationV77();
@@ -14247,7 +14303,7 @@ function focusContactPageV77(field,photo){
     window.NEXESTATE_DECORATE_PREVIEW_PAGES?.();
     const page=semanticContactPageV77();if(!page)return false;
     page.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});requestAnimationFrame(function(){
-      if(sidebar)sidebar.scrollTop=scroll;try{field.focus({preventScroll:true});if(start!==null&&field.setSelectionRange)field.setSelectionRange(start,end)}catch(_){}
+      if(sidebar)sidebar.scrollTop=scroll;
       page.querySelector('.ne70-preview-focus')?.remove();const targets={studioMgr:['broker-name',[36,49,55,7]],studioMgrRole:['broker-role',[36,56,55,7]],studioPhone:['broker-phone',[36,63,55,5]],studioTg:['broker-telegram',[36,66,55,5]],studioEmail:['broker-email',[36,69,55,5]],studioWa:['broker-contacts',[36,63,55,12]],ne73CompanyTelegram:['company-telegram',[8,80,27,6]],ne73CompanyInstagram:['company-instagram',[36,80,27,6]],studioSite:['company-site',[65,80,27,6]]},target=photo?['broker-photo',[8,47,25,18]]:(targets[field.id]||['broker-contact',[36,49,55,25]]),mark=document.createElement('span');mark.className='ne70-preview-focus';mark.dataset.previewTargetId=target[0];const rect=target[1];mark.style.setProperty('--ne70-x',rect[0]+'%');mark.style.setProperty('--ne70-y',rect[1]+'%');mark.style.setProperty('--ne70-w',rect[2]+'%');mark.style.setProperty('--ne70-h',rect[3]+'%');page.appendChild(mark);mark.addEventListener('animationend',()=>mark.remove(),{once:true});
     });return true;
   };
@@ -16184,12 +16240,13 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   display:flex;
   align-items:center;
   justify-content:center;
-  width:430px;
-  height:58px;
+  width:250px;
+  height:34px;
   transform:translateX(-50%);
+  padding:0 4px;
   color:#eff7fc;
-  font-size:13px;
-  line-height:1.2;
+  font-size:7.5px;
+  line-height:1.05;
   font-weight:680;
   letter-spacing:-.01em;
   text-align:center;
@@ -16322,23 +16379,27 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   grid-template-columns:minmax(390px,1fr) minmax(520px,1.05fr) auto!important;
   background:#071923!important;
 }
+.ns-project-card{overflow:visible!important}
+.ns-project-card .ns-project-preview{border-radius:15px 15px 0 0}
+.ns-project-card:has(.ns-card-menu[open]){z-index:60}
+.ns-card-menu[open]{z-index:70}
 
 @media(max-width:1700px){
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{width:294px!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{left:314px}
-  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{width:350px;font-size:11px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{width:210px;height:32px;font-size:6.5px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{left:calc(50% + 180px)}
   #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav a,
   #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav button{padding-inline:7px!important;font-size:8px!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right #dsState,
   #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right #ne62Autosave{max-width:88px;overflow:hidden;text-overflow:ellipsis}
 }
-@media(max-width:1250px){
+@media(max-width:1500px){
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-shell{grid-template-rows:92px minmax(0,1fr) 64px!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-topbar{height:92px!important;min-height:92px!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{top:50px;left:8px;width:300px!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{top:8px;left:8px;max-width:280px}
-  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{top:0;width:390px;height:48px;font-size:11px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{top:0;width:230px;height:28px;font-size:6.5px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{top:8px;left:auto;right:8px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-right{top:50px;right:8px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-workspace{grid-template-columns:390px minmax(0,1fr)!important}
@@ -16348,7 +16409,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   .ns-home-actions.ne79-home-actions{grid-template-columns:repeat(2,minmax(130px,1fr))!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-shell{grid-template-rows:124px minmax(0,1fr) 58px!important}
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-topbar{height:124px!important;min-height:124px!important;overflow-x:auto!important}
-  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{top:0;left:50%;height:42px;width:320px;font-size:10px}
+  #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-title{top:0;left:50%;height:26px;width:190px;font-size:6px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne78-head-left{top:42px;left:8px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne79-header-nav{top:42px;right:8px}
   #presentationStudio.ne78-redesign.ne79-corrections .ne52-steps{top:82px;left:8px}
@@ -16368,7 +16429,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script type="text/plain" id="nexestate-post-redesign-v79-runtime">
 (()=>{
 'use strict';
-const VERSION_V79='79.0';
+const VERSION_V79='79.1-runtime-repair';
 const PRODUCT_TITLE_V79='NexEstate Presentation Studio by Эдик Великий';
 const byIdV79=id=>document.getElementById(id);
 let ensureFrameV79=0,importBusyV79=false,focusEpochV79=0,lastFocusSourceV79=null;
@@ -16416,6 +16477,38 @@ function createHomeImportV79(id,labelText,accept,multiple){
   }
   setLabelCopyV79(label,labelText);return{input,label};
 }
+function dismissTooltipV79(){
+  const node=byIdV79('ne54Tooltip');
+  document.querySelectorAll('[aria-describedby="ne54Tooltip"]').forEach(target=>{
+    target.dataset.tooltipSuppressed='1';
+    target.removeAttribute('aria-describedby');
+  });
+  node?.classList.remove('show');node?.setAttribute('aria-hidden','true');
+}
+function bindHomeFileLaunchersV79(actions,inputs){
+  inputs.filter(Boolean).forEach(input=>{
+    const label=input.closest('label');if(!label)return;
+    let button=actions.querySelector('button[data-ne79-file-target="'+input.id+'"]');
+    if(!button){button=document.createElement('button');button.type='button';button.dataset.ne79FileTarget=input.id}
+    const copy=label.querySelector(':scope>.ne79-label-copy')?.textContent?.trim()||label.textContent.trim();
+    if(button.className!==label.className)button.className=label.className;if(button.textContent!==copy)button.textContent=copy;
+    const tooltipText=label.dataset.tooltip;if(tooltipText)button.dataset.tooltip=tooltipText;else delete button.dataset.tooltip;
+    const accessibleName=label.getAttribute('aria-label');if(accessibleName)button.setAttribute('aria-label',accessibleName);else button.removeAttribute('aria-label');
+    label.hidden=true;label.style.setProperty('display','none','important');label.setAttribute('aria-hidden','true');label.tabIndex=-1;
+    if(label.parentElement&&(button.parentElement!==label.parentElement||button.nextSibling!==label))label.parentElement.insertBefore(button,label);
+  });
+  if(actions.dataset.ne79FileLaunchers==='1')return;
+  actions.dataset.ne79FileLaunchers='1';
+  const launch=button=>{
+    const input=byIdV79(button?.dataset?.ne79FileTarget);if(!input||input.disabled)return false;
+    dismissTooltipV79();input.click();return true;
+  };
+  actions.addEventListener('click',event=>{
+    const button=event.target?.closest?.('button[data-ne79-file-target]');
+    if(!button||!actions.contains(button))return;
+    event.preventDefault();launch(button);
+  });
+}
 function ensureHomeActionsV79(){
   const actions=document.querySelector('#studioHome .ns-home-actions');
   if(!actions)return false;
@@ -16435,9 +16528,12 @@ function ensureHomeActionsV79(){
   let secondary=actions.querySelector(':scope>.ne79-home-secondary');
   if(!secondary){secondary=document.createElement('div');secondary.className='ne79-home-secondary'}
   const projectImport=byIdV79('nsImportProject')?.closest('label'),catalog=byIdV79('nsOpenCatalog');
-  [newButton,pdfLabel,text.label,photo.label].filter(Boolean).forEach(node=>actions.insertBefore(node,secondary.isConnected?secondary:null));
-  [projectImport,catalog].filter(Boolean).forEach(node=>secondary.appendChild(node));
   if(secondary.parentElement!==actions)actions.appendChild(secondary);
+  const primary=[newButton,pdfLabel,text.label,photo.label].filter(Boolean);let primaryAnchor=secondary;
+  for(let index=primary.length-1;index>=0;index--){const node=primary[index];if(node.parentElement!==actions||node.nextSibling!==primaryAnchor)actions.insertBefore(node,primaryAnchor);primaryAnchor=node}
+  const secondaryNodes=[projectImport,catalog].filter(Boolean);let secondaryAnchor=null;
+  for(let index=secondaryNodes.length-1;index>=0;index--){const node=secondaryNodes[index];if(node.parentElement!==secondary||node.nextSibling!==secondaryAnchor)secondary.insertBefore(node,secondaryAnchor);secondaryAnchor=node}
+  bindHomeFileLaunchersV79(actions,[pdfInput,text.input,photo.input,byIdV79('nsImportProject')]);
   return true;
 }
 
@@ -16728,9 +16824,9 @@ function ensureV79(){
 }
 function queueEnsureV79(){if(!ensureFrameV79)ensureFrameV79=requestAnimationFrame(ensureV79)}
 const observerV79=new MutationObserver(records=>{
-  if(records.some(record=>record.type==='childList'&&record.addedNodes.length||record.type==='attributes'))queueEnsureV79();
+  if(records.some(record=>record.type==='childList'&&record.addedNodes.length))queueEnsureV79();
 });
-observerV79.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-pressed','aria-checked','hidden']});
+observerV79.observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('click',event=>{if(event.target?.closest?.('#ne62LayoutBy,#ne62LayoutSingle'))requestAnimationFrame(()=>requestAnimationFrame(()=>{normalizeModeV79();lastFocusSourceV79=null}))},true);
 document.addEventListener('change',event=>{if(event.target?.matches?.('#nsStudioTheme,#dsFontSelect'))requestAnimationFrame(normalizeModeV79)},true);
 

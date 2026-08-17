@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'nex-estate-media-studio-';
-const CACHE_NAME = `${CACHE_PREFIX}unified-v17-post-redesign-corrections`;
+const CACHE_NAME = `${CACHE_PREFIX}unified-v41-buttons-runtime-repair`;
 const OCR_RUNTIME_CACHE = `${CACHE_PREFIX}ocr-runtime-v1`;
 const OCR_RUNTIME_HOSTS = new Set([
   'cdn.jsdelivr.net',
