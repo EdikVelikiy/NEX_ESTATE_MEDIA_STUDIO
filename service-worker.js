@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'nex-estate-media-studio-';
-const CACHE_NAME = `${CACHE_PREFIX}unified-v41-buttons-runtime-repair`;
+const CACHE_NAME = `${CACHE_PREFIX}unified-v43-final-functional`;
 const OCR_RUNTIME_CACHE = `${CACHE_PREFIX}ocr-runtime-v1`;
 const OCR_RUNTIME_HOSTS = new Set([
   'cdn.jsdelivr.net',
@@ -36,6 +36,7 @@ const APP_SHELL = [
   './apps/media/assets/marks/F_light.svg',
   './apps/presentation/',
   './apps/presentation/index.html',
+  './apps/presentation/assets/nexestate-buildings.svg',
   './apps/presentation/vendor/pdfjs/pdf.min.js',
   './apps/presentation/vendor/pdfjs/pdf.worker.min.js',
   './apps/presentation/vendor/pdfjs/LICENSE.txt'
