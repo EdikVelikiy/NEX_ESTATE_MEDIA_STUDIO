@@ -8,7 +8,9 @@ const BASE = process.env.NEX_CRITICAL_URL || 'http://127.0.0.1:8807/';
 const PHASE = process.argv.includes('--final') ? 'final' : 'pre';
 const RUN_ID = `${Date.now()}-${process.pid}`;
 const RESULTS = path.join(__dirname, 'results');
-const REPORT = path.join(RESULTS, `critical-regression-20260819-${PHASE}.json`);
+const REPORT = process.env.NEX_CRITICAL_REPORT
+  ? path.resolve(process.env.NEX_CRITICAL_REPORT)
+  : path.join(RESULTS, `critical-regression-20260819-${PHASE}.json`);
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const APP = new URL(`apps/presentation/?critical=${RUN_ID}`, BASE).href;
@@ -198,7 +200,9 @@ async function keyboardHomeProbe(page, envName) {
     const textDialog = page.locator('#ne80TextModal:not([hidden])');
     await textDialog.waitFor({ state: 'visible' });
     evidence.push({ action: 'Загрузить текст', key: 'Space', opened: true });
-    await page.keyboard.press('Escape');
+    const cancelText = textDialog.getByRole('button', { name: /^Отмена$/ });
+    await cancelText.focus();
+    await page.keyboard.press('Enter');
     await textDialog.waitFor({ state: 'hidden' });
 
     for (const [action, target, key] of [
@@ -238,6 +242,7 @@ async function tooltipProbe(page, envName) {
       ariaHidden: node.getAttribute('aria-hidden'),
       pointerEvents: getComputedStyle(node).pointerEvents
     })) : null;
+    await page.locator('#nsNewProject').evaluate(node => node.scrollIntoView({ block: 'center', inline: 'center' }));
     const newHit = await hitEvidence(page.locator('#nsNewProject'));
     insist(newHit.selfOrDescendant, 'Tooltip/overlay перекрывает «Новая презентация»', { visibleState, hiddenState, newHit });
     return { visibleState, hiddenState, newHit };
@@ -332,7 +337,7 @@ async function editorSmoke(page, envName, touch = false) {
     const button = page.getByRole('button', { name: 'К презентациям' });
     await button.click();
     await page.locator('#studioHome').waitFor({ state: 'visible' });
-    insist(!await page.locator('#presentationStudio').evaluate(node => node.classList.contains('show')), 'Редактор остался поверх экрана проектов');
+    await page.waitForFunction(() => !document.querySelector('#presentationStudio')?.classList.contains('show'));
     return { url: page.url() };
   });
 }
@@ -1036,7 +1041,7 @@ async function deepRegression(page, envName) {
     const card = page.locator(`.ns-project-card[data-project-id="${deepProjectId}"]`);
     await card.getByRole('button', { name: /Открыть презентацию/ }).click();
     await page.locator('#presentationStudio.show').waitFor({ state: 'visible' });
-    const link = page.getByRole('link', { name: 'К приложениям' });
+    const link = page.locator('#presentationStudio .ne79-header-nav').getByRole('link', { name: 'К приложениям', exact: true });
     await Promise.all([
       page.waitForURL(url => !/apps\/presentation/.test(url.pathname), { waitUntil: 'domcontentloaded', timeout: 20000 }),
       link.click()
@@ -1090,8 +1095,9 @@ async function runFirefoxSelenium(config) {
     .setBinary('C:\\Program Files\\Mozilla Firefox\\firefox.exe')
     .addArguments('-headless')
     .setPreference('security.sandbox.content.level', 0);
+  if (config.private) options.addArguments('-private');
   const driver = await new Builder().forBrowser('firefox').setFirefoxOptions(options).build();
-  report.environments.push({ name: config.name, browser: config.browser, mobile: false, viewport: config.viewport, driver: 'Selenium WebDriver' });
+  report.environments.push({ name: config.name, browser: config.browser, privacyMode: config.private ? 'private' : 'normal', mobile: false, viewport: config.viewport, driver: 'Selenium WebDriver' });
   const waitCss = async (selector, timeout = 30000) => {
     const element = await driver.wait(until.elementLocated(By.css(selector)), timeout);
     await driver.wait(until.elementIsVisible(element), timeout);
@@ -1144,6 +1150,30 @@ async function runFirefoxSelenium(config) {
       await driver.wait(() => driver.executeScript("return document.querySelector('#ne80TextModal')?.hidden===true"), 10000);
       return { count };
     });
+    for (const [label, target] of [
+      ['Загрузить PDF', 'nsBulkPdf'],
+      ['Загрузить фото', 'ne79PhotoImport'],
+      ['Импортировать файл проекта', 'nsImportProject']
+    ]) {
+      await runCheck(config.name, `Физический launcher: ${label}`, async () => {
+        await driver.executeScript(id => {
+          const input = document.getElementById(id);
+          if (!input) throw new Error(`Missing file input: ${id}`);
+          input.dataset.neQaPhysicalClicks = '0';
+          input.addEventListener('click', () => {
+            input.dataset.neQaPhysicalClicks = String(Number(input.dataset.neQaPhysicalClicks || 0) + 1);
+          }, { once: true });
+        }, target);
+        await clickCss(`button[data-ne79-file-target="${target}"]`);
+        await driver.sleep(120);
+        const evidence = await driver.executeScript(id => {
+          const input = document.getElementById(id);
+          return { inputId: id, type: input?.type || '', accept: input?.accept || '', clicks: Number(input?.dataset.neQaPhysicalClicks || 0) };
+        }, target);
+        insist(evidence.type === 'file' && evidence.clicks === 1, `Видимый launcher не активировал ${target}`, evidence);
+        return evidence;
+      });
+    }
     await runCheck(config.name, 'Создание пустой презентации и открытие редактора', async () => {
       await clickCss('#nsNewProject');
       await waitCss('#nsNewDialog[open]');
@@ -1213,7 +1243,7 @@ async function runEnvironment(config) {
   const page = await context.newPage();
   const errors = contextErrors(page);
   await installUnhandled(page, errors);
-  report.environments.push({ name: config.name, browser: config.browser, mobile: Boolean(config.mobile), viewport: config.mobile ? devices['Pixel 7'].viewport : config.viewport });
+  report.environments.push({ name: config.name, browser: config.browser, privacyMode: config.persistent ? 'normal' : 'private', mobile: Boolean(config.mobile), viewport: config.mobile ? devices['Pixel 7'].viewport : config.viewport });
   try {
     await runCheck(config.name, 'Свежая загрузка приложения', async () => {
       const response = await page.goto(APP, { waitUntil: 'domcontentloaded' });
@@ -1254,11 +1284,13 @@ async function main() {
   fs.mkdirSync(TEMP, { recursive: true });
   const requested = new Set(String(process.env.NEX_CRITICAL_BROWSERS || '').toLowerCase().split(',').map(value => value.trim()).filter(Boolean));
   const environments = [
-    { name: 'Chrome ordinary persistent desktop', browser: 'Chrome', type: chromium, launch: { executablePath: CHROME, headless: true }, viewport: { width: 1440, height: 900 }, persistent: true, keyboard: true },
-    { name: 'Chrome fresh desktop', browser: 'Chrome', type: chromium, launch: { executablePath: CHROME, headless: true }, viewport: { width: 1440, height: 900 }, deep: true },
+    { name: 'Chrome normal desktop', browser: 'Chrome', type: chromium, launch: { executablePath: CHROME, headless: true }, viewport: { width: 1440, height: 900 }, persistent: true, keyboard: true },
+    { name: 'Chrome Incognito desktop', browser: 'Chrome', type: chromium, launch: { executablePath: CHROME, headless: true }, viewport: { width: 1440, height: 900 }, deep: true },
     { name: 'Chrome narrow desktop', browser: 'Chrome', type: chromium, launch: { executablePath: CHROME, headless: true }, viewport: { width: 1024, height: 720 } },
+    { name: 'Edge normal desktop', browser: 'Edge', type: chromium, launch: { executablePath: EDGE, headless: true }, viewport: { width: 1440, height: 900 }, persistent: true },
     { name: 'Edge InPrivate desktop', browser: 'Edge', type: chromium, launch: { executablePath: EDGE, headless: true }, viewport: { width: 1440, height: 900 } },
-    { name: 'Firefox private desktop', browser: 'Firefox', type: firefox, launch: { headless: true }, viewport: { width: 1440, height: 900 } },
+    { name: 'Firefox normal desktop', browser: 'Firefox', type: firefox, launch: { headless: true }, viewport: { width: 1440, height: 900 }, private: false },
+    { name: 'Firefox Private desktop', browser: 'Firefox', type: firefox, launch: { headless: true }, viewport: { width: 1440, height: 900 }, private: true },
     { name: 'Chrome Pixel 7 touch', browser: 'Chrome', type: chromium, launch: { executablePath: CHROME, headless: true }, mobile: true }
   ].filter(environment => !requested.size || requested.has(environment.browser.toLowerCase()) || requested.has(environment.name.toLowerCase()));
   for (const environment of environments) {
