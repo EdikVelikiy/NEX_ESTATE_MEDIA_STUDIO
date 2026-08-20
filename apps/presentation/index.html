@@ -6445,7 +6445,7 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
   function sameVisual(left,right){if(left.hash&&right.hash&&left.hash===right.hash)return true;const leftRatio=left.width/Math.max(1,left.height),rightRatio=right.width/Math.max(1,right.height);return Math.abs(leftRatio-rightRatio)<=.045&&perceptualDistance(left.perceptualHash,right.perceptualHash)<=3}
   function candidateDecision(canvas,analysis,pageText=''){
     const width=canvas.width,height=canvas.height,area=width*height;
-    const technicalContext=/\b(?:планировк|поэтажн|карта|схем|генплан|экспликац|черт[её]ж|план\s+бти)\b/i.test(pageText);
+    const technicalContext=/(?:планировк|поэтажн|карта|схем|генплан|экспликац|черт[её]ж|план\s+бти)/i.test(pageText);
     const directionalEdges=(Number(analysis.horizontalEdgeRatio)||0)+(Number(analysis.verticalEdgeRatio)||0);
     const meaningfulEdges=Math.max(Number(analysis.edgeRatio)||0,directionalEdges);
     const meaningfulPixels=Math.max(Number(analysis.distinctRatio)||0,1-(Number(analysis.dominantRatio)||1));
@@ -6453,16 +6453,16 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     const regionalVisual=regionalEntropy>2.05&&regionalDistinct>.10&&regionalVariance>150||regionalEdge>.045&&regionalDistinct>.065&&regionalVariance>105;
     const almostFlat=(analysis.dominantRatio>.965&&meaningfulPixels<.045&&variance<145&&meaningfulEdges<.026&&!regionalVisual)||(entropy<.5&&meaningfulPixels<.025&&meaningfulEdges<.015&&regionalEdge<.025);
     const lightLineWork=analysis.whiteRatio>.72&&meaningfulPixels>.018&&meaningfulEdges>.018&&(directionalEdges>.009||variance>95);
-    const unlabeledPlanLineWork=analysis.whiteRatio>.78&&directionalEdges>.018&&meaningfulPixels>.032&&entropy<1.7&&variance<1900&&regionalEdge>.025;
+    const unlabeledPlanLineWork=analysis.whiteRatio>.78&&directionalEdges>.018&&meaningfulPixels>.032&&entropy<1.7&&variance<2800&&regionalEdge>.025;
     const planLike=(technicalContext&&lightLineWork)||unlabeledPlanLineWork;
     const mapOrPhoto=entropy>2.75&&meaningfulPixels>.11&&variance>190&&regionalVisual||chroma>12&&meaningfulPixels>.10&&regionalVisual||Number(analysis.photoConfidence)>.5&&regionalVisual;
-    const textOnly=!technicalContext&&analysis.whiteRatio>.68&&chroma<14&&analysis.dominantRatio>.64&&meaningfulPixels<.30&&entropy<2.35&&activeRegionRatio<.45;
+    const textOnly=!technicalContext&&analysis.whiteRatio>.68&&chroma<14&&analysis.dominantRatio>.64&&meaningfulPixels<.30&&entropy<2.35&&(activeRegionRatio<.45||regionalEntropy>1.05&&regionalDistinct>.12);
     const technicalMask=analysis.alphaRatio<.08||analysis.dominantRatio>.91&&meaningfulPixels<.065&&meaningfulEdges<.018&&!regionalVisual;
     if(analysis.blank)return{keep:false,reason:analysis.reason||'пустое изображение'};
     const minWidth=technicalContext?120:220,minHeight=technicalContext?100:140,minArea=technicalContext?20000:60000;
     if(width<minWidth||height<minHeight||area<minArea)return{keep:false,reason:'слишком маленький ресурс'};
     if(almostFlat||technicalMask&&!planLike&&!mapOrPhoto)return{keep:false,reason:'однотонный фон или служебная подложка'};
-    if(textOnly&&!planLike)return{keep:false,reason:'текстовая область без самостоятельного изображения'};
+    if(textOnly)return{keep:false,reason:'текстовая область без самостоятельного изображения'};
     if(planLike)return{keep:true,reason:'планировка / схема'};
     if(mapOrPhoto)return{keep:true,reason:technicalContext?'карта / содержательная схема':'самостоятельное изображение'};
     if(analysis.flattenedRegion&&meaningfulPixels<.12&&meaningfulEdges<.03)return{keep:false,reason:'служебная область PDF без содержательного рисунка'};
@@ -17569,7 +17569,7 @@ function drawCoverV82(api,model,coverEntries,p,themeKey,total){
   const brandBox=branded?tintLogoV82(ctx,324,38,174,p.inverse,'full'):null;
   const scenario=cleanV82(data.scenario,50),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260);let y=176;
   if(scenario){ctx.fillStyle=p.inverseMuted;ctx.font='700 17px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(scenario.toLocaleUpperCase('ru-RU'),64,y);y+=48}
-  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0,lineHeight:0};if(title){titleFit=api.fitBlock(ctx,title,432,392,68,23,'700',1.08,10);titleFit.weight='700';titleFit.family=api.fontStack();api.drawLines(ctx,titleFit,64,y,p.inverse);y+=titleFit.height+34}
+  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0,lineHeight:0};if(title){titleFit=api.fitBlock(ctx,title,432,392,68,23,'700',1.08,4);titleFit.weight='700';titleFit.family=api.fontStack();api.drawLines(ctx,titleFit,64,y,p.inverse);y+=titleFit.height+34}
   if(purpose){ctx.fillStyle=p.accent;ctx.font='700 14px '+api.fontStack();ctx.textBaseline='top';ctx.fillText('НАЗНАЧЕНИЕ',64,y);const purposeFit=api.fitBlock(ctx,purpose,432,74,21,15,'600',1.18,3);purposeFit.weight='600';purposeFit.family=api.fontStack();api.drawLines(ctx,purposeFit,64,y+30,p.inverseMuted);y+=30+purposeFit.height+34}
   ctx.fillStyle=p.accent;ctx.fillRect(64,y-16,68,4);
   const address=dataV82.manualClear('addr')?'':cleanV82(data.addr,260);if(address){api.drawLocation(ctx,64,y,p.inverseMuted,false);const addressFit=api.fitBlock(ctx,address,382,90,22,15,'600',1.18,4);addressFit.weight='600';addressFit.family=api.fontStack();api.drawLines(ctx,addressFit,106,y+14,p.inverse);y+=Math.max(64,addressFit.height+18)}
@@ -17594,7 +17594,7 @@ if(!v75V82.replaceAssets(function(api,previous){
 }))throw new Error('V82 single-page asset bridge could not be installed');
 if(!v75V82.replaceHeader(function(api,ctx,p,data,closed){
   const branded=!hideBrandV82(),scenario=cleanV82(data.scenario,60),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260),address=dataV82.manualClear('addr')?'':cleanV82(data.addr,260),metros=stationsV82(data);let y=closed?126:48;if(closed)api.drawClosed(ctx,p);const titleWidth=branded?1235:1560;
-  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0};if(scenario)y+=31;if(title){titleFit=api.fit(ctx,title,titleWidth,205,{family:api.serifStack(),weight:700,max:62,min:23,lineHeight:1.04,maxLines:5});y+=titleFit.height+18}if(purpose)y+=56;const locationRows=(address?1:0)+metros.length,headerH=Math.max(branded?216:150,Math.min(570,y+locationRows*48+38));ctx.fillStyle=p.dark;ctx.fillRect(0,0,api.W,headerH);const gradient=ctx.createLinearGradient(0,0,api.W,0);gradient.addColorStop(0,p.dark2);gradient.addColorStop(.58,p.dark);gradient.addColorStop(1,p.dark2);ctx.fillStyle=gradient;ctx.fillRect(0,0,api.W,headerH);if(closed)api.drawClosed(ctx,p);const brandBox=branded?tintLogoV82(ctx,1400,22,178,p.inverse,'full'):null;
+  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0};if(scenario)y+=31;if(title){titleFit=api.fit(ctx,title,titleWidth,205,{family:api.serifStack(),weight:700,max:62,min:23,lineHeight:1.04,maxLines:4});y+=titleFit.height+18}if(purpose)y+=56;const locationRows=(address?1:0)+metros.length,headerH=Math.max(branded?216:150,Math.min(570,y+locationRows*48+38));ctx.fillStyle=p.dark;ctx.fillRect(0,0,api.W,headerH);const gradient=ctx.createLinearGradient(0,0,api.W,0);gradient.addColorStop(0,p.dark2);gradient.addColorStop(.58,p.dark);gradient.addColorStop(1,p.dark2);ctx.fillStyle=gradient;ctx.fillRect(0,0,api.W,headerH);if(closed)api.drawClosed(ctx,p);const brandBox=branded?tintLogoV82(ctx,1400,22,178,p.inverse,'full'):null;
   y=closed?126:48;if(scenario){ctx.fillStyle=p.accent2;ctx.font='700 18px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(scenario.toLocaleUpperCase('ru-RU'),72,y);y+=31}if(title){api.drawFit(ctx,titleFit,72,y,p.inverse);y+=titleFit.height+18}if(purpose){ctx.fillStyle=p.accent2;ctx.font='700 14px '+api.fontStack();ctx.fillText('НАЗНАЧЕНИЕ',72,y);const purposeFit=api.fit(ctx,purpose,titleWidth,44,{weight:600,max:20,min:14,lineHeight:1.08,maxLines:2});api.drawFit(ctx,purposeFit,224,y-2,p.inverseMuted);y+=56}
   if(address){api.drawLocation(ctx,72,y-10,p.inverseMuted,false);const fit=api.fit(ctx,address,1380,44,{weight:600,max:22,min:15,lineHeight:1.08,maxLines:2});api.drawFit(ctx,fit,116,y-10,p.inverseMuted);y+=48}
   metros.forEach(station=>{const color=metroColorV82(station.name,p.inverseMuted),label=stationLabelV82(station);api.drawLocation(ctx,72,y-10,color,true);drawModeGlyphV82(ctx,101,y-5,station,color);const fit=api.fit(ctx,label,1340,44,{weight:600,max:21,min:14,lineHeight:1.08,maxLines:2});api.drawFit(ctx,fit,128,y-10,p.inverseMuted);y+=48});ctx.canvas.neAppBrandBoxes=brandBox?[brandBox]:[];ctx.canvas.neMetroStations=metros.map(stationLabelV82);ctx.canvas.nePurpose=purpose;ctx.canvas.neTitleMetrics={fits:titleFit.fits||titleFit.truncated===true,truncated:!!titleFit.truncated,lines:titleFit.lines?.length||0,fontSize:titleFit.size||0};return{height:headerH,titleFits:!title||titleFit.fits||titleFit.truncated===true,addressFits:true,metroFits:true,titleTruncated:!!titleFit.truncated};
@@ -17654,19 +17654,20 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
 .ns-home>.ne83-home-footer .ne83-home-product{
   display:block;
   margin:0;
-  font:700 22px/1.2 "Segoe UI",Arial,sans-serif;
+  font:700 18px/1.2 "Segoe UI",Arial,sans-serif;
   letter-spacing:0;
 }
 .ns-home>.ne83-home-footer .ne83-home-credit{
   display:block;
   margin:0;
   color:var(--ns-muted);
-  font:400 14px/1.2 "Segoe UI",Arial,sans-serif;
+  font:400 12px/1.2 "Segoe UI",Arial,sans-serif;
   letter-spacing:0;
 }
 .ns-home>.ns-home-header{justify-content:flex-end!important}
 #presentationStudio.ne83-footer-toolbar .ne80-home-signature,
 #presentationStudio.ne83-footer-toolbar .ns-home-brand{display:none!important}
+#presentationStudio.ne83-footer-toolbar .ne79-header-title{display:none!important}
 #presentationStudio.ne83-footer-toolbar .ne52-workspace{
   box-sizing:border-box!important;
   padding-bottom:var(--ne83-toolbar-height)!important;
@@ -17688,7 +17689,7 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
   display:grid!important;
   align-items:stretch!important;
   grid-template-columns:1fr!important;
-  grid-template-rows:20px 43px!important;
+  grid-template-rows:43px 20px!important;
   gap:0!important;
   overflow:hidden!important;
   background:#071722!important;
@@ -17696,7 +17697,7 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
   color:#dcecf6!important;
 }
 #presentationStudio.ne83-footer-toolbar .ne83-toolbar-brand-row{
-  grid-row:1;
+  grid-row:2;
   box-sizing:border-box;
   width:100%;
   height:20px;
@@ -17706,7 +17707,7 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
   align-items:center;
   justify-content:center;
   overflow:hidden;
-  border-bottom:1px solid rgba(48,96,125,.48);
+  border-top:1px solid rgba(48,96,125,.48);
   background:#081a26;
 }
 #presentationStudio.ne83-footer-toolbar .ne83-editor-signature{
@@ -17717,13 +17718,13 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
   gap:0;
   max-width:100%;
   color:#c9dbe7;
-  font:600 12px/1.2 "Segoe UI",Arial,sans-serif;
+  font:600 11px/1.2 "Segoe UI",Arial,sans-serif;
   white-space:nowrap;
   text-align:center;
 }
 #presentationStudio.ne83-footer-toolbar .ne83-editor-signature>span{white-space:nowrap}
 #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls{
-  grid-row:2;
+  grid-row:1;
   box-sizing:border-box;
   width:100%;
   height:43px;
@@ -17935,7 +17936,7 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
     height:104px!important;
     min-height:104px!important;
     max-height:104px!important;
-    grid-template-rows:20px 83px!important;
+    grid-template-rows:83px 20px!important;
   }
   #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls{
     height:83px;
@@ -17971,13 +17972,13 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
 @media(max-width:767px){
   :root{--ne83-toolbar-height:min(214px,34vh)}
   .ns-home>.ne83-home-footer{margin-top:48px!important;margin-bottom:24px!important}
-  .ns-home>.ne83-home-footer .ne83-home-product{font-size:18px}
-  .ns-home>.ne83-home-footer .ne83-home-credit{font-size:12px}
+  .ns-home>.ne83-home-footer .ne83-home-product{font-size:16px}
+  .ns-home>.ne83-home-footer .ne83-home-credit{font-size:11px}
   #presentationStudio.ne83-footer-toolbar .ps-bottom-bar.ne83-toolbar{
     height:min(214px,34vh)!important;
     min-height:0!important;
     max-height:34vh!important;
-    grid-template-rows:18px minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr) 18px!important;
   }
   #presentationStudio.ne83-footer-toolbar .ne83-toolbar-brand-row{
     height:18px;
@@ -18044,7 +18045,7 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
 <script id="nexestate-footer-toolbar-v83-runtime">
 (()=>{
 'use strict';
-const VERSION_V83='83.0-footer-toolbar-layout';
+const VERSION_V83='83.1-one-shot-final';
 const PRODUCT_V83='NexEstate Presentation Studio';
 const CREDIT_V83='by Эдик Великий';
 const $V83=id=>document.getElementById(id);
@@ -18093,6 +18094,7 @@ function ensureToolbarV83(){
   const studio=$V83('presentationStudio'),bar=studio?.querySelector('.ps-bottom-bar'),shell=studio?.querySelector('.ne52-shell');
   if(!studio||!bar||!shell)return false;
   studio.classList.add('ne83-footer-toolbar');
+  studio.querySelectorAll('.ne79-header-title').forEach(node=>node.remove());
   studio.querySelectorAll('.ne80-home-signature').forEach(node=>node.remove());
   bar.classList.add('ne83-toolbar');
   let brand=bar.querySelector(':scope>.ne83-toolbar-brand-row');
@@ -18135,10 +18137,10 @@ function ensureToolbarV83(){
   if(legacyDownload){legacyDownload.hidden=true;legacyDownload.setAttribute('aria-hidden','true');legacyDownload.tabIndex=-1}
   const toggle=$V83('ne73BarToggle');
   if(toggle){toggle.hidden=true;toggle.setAttribute('aria-hidden','true');toggle.tabIndex=-1}
-  if(brand.parentElement!==bar)bar.prepend(brand);
-  if(controls.parentElement!==bar)bar.appendChild(controls);
-  if(bar.children[0]!==brand)bar.prepend(brand);
-  if(controls!==bar.lastElementChild)bar.appendChild(controls);
+  if(controls.parentElement!==bar)bar.prepend(controls);
+  if(brand.parentElement!==bar)bar.appendChild(brand);
+  if(bar.children[0]!==controls)bar.prepend(controls);
+  if(brand!==bar.lastElementChild)bar.appendChild(brand);
   if(!resizeObserverV83&&typeof ResizeObserver==='function'){
     resizeObserverV83=new ResizeObserver(()=>updateToolbarHeightV83(bar));resizeObserverV83.observe(bar);
   }
