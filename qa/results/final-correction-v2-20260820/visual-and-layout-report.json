@@ -1,0 +1,181 @@
+{
+  "runId": "1787194894481-8712",
+  "baseUrl": "http://127.0.0.1:8810/",
+  "checks": [
+    {
+      "name": "Hub: exact footer and no top duplicate",
+      "status": "PASS",
+      "evidence": {
+        "exact": "NexEstate · Единая рабочая среда · by Эдик Великий",
+        "count": 1,
+        "footerTag": "FOOTER",
+        "footerRect": {
+          "x": 400,
+          "y": 1045.5,
+          "width": 1120,
+          "height": 16.5,
+          "top": 1045.5,
+          "right": 1520,
+          "bottom": 1062,
+          "left": 400
+        },
+        "bodyHeight": 1080
+      }
+    },
+    {
+      "name": "Editor: title is inside bottom bar at exact 150% size",
+      "status": "PASS",
+      "evidence": {
+        "title": "NexEstate Presentation Studio by Эдик Великий",
+        "fontSize": "11.25px",
+        "titleRect": {
+          "x": 10,
+          "y": 998.5,
+          "width": 250,
+          "height": 44,
+          "top": 998.5,
+          "right": 260,
+          "bottom": 1042.5,
+          "left": 10
+        },
+        "barRect": {
+          "x": 0,
+          "y": 988,
+          "width": 1892,
+          "height": 64,
+          "top": 988,
+          "right": 1892,
+          "bottom": 1052,
+          "left": 0
+        },
+        "topCopy": false,
+        "barHeight": 64
+      }
+    },
+    {
+      "name": "Presentations: true footer, exact text and exact 150% sizes",
+      "status": "PASS",
+      "evidence": {
+        "exact": "NexEstate Presentation Studio by Эдик Великий",
+        "productSize": "37.5px",
+        "authorSize": "24px",
+        "homeDisplay": "flex",
+        "gridRect": {
+          "x": 230,
+          "y": 431.625,
+          "width": 1460,
+          "height": 448.84375,
+          "top": 431.625,
+          "right": 1690,
+          "bottom": 880.46875,
+          "left": 230
+        },
+        "footerRect": {
+          "x": 230,
+          "y": 947,
+          "width": 1460,
+          "height": 73,
+          "top": 947,
+          "right": 1690,
+          "bottom": 1020,
+          "left": 230
+        },
+        "footerTag": "FOOTER"
+      }
+    },
+    {
+      "name": "By cover: D4-only background metadata, exact logo token and compact title",
+      "status": "PASS",
+      "evidence": {
+        "d4": {
+          "warm": "#E8E4DE",
+          "dark": "#0A2A25",
+          "diagonal": {
+            "topX": 550,
+            "bottomX": 420,
+            "bottomY": 1320
+          },
+          "photoBox": {
+            "x": 610,
+            "y": 88,
+            "w": 582,
+            "h": 1130,
+            "radius": 22
+          }
+        },
+        "tokens": [
+          "NEX",
+          "ESTATE",
+          "BUILDINGS"
+        ],
+        "logoBoxes": [
+          {
+            "kind": "wordmark",
+            "x": 64,
+            "y": 42,
+            "w": 190,
+            "h": 88
+          },
+          {
+            "kind": "buildings",
+            "x": 74,
+            "y": 137,
+            "w": 170,
+            "h": 52
+          }
+        ],
+        "title": {
+          "fits": true,
+          "truncated": false,
+          "lines": 4,
+          "fontSize": 28,
+          "maxLines": 4,
+          "maxHeight": 300
+        },
+        "pageCount": 4
+      }
+    },
+    {
+      "name": "Mobile bottom bar remains 64px and controls are reachable",
+      "status": "PASS",
+      "evidence": {
+        "height": 64,
+        "clientWidth": 412,
+        "scrollWidth": 1712,
+        "overflowX": "auto",
+        "titleVisible": true
+      }
+    },
+    {
+      "name": "No console/page/unhandled errors",
+      "status": "PASS",
+      "evidence": {
+        "console": [],
+        "pageerror": [],
+        "unhandled": []
+      }
+    }
+  ],
+  "screenshots": {
+    "01-hub-full.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\01-hub-full.png",
+    "02-presentations-full.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\02-presentations-full.png",
+    "03-editor-pdf-full.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\03-editor-pdf-full.png",
+    "04-editor-data-full.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\04-editor-data-full.png",
+    "05-editor-media-full.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\05-editor-media-full.png",
+    "06-by-nexestate-cover.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\06-by-nexestate-cover.png",
+    "07-by-nexestate-second-page.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\07-by-nexestate-second-page.png",
+    "09-contact-page.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\09-contact-page.png",
+    "08-single-page.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\08-single-page.png",
+    "10-editor-with-bottom-bar-desktop.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\10-editor-with-bottom-bar-desktop.png",
+    "11-editor-bottom-bar-mobile.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\11-editor-bottom-bar-mobile.png",
+    "12-d4-reference-vs-by-cover.png": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\final-correction-v2-20260820\\screenshots\\12-d4-reference-vs-by-cover.png"
+  },
+  "errors": {
+    "console": [],
+    "pageerror": [],
+    "unhandled": []
+  },
+  "summary": {
+    "PASS": 6
+  }
+}
