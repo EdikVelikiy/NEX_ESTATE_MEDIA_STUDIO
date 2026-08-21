@@ -57,6 +57,7 @@
 
     .app-hub-shell {
       min-height: 100vh;
+      min-height: 100dvh;
       display: grid;
       grid-template-rows: auto 1fr auto;
       padding: max(22px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
@@ -413,11 +414,6 @@
   <!-- THESIS: NexEstate открывается как тихий двухстудийный рабочий пульт, где выбор инструмента считывается за секунду. OWN-WORLD: глубокая сине-графитовая среда с двумя самостоятельными рабочими отсеками и тонкой световой осью маршрута. STORY: определить материал, выбрать нужную студию и сразу перейти к работе. FIRST VIEWPORT: бренд, нейтральное назначение и ровно две крупные интерактивные карточки без третьего модуля. FORM: paired studio bays divided by an illuminated routing seam. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
   <div class="app-hub-shell">
     <header class="app-hub-header">
-      <span class="app-hub-mark" aria-hidden="true">NE</span>
-      <div class="app-hub-brand">
-        <strong>NexEstate by Эдик Великий</strong>
-        <span>Единая рабочая среда</span>
-      </div>
       <label class="app-hub-theme-control" for="appHubTheme">
         Оформление
         <select id="appHubTheme" aria-label="Оформление главного экрана">
@@ -471,7 +467,7 @@
       </nav>
     </main>
 
-    <footer class="app-hub-footer">NexEstate · единая рабочая среда</footer>
+    <footer class="app-hub-footer">NexEstate · Единая рабочая среда · by Эдик Великий</footer>
   </div>
   <noscript>Для запуска редакторов требуется JavaScript.</noscript>
   <script>

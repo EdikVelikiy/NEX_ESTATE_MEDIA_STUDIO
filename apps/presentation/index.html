@@ -6445,7 +6445,7 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
   function sameVisual(left,right){if(left.hash&&right.hash&&left.hash===right.hash)return true;const leftRatio=left.width/Math.max(1,left.height),rightRatio=right.width/Math.max(1,right.height);return Math.abs(leftRatio-rightRatio)<=.045&&perceptualDistance(left.perceptualHash,right.perceptualHash)<=3}
   function candidateDecision(canvas,analysis,pageText=''){
     const width=canvas.width,height=canvas.height,area=width*height;
-    const technicalContext=/\b(?:планировк|поэтажн|карта|схем|генплан|экспликац|черт[её]ж|план\s+бти)\b/i.test(pageText);
+    const technicalContext=/(?:планировк|поэтажн|карта|схем|генплан|экспликац|черт[её]ж|план\s+бти)/i.test(pageText);
     const directionalEdges=(Number(analysis.horizontalEdgeRatio)||0)+(Number(analysis.verticalEdgeRatio)||0);
     const meaningfulEdges=Math.max(Number(analysis.edgeRatio)||0,directionalEdges);
     const meaningfulPixels=Math.max(Number(analysis.distinctRatio)||0,1-(Number(analysis.dominantRatio)||1));
@@ -6453,16 +6453,16 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     const regionalVisual=regionalEntropy>2.05&&regionalDistinct>.10&&regionalVariance>150||regionalEdge>.045&&regionalDistinct>.065&&regionalVariance>105;
     const almostFlat=(analysis.dominantRatio>.965&&meaningfulPixels<.045&&variance<145&&meaningfulEdges<.026&&!regionalVisual)||(entropy<.5&&meaningfulPixels<.025&&meaningfulEdges<.015&&regionalEdge<.025);
     const lightLineWork=analysis.whiteRatio>.72&&meaningfulPixels>.018&&meaningfulEdges>.018&&(directionalEdges>.009||variance>95);
-    const unlabeledPlanLineWork=analysis.whiteRatio>.78&&directionalEdges>.018&&meaningfulPixels>.032&&entropy<1.7&&variance<1900&&regionalEdge>.025;
+    const unlabeledPlanLineWork=analysis.whiteRatio>.78&&directionalEdges>.018&&meaningfulPixels>.032&&entropy<1.7&&variance<2800&&regionalEdge>.025;
     const planLike=(technicalContext&&lightLineWork)||unlabeledPlanLineWork;
     const mapOrPhoto=entropy>2.75&&meaningfulPixels>.11&&variance>190&&regionalVisual||chroma>12&&meaningfulPixels>.10&&regionalVisual||Number(analysis.photoConfidence)>.5&&regionalVisual;
-    const textOnly=!technicalContext&&analysis.whiteRatio>.68&&chroma<14&&analysis.dominantRatio>.64&&meaningfulPixels<.30&&entropy<2.35&&activeRegionRatio<.45;
+    const textOnly=!technicalContext&&analysis.whiteRatio>.68&&chroma<14&&analysis.dominantRatio>.64&&meaningfulPixels<.30&&entropy<2.35&&(activeRegionRatio<.45||regionalEntropy>1.05&&regionalDistinct>.12);
     const technicalMask=analysis.alphaRatio<.08||analysis.dominantRatio>.91&&meaningfulPixels<.065&&meaningfulEdges<.018&&!regionalVisual;
     if(analysis.blank)return{keep:false,reason:analysis.reason||'пустое изображение'};
     const minWidth=technicalContext?120:220,minHeight=technicalContext?100:140,minArea=technicalContext?20000:60000;
     if(width<minWidth||height<minHeight||area<minArea)return{keep:false,reason:'слишком маленький ресурс'};
     if(almostFlat||technicalMask&&!planLike&&!mapOrPhoto)return{keep:false,reason:'однотонный фон или служебная подложка'};
-    if(textOnly&&!planLike)return{keep:false,reason:'текстовая область без самостоятельного изображения'};
+    if(textOnly)return{keep:false,reason:'текстовая область без самостоятельного изображения'};
     if(planLike)return{keep:true,reason:'планировка / схема'};
     if(mapOrPhoto)return{keep:true,reason:technicalContext?'карта / содержательная схема':'самостоятельное изображение'};
     if(analysis.flattenedRegion&&meaningfulPixels<.12&&meaningfulEdges<.03)return{keep:false,reason:'служебная область PDF без содержательного рисунка'};
@@ -15844,9 +15844,9 @@ function ensureBottomBarV78(){
   const bar=studioV78()?.querySelector('.ps-bottom-bar');
   if(!bar)return false;
   const work=bar.querySelector('.ne62-work-group'),layout=bar.querySelector('.ne62-layout-group'),final=bar.querySelector('.ne62-final-group');
-  ensureGroupLabelV78(work,'Шаблоны и сохранение');
-  ensureGroupLabelV78(layout,'Режим бренда · макет и тема');
-  ensureGroupLabelV78(final,'Скачать');
+  ensureGroupLabelV78(work,'Работа и сохранение');
+  ensureGroupLabelV78(layout,'Макет и экспорт');
+  ensureGroupLabelV78(final,'Финальные действия');
   const brandToggle=byIdV78('ne65BrandMode');
   if(brandToggle instanceof HTMLInputElement){
     brandToggle.hidden=false;
@@ -17540,11 +17540,26 @@ function cleanV82(value,limit=12000){return dataV82.clean(value,limit)}
 function stationsV82(data){return dataV82.normalizeMetroStations(data?.metroStations?.length?data.metroStations:data?.metro).slice(0,2)}
 function metroColorV82(name,fallback){
   const value=String(name||'').toLocaleLowerCase('ru-RU');
-  if(/красные ворота|красносельск/.test(value))return'#e42313';
+  if(/красные ворота|красносельск|комсомольск/.test(value))return'#e42313';
   if(/маяковск/.test(value))return'#4ca851';
   if(/баррикадн/.test(value))return'#8e479c';
   if(/боровицк/.test(value))return'#a1a2a3';
-  return fallback;
+  return'#506b62';
+}
+function metroColorsV84(name){
+  const value=String(name||'').toLocaleLowerCase('ru-RU');
+  if(/комсомольск/.test(value))return['#e42313','#8b5b29'];
+  if(/красные ворота|красносельск/.test(value))return['#e42313'];
+  if(/маяковск/.test(value))return['#4ca851'];
+  if(/баррикадн/.test(value))return['#8e479c'];
+  if(/боровицк/.test(value))return['#a1a2a3'];
+  return['#506b62'];
+}
+function drawMetroMarkerV84(ctx,x,y,station,p){
+  const colors=metroColorsV84(station?.name),centers=colors.length>1?[x+10,x+28]:[x+17];
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='800 10px '+v74V82.context.fontStack();
+  centers.forEach((cx,index)=>{ctx.beginPath();ctx.fillStyle=colors[index];ctx.arc(cx,y+17,10,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.fillStyle=p.dark;ctx.arc(cx,y+17,6.4,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.inverse;ctx.fillText('M',cx,y+17.5)});
+  ctx.restore();return{colors,rect:{x,y:y+7,w:colors.length>1?38:34,h:20}};
 }
 function stationLabelV82(station){
   const name=cleanV82(station?.name,90);if(!name)return'';
@@ -17566,18 +17581,20 @@ function planEntryV82(){const entry=v74V82.context.floorEntry?.();return entry?.
 function drawCoverV82(api,model,coverEntries,p,themeKey,total){
   const c=api.newCanvas(api.W,api.H),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm(),features=api.selectedFeatures(),branded=!hideBrandV82();api.reset(ctx);
   ctx.fillStyle=p.dark;ctx.fillRect(0,0,560,1320);api.drawWave(ctx,0,0,560,1320,p.inverse);api.drawPhotoGrid(ctx,p,coverEntries);
-  const brandBox=branded?tintLogoV82(ctx,324,38,174,p.inverse,'full'):null;
-  const scenario=cleanV82(data.scenario,50),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260);let y=176;
-  if(scenario){ctx.fillStyle=p.inverseMuted;ctx.font='700 17px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(scenario.toLocaleUpperCase('ru-RU'),64,y);y+=48}
-  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0,lineHeight:0};if(title){titleFit=api.fitBlock(ctx,title,432,392,68,23,'700',1.08,10);titleFit.weight='700';titleFit.family=api.fontStack();api.drawLines(ctx,titleFit,64,y,p.inverse);y+=titleFit.height+34}
+  const slideRect={x:0,y:0,w:api.W,h:api.H},brandColumnRect={x:0,y:0,w:560,h:1320},photoRect={x:560,y:0,w:api.W-560,h:1320};
+  const brandBox=branded?tintLogoV82(ctx,402,60,136,p.inverse,'full'):null;
+  const scenario=cleanV82(data.scenario,50),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260),titleY=250;let y=titleY;
+  if(scenario){ctx.fillStyle=p.inverseMuted;ctx.font='700 17px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(scenario.toLocaleUpperCase('ru-RU'),64,190)}
+  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0,lineHeight:0};if(title){titleFit=api.fitBlock(ctx,title,432,330,60,23,'700',1.06,4);titleFit.weight='700';titleFit.family=api.fontStack();api.drawLines(ctx,titleFit,64,titleY,p.inverse);y=titleY+titleFit.height+34}
+  const titleRect={x:64,y:titleY,w:432,h:title?titleFit.height:0};
   if(purpose){ctx.fillStyle=p.accent;ctx.font='700 14px '+api.fontStack();ctx.textBaseline='top';ctx.fillText('НАЗНАЧЕНИЕ',64,y);const purposeFit=api.fitBlock(ctx,purpose,432,74,21,15,'600',1.18,3);purposeFit.weight='600';purposeFit.family=api.fontStack();api.drawLines(ctx,purposeFit,64,y+30,p.inverseMuted);y+=30+purposeFit.height+34}
   ctx.fillStyle=p.accent;ctx.fillRect(64,y-16,68,4);
-  const address=dataV82.manualClear('addr')?'':cleanV82(data.addr,260);if(address){api.drawLocation(ctx,64,y,p.inverseMuted,false);const addressFit=api.fitBlock(ctx,address,382,90,22,15,'600',1.18,4);addressFit.weight='600';addressFit.family=api.fontStack();api.drawLines(ctx,addressFit,106,y+14,p.inverse);y+=Math.max(64,addressFit.height+18)}
-  const metroRows=stationsV82(data);metroRows.forEach(station=>{const color=metroColorV82(station.name,p.inverseMuted),label=stationLabelV82(station);api.drawLocation(ctx,64,y,color,true);drawModeGlyphV82(ctx,91,y+4,station,color);const fit=api.fitBlock(ctx,label,350,54,19,14,'600',1.16,2);fit.weight='600';fit.family=api.fontStack();api.drawLines(ctx,fit,118,y+15,p.inverseMuted);y+=Math.max(54,fit.height+17)});
+  const address=dataV82.manualClear('addr')?'':cleanV82(data.addr,260),addressTop=y;let addressRect={x:64,y:addressTop,w:432,h:0};if(address){api.drawLocation(ctx,64,y,p.inverseMuted,false);const addressFit=api.fitBlock(ctx,address,382,90,22,15,'600',1.18,4);addressFit.weight='600';addressFit.family=api.fontStack();api.drawLines(ctx,addressFit,106,y+14,p.inverse);addressRect={x:64,y,w:432,h:Math.max(64,addressFit.height+18)};y+=addressRect.h}
+  const metroRows=stationsV82(data),metroRects=[],metroColors=[];metroRows.forEach(station=>{const marker=drawMetroMarkerV84(ctx,64,y,station,p),label=stationLabelV82(station);drawModeGlyphV82(ctx,104,y+4,station,marker.colors[0]);const fit=api.fitBlock(ctx,label,340,54,19,14,'600',1.16,2);fit.weight='600';fit.family=api.fontStack();api.drawLines(ctx,fit,126,y+15,p.inverseMuted);const height=Math.max(54,fit.height+17);metroRects.push({x:64,y,w:432,h:height});metroColors.push({station:station.name,colors:marker.colors.slice()});y+=height});
   const description=cleanV82(data.draft,12000),descriptionTop=Math.max(884,Math.min(1082,y+28)),descriptionBottom=1210;ctx.fillStyle=p.accent;ctx.font='700 17px '+api.fontStack();ctx.fillText('ОПИСАНИЕ',64,descriptionTop);ctx.fillRect(64,descriptionTop+18,48,3);
-  if(description){const fit=api.fitBlock(ctx,description,430,descriptionBottom-descriptionTop-55,18,13,'500',1.28,12);fit.weight='500';fit.family=api.fontStack();api.drawLines(ctx,fit,64,descriptionTop+50,p.inverseMuted);c.neDescriptionContinues=!fit.fits}
+  let descriptionRect={x:64,y:descriptionTop,w:430,h:descriptionBottom-descriptionTop};if(description){const fit=api.fitBlock(ctx,description,430,descriptionBottom-descriptionTop-55,18,13,'500',1.28,12);fit.weight='500';fit.family=api.fontStack();api.drawLines(ctx,fit,64,descriptionTop+50,p.inverseMuted);c.neDescriptionContinues=!fit.fits;descriptionRect={x:64,y:descriptionTop,w:430,h:Math.min(descriptionBottom-descriptionTop,fit.height+55)}}
   ctx.fillStyle=p.paper;ctx.fillRect(0,1320,api.W,api.H-1320);ctx.fillStyle=p.accent;ctx.fillRect(0,1320,api.W,5);features.forEach((item,index)=>api.drawFeatureCard(ctx,p,item,index));ctx.fillStyle=p.inverseMuted;ctx.font='600 13px '+api.fontStack();ctx.fillText('01 / '+String(total).padStart(2,'0'),64,1284);
-  c.neStage4Kind='cover';c.neStage3PageKind='cover';c.neBrandTheme=themeKey;c.neBrandLayout=api.layout;c.neStage4FeatureCount=features.length;c.neStage4PhotoCount=coverEntries.length;c.neStage4PlanSlots=coverEntries.reduce((out,entry,index)=>{if(entry?.isPlan)out.push(index);return out},[]);c.neTitleMetrics={fits:titleFit.fits||titleFit.truncated===true,truncated:!!titleFit.truncated,lines:titleFit.lines?.length||0,fontSize:titleFit.size||0};c.nePurpose=purpose;c.neMetroStations=metroRows.map(stationLabelV82);c.neAppBrandBoxes=brandBox?[brandBox]:[];return c;
+  c.neStage4Kind='cover';c.neStage3PageKind='cover';c.neBrandTheme=themeKey;c.neBrandLayout=api.layout;c.neStage4FeatureCount=features.length;c.neStage4PhotoCount=coverEntries.length;c.neStage4PlanSlots=coverEntries.reduce((out,entry,index)=>{if(entry?.isPlan)out.push(index);return out},[]);c.neTitleMetrics={fits:titleFit.fits||titleFit.truncated===true,truncated:!!titleFit.truncated,lines:titleFit.lines?.length||0,fontSize:titleFit.size||0};c.nePurpose=purpose;c.neMetroStations=metroRows.map(stationLabelV82);c.neMetroMarkerColors=metroColors;c.neAppBrandBoxes=brandBox?[brandBox]:[];c.neCoverBrandLogo=brandBox?{rect:brandBox,composition:['NEX','ESTATE','skyline'],parent:'brandColumnRect',asset:EXACT_LOGO_V82}:null;c.neHotfixGeometry={slideRect,brandColumnRect,logoRect:brandBox||null,titleRect,addressRect,metroRects,descriptionRect,photoRect};return c;
 }
 if(!v74V82.replaceCover(drawCoverV82))throw new Error('V82 cover renderer could not be installed');
 if(!v74V82.replacePageBase(function(api,ctx,p,title,page,total){
@@ -17594,7 +17611,7 @@ if(!v75V82.replaceAssets(function(api,previous){
 }))throw new Error('V82 single-page asset bridge could not be installed');
 if(!v75V82.replaceHeader(function(api,ctx,p,data,closed){
   const branded=!hideBrandV82(),scenario=cleanV82(data.scenario,60),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260),address=dataV82.manualClear('addr')?'':cleanV82(data.addr,260),metros=stationsV82(data);let y=closed?126:48;if(closed)api.drawClosed(ctx,p);const titleWidth=branded?1235:1560;
-  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0};if(scenario)y+=31;if(title){titleFit=api.fit(ctx,title,titleWidth,205,{family:api.serifStack(),weight:700,max:62,min:23,lineHeight:1.04,maxLines:5});y+=titleFit.height+18}if(purpose)y+=56;const locationRows=(address?1:0)+metros.length,headerH=Math.max(branded?216:150,Math.min(570,y+locationRows*48+38));ctx.fillStyle=p.dark;ctx.fillRect(0,0,api.W,headerH);const gradient=ctx.createLinearGradient(0,0,api.W,0);gradient.addColorStop(0,p.dark2);gradient.addColorStop(.58,p.dark);gradient.addColorStop(1,p.dark2);ctx.fillStyle=gradient;ctx.fillRect(0,0,api.W,headerH);if(closed)api.drawClosed(ctx,p);const brandBox=branded?tintLogoV82(ctx,1400,22,178,p.inverse,'full'):null;
+  let titleFit={fits:true,truncated:false,lines:[],height:0,size:0};if(scenario)y+=31;if(title){titleFit=api.fit(ctx,title,titleWidth,205,{family:api.serifStack(),weight:700,max:62,min:23,lineHeight:1.04,maxLines:4});y+=titleFit.height+18}if(purpose)y+=56;const locationRows=(address?1:0)+metros.length,headerH=Math.max(branded?216:150,Math.min(570,y+locationRows*48+38));ctx.fillStyle=p.dark;ctx.fillRect(0,0,api.W,headerH);const gradient=ctx.createLinearGradient(0,0,api.W,0);gradient.addColorStop(0,p.dark2);gradient.addColorStop(.58,p.dark);gradient.addColorStop(1,p.dark2);ctx.fillStyle=gradient;ctx.fillRect(0,0,api.W,headerH);if(closed)api.drawClosed(ctx,p);const brandBox=branded?tintLogoV82(ctx,1400,22,178,p.inverse,'full'):null;
   y=closed?126:48;if(scenario){ctx.fillStyle=p.accent2;ctx.font='700 18px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(scenario.toLocaleUpperCase('ru-RU'),72,y);y+=31}if(title){api.drawFit(ctx,titleFit,72,y,p.inverse);y+=titleFit.height+18}if(purpose){ctx.fillStyle=p.accent2;ctx.font='700 14px '+api.fontStack();ctx.fillText('НАЗНАЧЕНИЕ',72,y);const purposeFit=api.fit(ctx,purpose,titleWidth,44,{weight:600,max:20,min:14,lineHeight:1.08,maxLines:2});api.drawFit(ctx,purposeFit,224,y-2,p.inverseMuted);y+=56}
   if(address){api.drawLocation(ctx,72,y-10,p.inverseMuted,false);const fit=api.fit(ctx,address,1380,44,{weight:600,max:22,min:15,lineHeight:1.08,maxLines:2});api.drawFit(ctx,fit,116,y-10,p.inverseMuted);y+=48}
   metros.forEach(station=>{const color=metroColorV82(station.name,p.inverseMuted),label=stationLabelV82(station);api.drawLocation(ctx,72,y-10,color,true);drawModeGlyphV82(ctx,101,y-5,station,color);const fit=api.fit(ctx,label,1340,44,{weight:600,max:21,min:14,lineHeight:1.08,maxLines:2});api.drawFit(ctx,fit,128,y-10,p.inverseMuted);y+=48});ctx.canvas.neAppBrandBoxes=brandBox?[brandBox]:[];ctx.canvas.neMetroStations=metros.map(stationLabelV82);ctx.canvas.nePurpose=purpose;ctx.canvas.neTitleMetrics={fits:titleFit.fits||titleFit.truncated===true,truncated:!!titleFit.truncated,lines:titleFit.lines?.length||0,fontSize:titleFit.size||0};return{height:headerH,titleFits:!title||titleFit.fits||titleFit.truncated===true,addressFits:true,metroFits:true,titleTruncated:!!titleFit.truncated};
@@ -17631,6 +17648,754 @@ window.NEXESTATE_BRAND_VISIBILITY_TEST=Object.assign({},window.NEXESTATE_BRAND_V
 </script>
 <script id="nexestate-critical-regression-v82-loader">
 (()=>{const source=document.getElementById('nexestate-critical-regression-v82-runtime')?.textContent||'';if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);window.NEXESTATE_CRITICAL_REGRESSION_LOADED=true;delete window.NEXESTATE_CRITICAL_REGRESSION_ERROR}catch(error){window.NEXESTATE_CRITICAL_REGRESSION_LOADED=false;window.NEXESTATE_CRITICAL_REGRESSION_ERROR=String(error?.stack||error);throw error}})();
+</script>
+<style id="nexestate-footer-toolbar-v83-style">
+:root{--ne83-toolbar-height:64px}
+.ns-home>.ne83-home-footer{
+  position:relative!important;
+  inset:auto!important;
+  left:var(--ne83-home-center-shift,0px)!important;
+  transform:none!important;
+  box-sizing:border-box;
+  width:100%;
+  max-width:1460px;
+  margin:48px auto 24px!important;
+  padding:0!important;
+  border:0!important;
+  display:grid!important;
+  place-items:center;
+  gap:4px;
+  text-align:center;
+  color:var(--ns-text);
+}
+.ns-home>.ne83-home-footer .ne83-home-product{
+  display:block;
+  margin:0;
+  font:700 18px/1.2 "Segoe UI",Arial,sans-serif;
+  letter-spacing:0;
+}
+.ns-home>.ne83-home-footer .ne83-home-credit{
+  display:block;
+  margin:0;
+  color:var(--ns-muted);
+  font:400 12px/1.2 "Segoe UI",Arial,sans-serif;
+  letter-spacing:0;
+}
+.ns-home>.ns-home-header{justify-content:flex-end!important}
+#presentationStudio.ne83-footer-toolbar .ne80-home-signature,
+#presentationStudio.ne83-footer-toolbar .ns-home-brand{display:none!important}
+#presentationStudio.ne83-footer-toolbar .ne79-header-title{display:none!important}
+#presentationStudio.ne83-footer-toolbar .ne52-workspace{
+  box-sizing:border-box!important;
+  padding-bottom:var(--ne83-toolbar-height)!important;
+}
+#presentationStudio.ne83-footer-toolbar .ps-bottom-bar.ne83-toolbar{
+  position:fixed!important;
+  inset:auto 0 0 0!important;
+  z-index:9300!important;
+  box-sizing:border-box!important;
+  width:100vw!important;
+  height:64px!important;
+  min-height:64px!important;
+  max-height:64px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-top:1px solid #1d4057!important;
+  border-radius:0!important;
+  display:grid!important;
+  align-items:stretch!important;
+  grid-template-columns:1fr!important;
+  grid-template-rows:43px 20px!important;
+  gap:0!important;
+  overflow:hidden!important;
+  background:#071722!important;
+  box-shadow:0 -10px 28px rgba(0,0,0,.28)!important;
+  color:#dcecf6!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-brand-row{
+  grid-row:2;
+  box-sizing:border-box;
+  width:100%;
+  height:20px;
+  min-height:20px;
+  padding:0 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border-top:1px solid rgba(48,96,125,.48);
+  background:#081a26;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-editor-signature{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:nowrap;
+  gap:0;
+  max-width:100%;
+  color:#c9dbe7;
+  font:600 11px/1.2 "Segoe UI",Arial,sans-serif;
+  white-space:nowrap;
+  text-align:center;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-editor-signature>span{white-space:nowrap}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls{
+  grid-row:1;
+  box-sizing:border-box;
+  width:100%;
+  height:43px;
+  min-height:43px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  grid-template-rows:43px;
+  align-items:stretch;
+  overflow:hidden;
+  background:#071722;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-bar-group{
+  position:relative!important;
+  box-sizing:border-box!important;
+  width:auto!important;
+  min-width:0!important;
+  height:43px!important;
+  min-height:43px!important;
+  margin:0!important;
+  padding:11px 9px 2px!important;
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:4px!important;
+  overflow:visible!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-work-group{
+  grid-column:1;
+  justify-self:stretch;
+  justify-content:flex-start!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-layout-group{
+  grid-column:2;
+  justify-self:center;
+  justify-content:center!important;
+  border-left:1px solid #24465b!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-final-group{
+  grid-column:3;
+  justify-self:stretch;
+  justify-content:flex-end!important;
+  border-left:1px solid #24465b!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne78-group-label{
+  position:absolute!important;
+  top:1px!important;
+  left:9px!important;
+  right:auto!important;
+  width:auto!important;
+  height:9px!important;
+  margin:0!important;
+  padding:0!important;
+  display:block!important;
+  overflow:hidden;
+  color:#6e97ae!important;
+  font:700 7px/9px "Segoe UI",Arial,sans-serif!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+  pointer-events:none;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group button,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group select,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group .ne62-autosave,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne80-no-logos{
+  box-sizing:border-box!important;
+  height:29px!important;
+  min-height:29px!important;
+  max-height:29px!important;
+  margin:0!important;
+  border-radius:6px!important;
+  font:700 8px/1 "Segoe UI",Arial,sans-serif!important;
+  white-space:nowrap!important;
+  transform:none!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group button,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group select{
+  padding:0 6px!important;
+  border:1px solid #2b526b!important;
+  background:#0a2232!important;
+  color:#d9e9f3!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group button:hover,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group select:hover,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group button:focus-visible,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group select:focus-visible{
+  border-color:#4b8eaf!important;
+  background:#0d2a3d!important;
+  transform:none!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group button:disabled,
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group select:disabled{
+  opacity:.48!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-autosave{
+  max-width:74px!important;
+  padding:0 5px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  overflow:hidden!important;
+  border:1px solid rgba(42,108,86,.66)!important;
+  background:#09261f!important;
+  color:#75d7b1!important;
+  text-overflow:ellipsis!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-layout-switch{
+  box-sizing:border-box!important;
+  width:auto!important;
+  min-width:0!important;
+  height:29px!important;
+  min-height:29px!important;
+  flex:0 1 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:4px!important;
+  overflow:visible!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne73-mode-pair{
+  box-sizing:border-box!important;
+  width:246px!important;
+  min-width:246px!important;
+  height:29px!important;
+  min-height:29px!important;
+  flex:0 0 246px!important;
+  display:grid!important;
+  grid-template-columns:82px 164px!important;
+  align-items:stretch!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne62LayoutBy,
+#presentationStudio.ne83-footer-toolbar #ne62LayoutSingle{
+  width:100%!important;
+  min-width:0!important;
+  height:29px!important;
+  min-height:29px!important;
+  padding:0 5px!important;
+  border-width:1px!important;
+  background:#0a2232!important;
+  color:#bad0dd!important;
+  box-shadow:none!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne62LayoutBy[aria-pressed="true"],
+#presentationStudio.ne83-footer-toolbar #ne62LayoutSingle[aria-pressed="true"],
+#presentationStudio.ne83-footer-toolbar #ne62LayoutBy.is-active,
+#presentationStudio.ne83-footer-toolbar #ne62LayoutSingle.is-active,
+#presentationStudio.ne83-footer-toolbar #ne62LayoutBy.ne79-mode-active,
+#presentationStudio.ne83-footer-toolbar #ne62LayoutSingle.ne79-mode-active{
+  border-color:#2fb4ff!important;
+  background:#126f9f!important;
+  color:#fff!important;
+  box-shadow:inset 0 0 0 1px rgba(106,207,255,.22)!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne73BrandTheme{
+  box-sizing:border-box!important;
+  width:150px!important;
+  min-width:150px!important;
+  max-width:150px!important;
+  flex:0 0 150px!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne80-no-logos{
+  flex:0 0 auto!important;
+  padding:0 7px!important;
+  gap:4px!important;
+  border:1px solid #2b526b!important;
+  background:#0a2232!important;
+  color:#d9e9f3!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne80-no-logos input{
+  box-sizing:border-box!important;
+  width:14px!important;
+  min-width:14px!important;
+  max-width:14px!important;
+  height:14px!important;
+  min-height:14px!important;
+  max-height:14px!important;
+  margin:0!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne62HeroTrigger,
+#presentationStudio.ne83-footer-toolbar #ne62FloorTrigger{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:54px!important;
+  max-width:82px!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne73BarToggle,
+#presentationStudio.ne83-footer-toolbar .ne78-brand-mode-wrap,
+#presentationStudio.ne83-footer-toolbar #ne65BrandMode,
+#presentationStudio.ne83-footer-toolbar #ne62DownloadMain{
+  display:none!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne54ConvertWrap{
+  display:inline-flex!important;
+  height:29px!important;
+  min-height:29px!important;
+  margin:0!important;
+}
+#presentationStudio.ne83-footer-toolbar #ne54ConvertWrap>button{height:29px!important;min-height:29px!important}
+#presentationStudio.ne83-footer-toolbar #ne78DownloadPdf,
+#presentationStudio.ne83-footer-toolbar #ne78DownloadPng,
+#presentationStudio.ne83-footer-toolbar #ne62FormatTrigger{
+  min-width:30px!important;
+}
+@media(max-width:1199px) and (min-width:768px){
+  :root{--ne83-toolbar-height:104px}
+  #presentationStudio.ne83-footer-toolbar .ps-bottom-bar.ne83-toolbar{
+    height:104px!important;
+    min-height:104px!important;
+    max-height:104px!important;
+    grid-template-rows:83px 20px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls{
+    height:83px;
+    min-height:83px;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:41px 42px;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-bar-group{
+    height:41px!important;
+    min-height:41px!important;
+    padding-top:10px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-work-group{
+    grid-column:1/3;
+    grid-row:1;
+    justify-content:center!important;
+    border-bottom:1px solid rgba(36,70,91,.72)!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-layout-group{
+    grid-column:1;
+    grid-row:2;
+    justify-self:stretch;
+    justify-content:flex-start!important;
+    border-left:0!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-final-group{
+    grid-column:2;
+    grid-row:2;
+    justify-self:stretch;
+    border-left:1px solid #24465b!important;
+  }
+}
+@media(max-width:767px){
+  :root{--ne83-toolbar-height:min(214px,34vh)}
+  .ns-home>.ne83-home-footer{margin-top:48px!important;margin-bottom:24px!important}
+  .ns-home>.ne83-home-footer .ne83-home-product{font-size:16px}
+  .ns-home>.ne83-home-footer .ne83-home-credit{font-size:11px}
+  #presentationStudio.ne83-footer-toolbar .ps-bottom-bar.ne83-toolbar{
+    height:min(214px,34vh)!important;
+    min-height:0!important;
+    max-height:34vh!important;
+    grid-template-rows:minmax(0,1fr) 18px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-brand-row{
+    height:18px;
+    min-height:18px;
+    padding:0 6px;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-editor-signature{
+    flex-wrap:wrap;
+    column-gap:4px;
+    font-size:10px;
+    white-space:normal;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls{
+    height:auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-bar-group{
+    width:100%!important;
+    min-width:0!important;
+    height:auto!important;
+    min-height:48px!important;
+    padding:13px 7px 5px!important;
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+    border-left:0!important;
+    border-bottom:1px solid #24465b!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-final-group{border-bottom:0!important}
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-layout-switch{
+    width:100%!important;
+    min-width:0!important;
+    height:auto!important;
+    min-height:29px!important;
+    flex:1 1 100%!important;
+    flex-wrap:wrap!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne73-mode-pair{
+    width:100%!important;
+    min-width:0!important;
+    flex:1 1 100%!important;
+    grid-template-columns:minmax(76px,.72fr) minmax(156px,1.28fr)!important;
+  }
+  #presentationStudio.ne83-footer-toolbar #ne73BrandTheme{
+    width:min(190px,100%)!important;
+    min-width:0!important;
+    max-width:190px!important;
+    flex:1 1 150px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group button,
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group select,
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-bar-group .ne62-autosave,
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne80-no-logos{
+    max-width:100%!important;
+  }
+}
+</style>
+<script id="nexestate-footer-toolbar-v83-runtime">
+(()=>{
+'use strict';
+const VERSION_V83='83.1-one-shot-final';
+const PRODUCT_V83='NexEstate Presentation Studio';
+const CREDIT_V83='by Эдик Великий';
+const $V83=id=>document.getElementById(id);
+let ensureFrameV83=0;
+let resizeObserverV83=null;
+function setTextV83(node,text){if(node&&node.textContent!==text)node.textContent=text}
+function ensureHomeFooterV83(){
+  const home=$V83('studioHome');if(!home)return false;
+  home.querySelectorAll('.ns-home-brand').forEach(node=>node.remove());
+  const header=home.querySelector(':scope>.ns-home-header');if(header)header.classList.add('ne83-home-header');
+  let footer=$V83('ne80HomeSignature');
+  if(!footer){footer=document.createElement('footer');footer.id='ne80HomeSignature'}
+  footer.className='ne83-home-footer';
+  footer.setAttribute('aria-label','NexEstate Presentation Studio');
+  let product=footer.querySelector('.ne83-home-product'),credit=footer.querySelector('.ne83-home-credit');
+  if(!product||!credit){
+    footer.replaceChildren();
+    product=document.createElement('span');product.className='ne83-home-product';
+    credit=document.createElement('span');credit.className='ne83-home-credit';
+    footer.append(product,credit);
+  }
+  setTextV83(product,PRODUCT_V83);setTextV83(credit,CREDIT_V83);
+  let main=home.querySelector(':scope>.ne84-home-main');
+  if(!main){main=document.createElement('div');main.className='ne84-home-main';header?.after(main)}
+  [...home.children].filter(node=>node!==header&&node!==main&&node!==footer).forEach(node=>main.appendChild(node));
+  if(header&&home.firstElementChild!==header)home.prepend(header);
+  if(main.parentElement!==home)home.appendChild(main);
+  if(footer.parentElement!==home||footer!==home.lastElementChild)home.appendChild(footer);
+  const scrollbarWidth=Math.max(0,window.innerWidth-document.documentElement.clientWidth);
+  footer.style.setProperty('--ne83-home-center-shift',scrollbarWidth/2+'px');
+  return true;
+}
+function labelGroupV83(group,text){
+  if(!group)return;
+  let label=group.querySelector(':scope>.ne78-group-label');
+  if(!label){label=document.createElement('span');label.className='ne78-group-label';group.prepend(label)}
+  setTextV83(label,text);
+}
+function groupControlsV83(group){
+  if(!group)return null;
+  let controls=group.querySelector(':scope>.ne84-group-controls');
+  if(!controls){controls=document.createElement('div');controls.className='ne84-group-controls'}
+  [...group.children].filter(node=>!node.classList.contains('ne78-group-label')&&node!==controls).forEach(node=>controls.appendChild(node));
+  if(controls.parentElement!==group)group.appendChild(controls);
+  return controls;
+}
+function orderChildrenV83(parent,nodes){
+  if(!parent)return;
+  const expected=nodes.filter(Boolean);
+  const current=[...parent.children].filter(node=>expected.includes(node));
+  if(expected.some((node,index)=>current[index]!==node))expected.forEach(node=>parent.appendChild(node));
+}
+function updateToolbarHeightV83(bar){
+  if(!bar)return;
+  const height=Math.round(bar.getBoundingClientRect().height);
+  if(height>0)document.documentElement.style.setProperty('--ne83-toolbar-height',height+'px');
+}
+function ensureToolbarV83(){
+  const studio=$V83('presentationStudio'),bar=studio?.querySelector('.ps-bottom-bar'),shell=studio?.querySelector('.ne52-shell');
+  if(!studio||!bar||!shell)return false;
+  studio.classList.add('ne83-footer-toolbar');
+  studio.querySelectorAll('.ne79-header-title').forEach(node=>node.remove());
+  studio.querySelectorAll('.ne80-home-signature').forEach(node=>node.remove());
+  bar.classList.add('ne83-toolbar');
+  let brand=bar.querySelector(':scope>.ne83-toolbar-brand-row');
+  if(!brand){
+    brand=document.createElement('div');brand.className='ne83-toolbar-brand-row';
+    const signature=document.createElement('div');signature.className='ne83-editor-signature';signature.setAttribute('aria-label',PRODUCT_V83+' '+CREDIT_V83);
+    signature.textContent=PRODUCT_V83+' '+CREDIT_V83;brand.appendChild(signature);
+  }
+  let controls=bar.querySelector(':scope>.ne83-toolbar-controls');
+  if(!controls){controls=document.createElement('div');controls.className='ne83-toolbar-controls'}
+  const work=bar.querySelector('.ne62-work-group')||controls.querySelector('.ne62-work-group');
+  const layout=bar.querySelector('.ne62-layout-group')||controls.querySelector('.ne62-layout-group');
+  const final=bar.querySelector('.ne62-final-group')||controls.querySelector('.ne62-final-group');
+  if(!work||!layout||!final)return false;
+  labelGroupV83(work,'РАБОТА И СОХРАНЕНИЕ');
+  labelGroupV83(layout,'МАКЕТ И ЭКСПОРТ');
+  labelGroupV83(final,'ФИНАЛЬНЫЕ ДЕЙСТВИЯ');
+  if(work.parentElement!==controls)controls.appendChild(work);
+  if(layout.parentElement!==controls)controls.appendChild(layout);
+  if(final.parentElement!==controls)controls.appendChild(final);
+  const workControls=groupControlsV83(work),layoutControls=groupControlsV83(layout),finalControls=groupControlsV83(final);
+  const save=[...workControls.querySelectorAll('button')].find(node=>node.textContent.trim()==='Сохранить шаблон');
+  const preset=$V83('dsPresetSelect'),remove=$V83('ne73TemplateDeleteButton');
+  const backups=[...workControls.querySelectorAll('button')].find(node=>node.textContent.trim()==='Резервные копии');
+  const check=[...workControls.querySelectorAll('button')].find(node=>node.textContent.trim()==='Проверить');
+  const autosave=workControls.querySelector('.ne62-autosave');
+  orderChildrenV83(workControls,[save,preset,remove,backups,check,autosave]);
+  const switcher=layoutControls.querySelector('.ne62-layout-switch');
+  const noLogos=$V83('ne80NoLogos')?.closest('.ne80-no-logos');
+  const hero=$V83('ne62HeroTrigger'),floor=$V83('ne62FloorTrigger');
+  if(switcher&&noLogos){
+    const mediaRef=[hero,floor].find(node=>node?.parentElement===switcher)||null;
+    if(noLogos.parentElement!==switcher)switcher.insertBefore(noLogos,mediaRef);
+    else if(mediaRef&&noLogos.nextElementSibling!==mediaRef)switcher.insertBefore(noLogos,mediaRef);
+  }
+  const convert=$V83('ne54ConvertWrap'),pdf=$V83('ne78DownloadPdf'),png=$V83('ne78DownloadPng'),gear=$V83('ne62FormatTrigger');
+  orderChildrenV83(finalControls,[convert,pdf,png,gear]);
+  const legacyDownload=$V83('ne62DownloadMain');
+  if(legacyDownload){legacyDownload.hidden=true;legacyDownload.setAttribute('aria-hidden','true');legacyDownload.tabIndex=-1}
+  const toggle=$V83('ne73BarToggle');
+  if(toggle){toggle.hidden=true;toggle.setAttribute('aria-hidden','true');toggle.tabIndex=-1}
+  if(controls.parentElement!==bar)bar.prepend(controls);
+  if(brand.parentElement!==bar)bar.appendChild(brand);
+  if(bar.children[0]!==controls)bar.prepend(controls);
+  if(brand!==bar.lastElementChild)bar.appendChild(brand);
+  const signature=brand.querySelector('.ne83-editor-signature');
+  if(signature&&(signature.childNodes.length!==1||signature.firstChild?.nodeType!==Node.TEXT_NODE||signature.textContent!==PRODUCT_V83+' '+CREDIT_V83))signature.textContent=PRODUCT_V83+' '+CREDIT_V83;
+  if(!resizeObserverV83&&typeof ResizeObserver==='function'){
+    resizeObserverV83=new ResizeObserver(()=>updateToolbarHeightV83(bar));resizeObserverV83.observe(bar);
+  }
+  updateToolbarHeightV83(bar);
+  return true;
+}
+function ensureV83(){ensureFrameV83=0;ensureHomeFooterV83();ensureToolbarV83()}
+function queueV83(){if(!ensureFrameV83)ensureFrameV83=requestAnimationFrame(ensureV83)}
+const observerV83=new MutationObserver(records=>{if(records.some(record=>record.type==='childList'))queueV83()});
+observerV83.observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener('click',event=>{if(event.target?.closest?.('#nsNewProject,.ns-project-card,#ne62LayoutBy,#ne62LayoutSingle,#ne73BarToggle'))requestAnimationFrame(queueV83)},true);
+window.addEventListener('resize',queueV83,{passive:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueV83,{once:true});else queueV83();
+window.NEXESTATE_FOOTER_TOOLBAR_TEST={
+  version:VERSION_V83,
+  ensure:()=>{ensureV83();return true},
+  inspect:()=>{
+    const footer=$V83('ne80HomeSignature'),bar=document.querySelector('#presentationStudio .ps-bottom-bar'),brand=bar?.querySelector('.ne83-editor-signature');
+    const groups=[...bar?.querySelectorAll('.ne83-toolbar-controls>.ne62-bar-group')||[]];
+    return{
+      homeLines:[...footer?.children||[]].map(node=>node.textContent.trim()),
+      homePosition:footer?getComputedStyle(footer).position:'',
+      editorSignature:brand?.textContent.trim()||'',
+      toolbarHeight:bar?.getBoundingClientRect().height||0,
+      groupLabels:groups.map(group=>group.querySelector(':scope>.ne78-group-label')?.textContent.trim()||''),
+      controls:groups.map(group=>[...group.querySelectorAll('button,select,input')].filter(node=>getComputedStyle(node).display!=='none').map(node=>node.id||node.textContent.trim()||node.getAttribute('aria-label')||node.type))
+    };
+  }
+};
+})();
+</script>
+<style id="nexestate-remaining-visual-hotfix-v84-style">
+.ns-home{
+  box-sizing:border-box!important;
+  min-height:100vh!important;
+  min-height:100dvh!important;
+  display:flex!important;
+  flex-direction:column!important;
+  padding-bottom:12px!important;
+}
+.ns-home>.ne84-home-main{
+  box-sizing:border-box;
+  width:100%;
+  min-height:0;
+  flex:1 0 auto;
+  display:flex;
+  flex-direction:column;
+}
+.ns-home>.ne84-home-main>.ns-project-grid{width:100%}
+.ns-home>.ne83-home-footer{
+  left:0!important;
+  flex:0 0 auto;
+  margin:24px auto 0!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-bar-group{
+  padding:0 9px!important;
+  display:grid!important;
+  grid-template-rows:11px 31px!important;
+  align-items:stretch!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne78-group-label{
+  position:static!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:11px!important;
+  min-height:11px!important;
+  padding:1px 0 0!important;
+  display:block!important;
+  grid-row:1!important;
+  font:700 7px/10px "Segoe UI",Arial,sans-serif!important;
+}
+#presentationStudio.ne83-footer-toolbar .ne84-group-controls{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  height:31px;
+  min-height:31px;
+  grid-row:2;
+  display:flex;
+  align-items:center;
+  flex-wrap:nowrap;
+  gap:4px;
+  overflow:visible;
+}
+#presentationStudio.ne83-footer-toolbar .ne62-work-group>.ne84-group-controls{justify-content:flex-start}
+#presentationStudio.ne83-footer-toolbar .ne62-layout-group>.ne84-group-controls{justify-content:center}
+#presentationStudio.ne83-footer-toolbar .ne62-final-group>.ne84-group-controls{justify-content:flex-end}
+#presentationStudio.ne83-footer-toolbar .ne83-editor-signature{display:block!important}
+@media(max-width:1199px) and (min-width:768px){
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-bar-group{
+    padding:0 8px!important;
+    grid-template-rows:10px 31px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne78-group-label{height:10px!important;min-height:10px!important;padding-top:0!important}
+  #presentationStudio.ne83-footer-toolbar .ne62-work-group>.ne84-group-controls{justify-content:center}
+  #presentationStudio.ne83-footer-toolbar .ne62-layout-group>.ne84-group-controls{justify-content:flex-start}
+}
+@media(max-width:767px){
+  :root{--ne83-toolbar-height:170px}
+  .ns-home>.ne83-home-footer{margin-top:24px!important;margin-bottom:0!important}
+  #presentationStudio.ne83-footer-toolbar .ps-bottom-bar.ne83-toolbar{
+    height:170px!important;
+    min-height:170px!important;
+    max-height:170px!important;
+    grid-template-rows:151px 18px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls{
+    height:151px!important;
+    min-height:151px!important;
+    overflow:hidden!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls>.ne62-bar-group{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    height:50px!important;
+    min-height:50px!important;
+    padding:0 7px!important;
+    display:grid!important;
+    grid-template-rows:11px 38px!important;
+    flex:none!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne78-group-label{
+    height:11px!important;
+    min-height:11px!important;
+    padding-top:1px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne84-group-controls{
+    height:38px;
+    min-height:38px;
+    justify-content:flex-start!important;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:thin;
+    overscroll-behavior-inline:contain;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne62-final-group>.ne84-group-controls{justify-content:flex-end!important}
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne62-layout-switch{
+    width:max-content!important;
+    min-width:max-content!important;
+    height:29px!important;
+    min-height:29px!important;
+    flex:0 0 auto!important;
+    flex-wrap:nowrap!important;
+  }
+  #presentationStudio.ne83-footer-toolbar .ne83-toolbar-controls .ne73-mode-pair{
+    width:246px!important;
+    min-width:246px!important;
+    flex:0 0 246px!important;
+    grid-template-columns:82px 164px!important;
+  }
+  #presentationStudio.ne83-footer-toolbar #ne73BrandTheme{
+    width:150px!important;
+    min-width:150px!important;
+    max-width:150px!important;
+    flex:0 0 150px!important;
+  }
+}
+</style>
+<script id="nexestate-remaining-visual-hotfix-v84-runtime">
+(()=>{
+'use strict';
+const VERSION_V84='84.0-remaining-visual-hotfix';
+const START_DESCRIPTION_V84=/^(?:описание(?:\s+объекта)?|description)\s*:?[\s—–-]*$/iu;
+const STOP_DESCRIPTION_V84=/^(?:(?:основные\s+)?характеристики(?:\s+(?:объекта|помещения))?|основные\s+данные|тип\s+(?:объекта|здания)|парковка|площадь|цена|стоимость|этаж(?:ность)?|метро|транспортная\s+доступность|преимущества|планировка|контакты|контакт\s+брокера|арендатор|мап|фотографии|фотогалерея|адрес|назначение|электрическая\s+мощность|мощность|высота\s+потолков|потолки|мокрые\s+точки|отдельный\s+вход)\s*:?[\s—–-]*$/iu;
+const STRUCTURED_DESCRIPTION_ROW_V84=/^(?:площадь|цена|стоимость|этаж(?:ность)?|парковка|метро|мап)\s*(?:[:—–-]\s*)?(?:\d|по\s+запросу|есть\b|нет\b|на\s+улице\b|подзем)/iu;
+function cleanLineV84(value){return String(value??'').replace(/[\u00a0\u202f]/g,' ').replace(/[ \t]+/g,' ').trim()}
+function terminalLabelV84(value){return String(value??'').replace(/(?:^|\s)(?:описание(?:\s+объекта)?|description)\s*:?[\s—–-]*$/iu,'').trim()}
+function dedupeDescriptionV84(value){
+  const chunks=String(value||'').replace(/\s+/g,' ').trim().split(/(?<=[.!?])\s+/u).map(cleanLineV84).filter(Boolean),seen=new Set(),out=[];
+  chunks.forEach(chunk=>{const key=chunk.toLocaleLowerCase('ru-RU').replace(/[^\p{L}\p{N}]+/gu,' ').trim();if(key&&!seen.has(key)){seen.add(key);out.push(chunk)}});
+  return terminalLabelV84(out.join(' '));
+}
+function plausibleParagraphV84(value){
+  const text=cleanLineV84(value),labels=(text.match(/\b(?:площадь|цена|стоимость|этаж|метро|парковка|мощность|адрес)\s*:/giu)||[]).length;
+  return text.length>=38&&labels<2&&(/[.!?](?:\s|$)/u.test(text)||text.split(/\s+/).length>=9);
+}
+function extractDescriptionV84(raw){
+  const source=String(raw??'').replace(/\r\n?/g,'\n').replace(/[\u00a0\u202f]/g,' '),lines=source.split('\n').map(cleanLineV84),start=lines.findIndex(line=>START_DESCRIPTION_V84.test(line));
+  if(start>=0){
+    const collected=[];
+    for(let index=start+1;index<lines.length;index++){
+      const line=lines[index];if(!line){if(collected.length&&lines[index+1]&&STOP_DESCRIPTION_V84.test(lines[index+1]))break;continue}
+      if(STOP_DESCRIPTION_V84.test(line)||STRUCTURED_DESCRIPTION_ROW_V84.test(line)||/^[-—–]{2,}\s*(?:СТРАНИЦА|OCR)/iu.test(line))break;
+      collected.push(line);
+    }
+    return dedupeDescriptionV84(collected.join(' '));
+  }
+  const paragraphs=source.split(/\n\s*\n+/).map(block=>cleanLineV84(block)).filter(plausibleParagraphV84);
+  return paragraphs.length?dedupeDescriptionV84(paragraphs[0]):'';
+}
+function generatedContextV84(){return window.NE80_TEXT_IMPORT_CONTEXT!=='user-authored'}
+const qdBeforeV84=window.qdParseText;
+if(typeof qdBeforeV84==='function')window.qdParseText=function(raw){
+  const result={...(qdBeforeV84.apply(this,arguments)||{})};
+  if(generatedContextV84()){
+    const draft=extractDescriptionV84(raw);if(draft)result.draft=draft;else if(String(raw||'').split(/\r?\n/).some(line=>START_DESCRIPTION_V84.test(cleanLineV84(line))))delete result.draft;
+  }
+  return result;
+};
+const stageBridgeV84=window.NEXESTATE_STAGE1_BRIDGE;
+if(!stageBridgeV84?.wrapParser?.(function(previous,raw,fileName,api){
+  const result={...(previous(raw,fileName)||{})};
+  if(generatedContextV84()){
+    const draft=extractDescriptionV84(raw),hasHeading=String(raw||'').split(/\r?\n/).some(line=>START_DESCRIPTION_V84.test(cleanLineV84(line))),meta=api.getMeta();
+    if(draft){result.draft=draft;meta.draft={confidence:.99,reason:'ограниченная секция описания V84'}}else if(hasHeading){delete result.draft;delete meta.draft}
+    api.publishMeta();
+  }
+  return result;
+}))throw new Error('NexEstate Stage 1 parser bridge unavailable for V84');
+function rectV84(node){if(!node)return null;const rect=node.getBoundingClientRect();return{x:rect.x,y:rect.y,w:rect.width,h:rect.height,bottom:rect.bottom,right:rect.right}}
+function ensureUiV84(){
+  window.NEXESTATE_FOOTER_TOOLBAR_TEST?.ensure?.();
+  const signature=document.querySelector('#presentationStudio .ne83-editor-signature');if(signature&&signature.textContent!=='NexEstate Presentation Studio by Эдик Великий')signature.textContent='NexEstate Presentation Studio by Эдик Великий';
+}
+function inspectUiV84(){
+  ensureUiV84();const home=document.getElementById('studioHome'),footer=document.getElementById('ne80HomeSignature'),bar=document.querySelector('#presentationStudio .ps-bottom-bar'),signature=bar?.querySelector('.ne83-editor-signature'),groups=[...bar?.querySelectorAll('.ne83-toolbar-controls>.ne62-bar-group')||[]];
+  return{version:VERSION_V84,viewport:{w:innerWidth,h:innerHeight},homeRect:rectV84(home),footerRect:rectV84(footer),footerLines:[...footer?.children||[]].map(node=>node.textContent.trim()),signature:signature?.textContent||'',signatureTextNodes:signature?[...signature.childNodes].filter(node=>node.nodeType===Node.TEXT_NODE&&node.textContent.trim()).length:0,signatureRect:rectV84(signature),barRect:rectV84(bar),groups:groups.map(group=>({label:group.querySelector(':scope>.ne78-group-label')?.textContent.trim()||'',rect:rectV84(group),controlsRect:rectV84(group.querySelector(':scope>.ne84-group-controls')),controlIds:[...group.querySelectorAll('.ne84-group-controls button,.ne84-group-controls select,.ne84-group-controls input')].filter(node=>getComputedStyle(node).display!=='none').map(node=>node.id||node.type)}))};
+}
+const OCR_FIXTURE_V84='ОПИСАНИЕ\nСостояние: типовой ремонт. Отдельный вход с улицы.\nПлощадь 210.5 м²\nТИП ЗДАНИЯ\nАдминистративное здание\nО ПАРКОВКЕ\nПарковка на улице';
+window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST={version:VERSION_V84,extractDescription:extractDescriptionV84,ocrFixture:{input:OCR_FIXTURE_V84,expected:'Состояние: типовой ремонт. Отдельный вход с улицы.',run:()=>extractDescriptionV84(OCR_FIXTURE_V84)},metroColors:name=>{const value=String(name||'').toLocaleLowerCase('ru-RU');if(/комсомольск/.test(value))return['#e42313','#8b5b29'];if(/красные ворота|красносельск/.test(value))return['#e42313'];return['#506b62']},inspectUi:inspectUiV84,inspectCover:()=>{const slides=window.ne53BuildSlides?.({})||[],cover=slides.find(canvas=>canvas?.neStage4Kind==='cover')||slides[0];return cover?{width:cover.width,height:cover.height,logo:cover.neCoverBrandLogo||null,geometry:cover.neHotfixGeometry||null,metroColors:cover.neMetroMarkerColors||[],title:cover.neTitleMetrics||null,brandTokens:cover.neAppBrandTokens||[]}:null}};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureUiV84,{once:true});else requestAnimationFrame(ensureUiV84);
+window.NEXESTATE_REMAINING_VISUAL_HOTFIX_LOADED=true;
+})();
 </script>
 <script src="../../pwa-shell.js"></script>
 </body>
