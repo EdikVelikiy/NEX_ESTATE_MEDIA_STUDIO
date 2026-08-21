@@ -8597,7 +8597,14 @@
       "status": "PASS"
     },
     "15-commit-push-preview-compare": {
-      "status": "FAIL"
+      "status": "PASS",
+      "evidence": {
+        "branch": "codex/fix-presentation-footer-toolbar-layout-20260820",
+        "commit": "79a6f4286a58ca6644a73139787dce9b726a342b",
+        "push": "verified",
+        "preview": "http://127.0.0.1:8810/ (HTTP 200)",
+        "compare": "https://github.com/EdikVelikiy/NEX_ESTATE_MEDIA_STUDIO/compare/main...codex/fix-presentation-footer-toolbar-layout-20260820?expand=1"
+      }
     }
   },
   "errors": [],
@@ -8606,7 +8613,7 @@
     "checksPass": 73,
     "checksFail": 0,
     "checksNotVerified": 0,
-    "acceptancePass": 14,
-    "acceptanceFail": 1
+    "acceptancePass": 15,
+    "acceptanceFail": 0
   }
 }
