@@ -1,0 +1,232 @@
+{
+  "phase": "after",
+  "runId": "after-1787355015548-6404",
+  "startedAt": "2026-08-21T23:30:15.548Z",
+  "appUrl": "http://127.0.0.1:8810/apps/presentation/?unresolved-performance=after-1787355015548-6404",
+  "browser": "Google Chrome",
+  "browserVersion": "151.0.7922.170",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "hardware": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel64 Family 6 Model 60 Stepping 3, GenuineIntel",
+    "logicalProcessors": 8
+  },
+  "fixture": {
+    "kind": "18 unique derivatives of a real commercial-property photograph",
+    "count": 18,
+    "source": "C:\\Users\\ED\\Downloads\\eed3d213-2adf-4cd6-8c55-1fe83f78169e.jpg",
+    "items": [
+      {
+        "width": 720,
+        "height": 480,
+        "size": 89614,
+        "hash": "2a7366acd132fc59e75971ed5d9d3f2714df6297206e9f8cd1b8250b6685dda4"
+      },
+      {
+        "width": 480,
+        "height": 720,
+        "size": 92868,
+        "hash": "51fcee441f989b6e4176411da77f1422731af9c849776848feab14c1caa1893b"
+      },
+      {
+        "width": 560,
+        "height": 560,
+        "size": 83180,
+        "hash": "4a904e991628c647801aad84cc504945a31dade1962ff3f3747a0555d05fb155"
+      },
+      {
+        "width": 360,
+        "height": 760,
+        "size": 75024,
+        "hash": "dae5dbf69a3c8d0de28c77e9e2ac0d07a0ba6e9fe30c99406fc135f7d14fd123"
+      },
+      {
+        "width": 760,
+        "height": 360,
+        "size": 71365,
+        "hash": "f28602dee1d78682842e68aaaf1c31eab91e8cbd087dc35f2e267ab56fdea636"
+      },
+      {
+        "width": 640,
+        "height": 480,
+        "size": 82534,
+        "hash": "3a3dc9f51810ead0f366cbe176f6f88f905a622c6e9d4a38194bd236192b5ef0"
+      },
+      {
+        "width": 480,
+        "height": 640,
+        "size": 83918,
+        "hash": "e91dc6672b6875b2bf705d92d70bd3e29216674927cf8ec41981e31220a3d5cd"
+      },
+      {
+        "width": 600,
+        "height": 600,
+        "size": 84321,
+        "hash": "6a355efe0d3fee26b3e56c29801bc299aa6aff046162fdcd8b4d23612bde4d59"
+      },
+      {
+        "width": 340,
+        "height": 720,
+        "size": 69790,
+        "hash": "49642e355880937b8a1b9801ec7b37b23eaf2ceea474efb4f18b064eb147a408"
+      },
+      {
+        "width": 720,
+        "height": 340,
+        "size": 45191,
+        "hash": "c8c9d2fe08040284803abf6d93ac07a922ceb2d6228743f8b69d77975e7119a0"
+      },
+      {
+        "width": 700,
+        "height": 500,
+        "size": 70399,
+        "hash": "ca4e1c58b769db4a6d78fd67f9e644ec04b6f1dac13f27e5acff3f8278845022"
+      },
+      {
+        "width": 500,
+        "height": 700,
+        "size": 93856,
+        "hash": "4f0eaddb834444aeb5d3acf5c6770a26f84e146d51ce80a8dc911a95b39a9380"
+      },
+      {
+        "width": 620,
+        "height": 620,
+        "size": 74360,
+        "hash": "d9c8523c5aa66ad4fc5132310c8577f14afde20ca0782af2c8b2f0e889424b89"
+      },
+      {
+        "width": 320,
+        "height": 700,
+        "size": 62014,
+        "hash": "688a5d7dc990cedab0a071d1f68030437b6c0f73b33b24a2418eabb0d7a27e53"
+      },
+      {
+        "width": 700,
+        "height": 320,
+        "size": 37723,
+        "hash": "f8b079a189c73a3c547bec59dd013dbbca40b93e1c17b71907fc29e556b0e192"
+      },
+      {
+        "width": 680,
+        "height": 460,
+        "size": 52033,
+        "hash": "662379794d6d10b217cade753e2c42c710d87bb0e047a4ed3e37da3841611916"
+      },
+      {
+        "width": 460,
+        "height": 680,
+        "size": 85601,
+        "hash": "98469adffa8db0578e4742e8b6ff8d9d0d2764a4839e324d63140d2ee3300cd7"
+      },
+      {
+        "width": 540,
+        "height": 540,
+        "size": 62079,
+        "hash": "cce4347271adb574169bb1fc9d6f23154497eb942a464ee931aae2815874ff61"
+      }
+    ]
+  },
+  "operations": {
+    "transfer": {
+      "label": "transfer-all-18",
+      "clickToActiveMs": 8.6,
+      "clickToWorkMs": 19.7,
+      "clickToStableMs": 1451.3,
+      "firstWorkKind": "fileReaderDataUrl",
+      "counts": {
+        "fileReaderArrayBuffer": 0,
+        "fileReaderDataUrl": 18,
+        "fileReaderText": 0,
+        "createImageBitmap": 0,
+        "imageDecode": 0,
+        "canvasToDataUrl": 0,
+        "canvasToBlob": 0,
+        "indexedDbPut": 0,
+        "indexedDbAdd": 0,
+        "indexedDbDelete": 0,
+        "localStorageWrite": 0,
+        "renderPasses": 1,
+        "previewMutations": 13
+      },
+      "longTasks": [
+        {
+          "startTime": 7573.1,
+          "duration": 66,
+          "name": "self"
+        }
+      ],
+      "longTaskCount": 1,
+      "longTaskTotalMs": 66,
+      "longestTaskMs": 66
+    },
+    "toSinglePage": {
+      "label": "mode-to-single-page",
+      "clickToActiveMs": null,
+      "clickToWorkMs": 121.9,
+      "clickToStableMs": 420.6,
+      "firstWorkKind": "preview-render",
+      "counts": {
+        "fileReaderArrayBuffer": 0,
+        "fileReaderDataUrl": 0,
+        "fileReaderText": 0,
+        "createImageBitmap": 0,
+        "imageDecode": 0,
+        "canvasToDataUrl": 0,
+        "canvasToBlob": 0,
+        "indexedDbPut": 0,
+        "indexedDbAdd": 0,
+        "indexedDbDelete": 0,
+        "localStorageWrite": 0,
+        "renderPasses": 1,
+        "previewMutations": 13
+      },
+      "longTasks": [],
+      "longTaskCount": 0,
+      "longTaskTotalMs": 0,
+      "longestTaskMs": 0
+    },
+    "toByNexEstate": {
+      "label": "mode-to-by-nexestate",
+      "clickToActiveMs": null,
+      "clickToWorkMs": 253.4,
+      "clickToStableMs": 520.5,
+      "firstWorkKind": "preview-render",
+      "counts": {
+        "fileReaderArrayBuffer": 0,
+        "fileReaderDataUrl": 0,
+        "fileReaderText": 0,
+        "createImageBitmap": 0,
+        "imageDecode": 0,
+        "canvasToDataUrl": 0,
+        "canvasToBlob": 0,
+        "indexedDbPut": 0,
+        "indexedDbAdd": 0,
+        "indexedDbDelete": 0,
+        "localStorageWrite": 0,
+        "renderPasses": 1,
+        "previewMutations": 13
+      },
+      "longTasks": [],
+      "longTaskCount": 0,
+      "longTaskTotalMs": 0,
+      "longestTaskMs": 0
+    }
+  },
+  "finalState": {
+    "layout": "byNexEstate",
+    "mediaCount": 18,
+    "extractedCount": 18,
+    "transferredCount": 18,
+    "previewBusy": "false",
+    "previewPages": 10
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failures": [],
+  "screenshot": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\unresolved-ui-performance-20260822\\after-18-photo-project.png",
+  "finishedAt": "2026-08-21T23:30:26.934Z"
+}

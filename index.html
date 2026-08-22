@@ -378,25 +378,42 @@
 
     html[data-app-hub-theme="by-nexestate"] .app-hub-footer { color: #92a79c; }
 
+    @media (max-height: 1000px) and (min-width: 721px) {
+      .app-hub-main {
+        padding-top: clamp(18px, 3vh, 28px);
+        padding-bottom: clamp(14px, 2.5vh, 22px);
+      }
+      .app-hub-intro { margin-bottom: clamp(14px, 2vh, 24px); }
+      .app-hub-routes { padding-block: 4px; }
+      .app-hub-card { min-height: 0; }
+    }
+
     @media (max-width: 720px) {
       body::before { display: none; }
-      .app-hub-shell { padding-inline: max(16px, env(safe-area-inset-left)); }
-      .app-hub-main { align-content: start; padding-top: 54px; }
-      .app-hub-intro { margin-bottom: 28px; }
-      .app-hub-routes { grid-template-columns: 1fr; gap: 20px; padding: 8px 4px 18px; }
-      .app-hub-card { width: min(100%, 430px); min-height: 0; margin: 0 auto; }
+      .app-hub-shell {
+        padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      }
+      .app-hub-main { align-content: center; padding: 14px 0 10px; }
+      .app-hub-intro { margin-bottom: 14px; }
+      .app-hub-intro h1 { margin-bottom: 8px; font-size: clamp(30px, 9vw, 40px); }
+      .app-hub-intro p { font-size: 13px; line-height: 1.45; }
+      .app-hub-routes { grid-template-columns: 1fr; gap: 12px; padding: 4px; }
+      .app-hub-card { width: min(100%, 430px); min-height: 190px; aspect-ratio: auto; margin: 0 auto; padding: 20px; }
       .app-hub-card:hover { transform: none; }
       .app-hub-card:focus-visible { transform: none; box-shadow: 0 22px 56px rgba(0, 0, 0, .32); }
-      .app-hub-header { flex-wrap: wrap; }
-      .app-hub-theme-control { width: 100%; margin-left: 56px; }
-      .app-hub-theme-control select { width: min(100%, 260px); }
+      .app-hub-header { min-height: 38px; }
+      .app-hub-theme-control { margin-left: auto; }
+      .app-hub-theme-control select { min-width: 174px; }
+      .app-hub-icon { width: 54px; height: 54px; border-radius: 11px; }
+      .app-hub-open { top: 20px; right: 20px; width: 32px; height: 32px; }
+      .app-hub-card-copy h2 { margin-bottom: 6px; font-size: 22px; }
+      .app-hub-card-copy p { font-size: 13px; line-height: 1.4; }
       html[data-app-hub-theme="by-nexestate"] .app-hub-main { border-radius: 24px; }
     }
 
     @media (max-width: 390px) {
-      .app-hub-card { padding: 24px; }
-      .app-hub-open { top: 25px; right: 25px; }
-      .app-hub-icon { width: 80px; height: 80px; }
+      .app-hub-card { padding: 18px; }
+      .app-hub-open { top: 18px; right: 18px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
