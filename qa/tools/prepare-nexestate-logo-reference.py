@@ -27,6 +27,24 @@ def remove_white_matte(image: Image.Image) -> Image.Image:
     return result
 
 
+def normalize_brand_colors(image: Image.Image) -> Image.Image:
+    """Keep the supplied geometry while making it readable on a dark cover.
+
+    Every visible reference pixel becomes warm white, except the supplied gold
+    separator dot. No geometry is synthesized or inpainted.
+    """
+    source = image.convert("RGBA")
+    normalized = []
+    for red, green, blue, alpha in source.get_flattened_data():
+        if alpha == 0:
+            normalized.append((255, 255, 255, 0))
+            continue
+        is_gold = red > 135 and green > 105 and blue < 135 and red > blue * 1.25
+        normalized.append((201, 164, 92, alpha) if is_gold else (246, 243, 232, alpha))
+    source.putdata(normalized)
+    return source
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", type=Path)
@@ -51,6 +69,7 @@ def main() -> None:
         fill=0,
     )
     prepared.putalpha(Image.composite(prepared.getchannel("A"), Image.new("L", prepared.size), mask))
+    prepared = normalize_brand_colors(prepared)
 
     bbox = prepared.getbbox()
     if not bbox:
