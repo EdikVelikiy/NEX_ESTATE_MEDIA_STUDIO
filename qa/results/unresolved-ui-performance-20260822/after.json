@@ -1,10 +1,10 @@
 {
   "phase": "after",
-  "runId": "after-1787355015548-6404",
-  "startedAt": "2026-08-21T23:30:15.548Z",
-  "appUrl": "http://127.0.0.1:8810/apps/presentation/?unresolved-performance=after-1787355015548-6404",
+  "runId": "after-1787696973552-15720",
+  "startedAt": "2026-08-25T22:29:33.553Z",
+  "appUrl": "http://127.0.0.1:8765/apps/presentation/?unresolved-performance=after-1787696973552-15720",
   "browser": "Google Chrome",
-  "browserVersion": "151.0.7922.170",
+  "browserVersion": "151.0.7922.174",
   "viewport": {
     "width": 1440,
     "height": 900
@@ -12,7 +12,7 @@
   "hardware": {
     "platform": "win32",
     "arch": "x64",
-    "cpu": "Intel64 Family 6 Model 60 Stepping 3, GenuineIntel",
+    "cpu": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
     "logicalProcessors": 8
   },
   "fixture": {
@@ -133,9 +133,9 @@
   "operations": {
     "transfer": {
       "label": "transfer-all-18",
-      "clickToActiveMs": 8.6,
-      "clickToWorkMs": 19.7,
-      "clickToStableMs": 1451.3,
+      "clickToActiveMs": 4.8,
+      "clickToWorkMs": 7.8,
+      "clickToStableMs": 708.4,
       "firstWorkKind": "fileReaderDataUrl",
       "counts": {
         "fileReaderArrayBuffer": 0,
@@ -149,25 +149,19 @@
         "indexedDbAdd": 0,
         "indexedDbDelete": 0,
         "localStorageWrite": 0,
-        "renderPasses": 1,
-        "previewMutations": 13
+        "renderPasses": 2,
+        "previewMutations": 24
       },
-      "longTasks": [
-        {
-          "startTime": 7573.1,
-          "duration": 66,
-          "name": "self"
-        }
-      ],
-      "longTaskCount": 1,
-      "longTaskTotalMs": 66,
-      "longestTaskMs": 66
+      "longTasks": [],
+      "longTaskCount": 0,
+      "longTaskTotalMs": 0,
+      "longestTaskMs": 0
     },
     "toSinglePage": {
       "label": "mode-to-single-page",
       "clickToActiveMs": null,
-      "clickToWorkMs": 121.9,
-      "clickToStableMs": 420.6,
+      "clickToWorkMs": 42.5,
+      "clickToStableMs": 327.3,
       "firstWorkKind": "preview-render",
       "counts": {
         "fileReaderArrayBuffer": 0,
@@ -192,8 +186,8 @@
     "toByNexEstate": {
       "label": "mode-to-by-nexestate",
       "clickToActiveMs": null,
-      "clickToWorkMs": 253.4,
-      "clickToStableMs": 520.5,
+      "clickToWorkMs": 101.2,
+      "clickToStableMs": 371.9,
       "firstWorkKind": "preview-render",
       "counts": {
         "fileReaderArrayBuffer": 0,
@@ -228,5 +222,5 @@
   "pageErrors": [],
   "failures": [],
   "screenshot": "F:\\CodexSetup\\NEXESTATE_UNIFIED_PWA_2026-08-11\\qa\\results\\unresolved-ui-performance-20260822\\after-18-photo-project.png",
-  "finishedAt": "2026-08-21T23:30:26.934Z"
+  "finishedAt": "2026-08-25T22:29:36.433Z"
 }

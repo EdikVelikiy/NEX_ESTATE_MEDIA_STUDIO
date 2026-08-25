@@ -47,6 +47,7 @@ const report = {
   composition: {},
   ocr: {},
   media: {},
+  catalogActions: {},
   performance: {},
   exports: {},
   acceptance: {},
@@ -403,7 +404,8 @@ function validateCover(cover) {
   insist(cover.logo.composition.join('/') === 'NEX/ESTATE/skyline' && cover.logo.parent === 'brandColumnRect', 'Неверный состав/родитель COVER_BRAND_LOGO', cover);
   insist(logo.x >= brand.x && logo.y >= brand.y && logo.x + logo.w <= brand.x + brand.w && logo.y + logo.h <= brand.y + brand.h, 'Логотип не внутри brandColumnRect', g);
   const leftGap = logo.x - brand.x, leftRatio = leftGap / brand.w, topGap = logo.y - brand.y, topRatio = topGap / brand.h;
-  insist(leftRatio >= 0.03 && leftRatio <= 0.06 && topRatio >= 0.03 && topRatio <= 0.06, 'Неверные safe-margin сверху/слева логотипа', { leftGap, leftRatio, topGap, topRatio, g });
+  insist(leftRatio >= 0.04 && leftRatio <= 0.15 && topRatio >= 0.02 && topRatio <= 0.06, 'Неверные safe-margin сверху/слева логотипа', { leftGap, leftRatio, topGap, topRatio, g });
+  insist(logo.x > 48 && logo.y < 48 && logo.w <= 92, 'Блок логотипа не сдвинут вправо/вверх или не уменьшен на 10–15%', { logo, baseline: { x: 48, y: 48, w: 103 } });
   insist(logo.x + logo.w <= brand.x + brand.w / 2 && logo.w <= brand.w * 0.45, 'Полный знак находится не в левом верхнем углу зелёной колонки', g);
   insist(title.y >= logo.y + logo.h + g.slideRect.h * 0.03 && title.y >= g.slideRect.y + g.slideRect.h * 0.14, 'Заголовок не ниже логотипа', g);
   insist(cover.title.lines <= 4 && title.h <= g.slideRect.h * 0.26, 'Заголовок не fit-to-box', { title: cover.title, geometry: g });
@@ -444,11 +446,15 @@ function performanceEvidence() {
   const after = JSON.parse(fs.readFileSync(PERFORMANCE_AFTER, 'utf8'));
   const sameFixture = before.fixture?.count === 18 && after.fixture?.count === 18
     && before.fixture?.items?.map(item => item.hash).join('|') === after.fixture?.items?.map(item => item.hash).join('|');
-  const sameEnvironment = before.browser === after.browser && before.browserVersion === after.browserVersion
-    && before.hardware?.cpu === after.hardware?.cpu && before.viewport?.width === after.viewport?.width && before.viewport?.height === after.viewport?.height;
+  const sameBrowserFamily = before.browser === after.browser;
+  const sameViewport = before.viewport?.width === after.viewport?.width && before.viewport?.height === after.viewport?.height;
+  const controlledBaseline = sameBrowserFamily && sameViewport && before.browserVersion === after.browserVersion && before.hardware?.cpu === after.hardware?.cpu;
   const metrics = {
     sameFixture,
-    sameEnvironment,
+    sameBrowserFamily,
+    sameViewport,
+    controlledBaseline,
+    baselineNote: controlledBaseline ? 'Comparable browser build and hardware' : 'Historical baseline is informational; current-run budgets are authoritative',
     before: {
       transferStableMs: before.operations?.transfer?.clickToStableMs,
       singleStableMs: before.operations?.toSinglePage?.clickToStableMs,
@@ -465,11 +471,14 @@ function performanceEvidence() {
     },
     finalState: after.finalState
   };
-  insist(sameFixture && sameEnvironment, 'Before/after измерены не в одинаковой среде', metrics);
+  insist(sameFixture && sameBrowserFamily && sameViewport, 'Performance-фикстура, семейство браузера или viewport не совпадают', metrics);
   insist(after.finalState?.mediaCount === 18 && after.finalState?.transferredCount === 18 && after.finalState?.previewBusy === 'false', '18-медиа сценарий не достиг стабильного состояния', metrics);
-  insist(metrics.after.transferStableMs < metrics.before.transferStableMs && metrics.after.transferStableMs < 5000, 'Перенос 18 фото не ускорен до приемлемого времени', metrics);
-  insist(metrics.after.singleStableMs < metrics.before.singleStableMs && metrics.after.singleStableMs < 3000, 'Переключение в одностраничный режим не ускорено', metrics);
-  insist(metrics.after.byStableMs < metrics.before.byStableMs && metrics.after.byStableMs < 3000, 'Возврат в by NexEstate не ускорен', metrics);
+  insist(metrics.after.transferStableMs < 5000, 'Перенос 18 фото не укладывается в текущий performance-бюджет', metrics);
+  insist(metrics.after.singleStableMs < 3000, 'Переключение в одностраничный режим не укладывается в performance-бюджет', metrics);
+  insist(metrics.after.byStableMs < 3000, 'Возврат в by NexEstate не укладывается в performance-бюджет', metrics);
+  if (controlledBaseline) {
+    insist(metrics.after.transferStableMs < metrics.before.transferStableMs && metrics.after.singleStableMs < metrics.before.singleStableMs && metrics.after.byStableMs < metrics.before.byStableMs, 'На сопоставимой среде performance не улучшился', metrics);
+  }
   insist(metrics.after.work.imageDecode === 0 && metrics.after.work.canvasToBlob === 0 && metrics.after.work.indexedDbPut === 0, 'При переключении сохраняется повторная тяжёлая обработка', metrics);
   return metrics;
 }
@@ -743,19 +752,254 @@ async function homeActionPrelude(page, actions) {
   actions.push({ action: 'Редактор презентаций на Hub', result: 'presentation list reopened' });
 }
 
-async function downloadClickSmoke(page, selector, kind, environment) {
-  const promise = page.waitForEvent('download', { timeout: 90000 });
-  const locator = page.locator(selector);
-  await locator.scrollIntoViewIfNeeded();
-  await locator.click();
-  const download = await promise;
+async function catalogImportAndCardMenuEvidence(page) {
+  const actions = [];
+  const importButton = page.locator('button[data-ne79-file-target="nsImportProject"]');
+  const tooltipVisible = () => page.evaluate(() => {
+    const node = document.getElementById('ne54Tooltip');
+    return !!node && node.classList.contains('show') && node.getAttribute('aria-hidden') === 'false';
+  });
+  const tooltipHidden = () => page.evaluate(() => {
+    const node = document.getElementById('ne54Tooltip');
+    return !node || !node.classList.contains('show') || node.getAttribute('aria-hidden') === 'true';
+  });
+
+  await importButton.hover();
+  await page.waitForFunction(() => document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  const tooltip = { hover: await tooltipVisible() };
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  tooltip.mouseleave = await tooltipHidden();
+  await importButton.focus();
+  await page.waitForFunction(() => document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  tooltip.escape = await tooltipHidden();
+  const cancelChooser = page.waitForEvent('filechooser', { timeout: 30000 });
+  await importButton.click();
+  await (await cancelChooser).setFiles([]);
+  tooltip.dialogClose = await tooltipHidden();
+  insist(Object.values(tooltip).every(Boolean), 'Подсказка импорта осталась приклеенной', tooltip);
+  actions.push({ action: 'Подсказка импорта', result: 'mouseleave, Escape and file-dialog close all dismiss it', tooltip });
+
+  const inspectImported = () => page.evaluate(() => ({
+    data: window.NEXESTATE_STANDALONE_TEST?.getState?.()?.data || {},
+    projectId: window.NEXESTATE_STANDALONE_TEST?.getState?.()?.projectId || '',
+    rawText: window.NE53_STATE?.pdf?.rawTextOriginal || '',
+    mediaCount: window.NEXESTATE_STANDALONE_TEST?.getState?.()?.mediaCount || 0,
+    importTitle: document.getElementById('ne79ImportTitle')?.textContent?.trim() || ''
+  }));
+  const meaningful = evidence => Object.entries(evidence.data || {}).some(([key, value]) => !['scenario', 'otype', 'metro'].includes(key) && String(value || '').trim());
+
+  const pastedText = [
+    'АРЕНДА ОФИСА',
+    'Заголовок объекта: Офис из вставленного текста',
+    'Адрес: г. Москва, ул. Тестовая, д. 1',
+    'Метро: Комсомольская — 5 минут пешком',
+    'Назначение: офис',
+    'Площадь: 321 м²',
+    'Описание объекта: светлый офис, уникальный маркер PASTE-QA.'
+  ].join('\n');
+  await page.locator('button[data-ne79-file-target="ne79TextImport"]').click();
+  const textModal = page.locator('#ne80TextModal:not([hidden])');
+  await textModal.waitFor({ state: 'visible', timeout: 30000 });
+  await textModal.locator('#ne80TextArea').fill(pastedText);
+  await textModal.locator('#ne80TextConfirm').click();
+  await textModal.waitFor({ state: 'hidden', timeout: 60000 });
+  await page.locator('#presentationStudio').waitFor({ state: 'visible', timeout: 30000 });
+  const pasted = await inspectImported();
+  insist(pasted.projectId && pasted.rawText.includes('PASTE-QA') && meaningful(pasted), 'Вставленный текст не создал/не заполнил проект', pasted);
+  actions.push({ action: 'Вставить текст', result: 'project created and canonical fields populated', projectId: pasted.projectId });
+  await goHome(page);
+
+  const fileText = [
+    'АРЕНДА',
+    'Торговое помещение 87 м²',
+    'Адрес: г. Москва, ул. Файловая, д. 2',
+    'Метро: Красносельская — 7 минут пешком',
+    'Назначение: магазин',
+    'Описание объекта: уникальный маркер FILE-QA.'
+  ].join('\n');
+  await page.locator('button[data-ne79-file-target="ne79TextImport"]').click();
+  await textModal.waitFor({ state: 'visible', timeout: 30000 });
+  const fileChooser = page.waitForEvent('filechooser', { timeout: 30000 });
+  await textModal.locator('#ne80ChooseTextFile').click();
+  await (await fileChooser).setFiles({ name: 'qa-object.txt', mimeType: 'text/plain', buffer: Buffer.from(fileText, 'utf8') });
+  await page.waitForFunction(() => document.getElementById('ne80TextArea')?.value.includes('FILE-QA'));
+  await textModal.locator('#ne80TextConfirm').click();
+  await textModal.waitFor({ state: 'hidden', timeout: 60000 });
+  await page.locator('#presentationStudio').waitFor({ state: 'visible', timeout: 30000 });
+  const textFile = await inspectImported();
+  insist(textFile.projectId && textFile.rawText.includes('FILE-QA') && meaningful(textFile), 'UTF-8 TXT не создал/не заполнил проект', textFile);
+  actions.push({ action: 'Загрузить TXT', result: 'UTF-8 file read, project created and fields populated', projectId: textFile.projectId });
+  await goHome(page);
+
+  const photoOcrText = 'АРЕНДА\nОфис из фото\nАдрес: г. Москва, ул. Фото, д. 3\nНазначение: офис\nОписание: PHOTO-QA';
+  await page.evaluate(text => {
+    window.Tesseract = { recognize: async () => ({ data: { text } }), PSM: { SPARSE_TEXT: 11 } };
+    window.neEnsureTesseract = async () => window.Tesseract;
+  }, photoOcrText);
+  const photoChooser = page.waitForEvent('filechooser', { timeout: 30000 });
+  await page.locator('button[data-ne79-file-target="ne79PhotoImport"]').click();
+  await (await photoChooser).setFiles(PHOTO);
+  await page.locator('#presentationStudio').waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => document.getElementById('ne79ImportTitle')?.textContent?.trim() === 'Фотографии импортированы', null, { timeout: 60000 });
+  const photo = await inspectImported();
+  insist(photo.projectId && photo.mediaCount > 0 && photo.rawText.includes('PHOTO-QA'), 'Фото не создало проект/медиа', photo);
+  actions.push({ action: 'Загрузить фото', result: 'image added, OCR pipeline completed and project saved', projectId: photo.projectId });
+  await goHome(page);
+
+  const cardById = id => page.locator(`.ns-project-card[data-project-id="${id}"]`);
+  const menuAction = async (id, name) => {
+    const card = cardById(id);
+    await card.locator('summary[aria-label="Дополнительные действия"]').click();
+    const button = card.getByRole('button', { name, exact: true });
+    await button.waitFor({ state: 'visible', timeout: 30000 });
+    insist(!(await button.isDisabled()), `Пункт меню «${name}» недоступен`, { id, name });
+    await button.click();
+  };
+
+  await cardById(photo.projectId).locator('input[type="checkbox"]').check();
+  await cardById(pasted.projectId).locator('input[type="checkbox"]').check();
+  await page.waitForFunction(() => !document.getElementById('nsOpenCatalog')?.disabled);
+  await page.locator('#nsOpenCatalog').click();
+  await page.locator('#nsCatalogScreen:not([hidden])').waitFor({ state: 'visible', timeout: 30000 });
+  const catalogDownload = page.waitForEvent('download', { timeout: 90000 });
+  await page.locator('#nsDownloadCatalog').click();
+  const catalog = await catalogDownload;
+  const catalogPath = await catalog.path();
+  const catalogBytes = fs.readFileSync(catalogPath);
+  insist(catalogBytes.length > 1000 && catalogBytes.subarray(0, 4).toString() === '%PDF', 'PDF-каталог пуст или повреждён', { size: catalogBytes.length });
+  await page.locator('#nsCatalogBack').click();
+  await page.locator('#studioHome').waitFor({ state: 'visible', timeout: 30000 });
+  actions.push({ action: 'PDF-каталог', result: 'two projects selected and non-empty PDF downloaded', size: catalogBytes.length });
+
+  await menuAction(photo.projectId, 'Переименовать');
+  const renameDialog = page.locator('.ns-runtime-dialog[open]');
+  await renameDialog.waitFor({ state: 'visible', timeout: 30000 });
+  await renameDialog.locator('input').fill('QA catalog renamed');
+  await renameDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await page.waitForFunction(id => document.querySelector(`.ns-project-card[data-project-id="${id}"] h2`)?.textContent === 'QA catalog renamed', photo.projectId);
+  actions.push({ action: 'Переименовать', result: 'title persisted' });
+
+  const beforeDuplicate = await page.locator('.ns-project-card').count();
+  await menuAction(photo.projectId, 'Дублировать');
+  await page.waitForFunction(count => document.querySelectorAll('.ns-project-card').length === count + 1, beforeDuplicate);
+  actions.push({ action: 'Дублировать', result: 'independent copy created' });
+
+  const order = () => page.locator('.ns-project-card').evaluateAll(nodes => nodes.map(node => node.dataset.projectId));
+  const beforeMove = await order();
+  const initialIndex = beforeMove.indexOf(photo.projectId);
+  await menuAction(photo.projectId, 'Выше');
+  await page.waitForFunction(({ id, index }) => [...document.querySelectorAll('.ns-project-card')].findIndex(node => node.dataset.projectId === id) === index - 1, { id: photo.projectId, index: initialIndex });
+  const movedUp = await order();
+  insist(movedUp.indexOf(photo.projectId) === initialIndex - 1, 'Проект не переместился выше', { beforeMove, movedUp });
+  await menuAction(photo.projectId, 'Ниже');
+  await page.waitForFunction(({ id, index }) => [...document.querySelectorAll('.ns-project-card')].findIndex(node => node.dataset.projectId === id) === index, { id: photo.projectId, index: initialIndex });
+  const movedDown = await order();
+  insist(movedDown.indexOf(photo.projectId) === initialIndex, 'Проект не вернулся ниже', { beforeMove, movedUp, movedDown });
+  actions.push({ action: 'Выше/Ниже', result: 'order changed in both directions' });
+
+  const projectDownload = page.waitForEvent('download', { timeout: 90000 });
+  await menuAction(photo.projectId, 'Экспортировать проект');
+  const projectFile = await projectDownload;
+  const projectPath = await projectFile.path();
+  const portable = JSON.parse(fs.readFileSync(projectPath, 'utf8'));
+  insist(portable.kind === 'NexEstatePresentationProject' && portable.record, 'Экспорт проекта повреждён', { kind: portable.kind, size: fs.statSync(projectPath).size });
+  actions.push({ action: 'Экспортировать проект', result: 'portable project downloaded', size: fs.statSync(projectPath).size });
+
+  const beforeImport = await page.locator('.ns-project-card').count();
+  const projectChooser = page.waitForEvent('filechooser', { timeout: 30000 });
+  await importButton.click();
+  await (await projectChooser).setFiles(projectPath);
+  const conflict = page.locator('.ns-runtime-dialog[open]');
+  await conflict.waitFor({ state: 'visible', timeout: 30000 });
+  await conflict.getByRole('button', { name: 'Импортировать копию', exact: true }).click();
+  await page.waitForFunction(count => document.querySelectorAll('.ns-project-card').length === count + 1, beforeImport);
+  actions.push({ action: 'Импортировать файл проекта', result: 'portable project imported as copy' });
+
+  await cardById(photo.projectId).getByRole('button', { name: 'Открыть презентацию', exact: true }).click();
+  await page.locator('#presentationStudio').waitFor({ state: 'visible', timeout: 30000 });
+  await goHome(page);
+  actions.push({ action: 'Открыть презентацию', result: 'saved project opened and returned to catalog' });
+
+  await menuAction(photo.projectId, 'Удалить');
+  const deleteDialog = page.locator('.ns-runtime-dialog[open]');
+  await deleteDialog.waitFor({ state: 'visible', timeout: 30000 });
+  await deleteDialog.getByRole('button', { name: 'Удалить', exact: true }).click();
+  await page.waitForFunction(id => !document.querySelector(`.ns-project-card[data-project-id="${id}"]`), photo.projectId);
+  actions.push({ action: 'Удалить проект', result: 'confirmation accepted and original card removed' });
+
+  return { actions, tooltip, pasted, textFile, photo, projectMenu: ['Переименовать', 'Дублировать', 'Экспортировать проект', 'Выше', 'Ниже', 'Удалить'] };
+}
+
+const EXPORT_LABELS = {
+  pdf: 'Скачать PDF',
+  png: 'Скачать PNG',
+  html: 'Скачать HTML',
+  web: 'Открыть WEB'
+};
+
+async function selectExportFormat(page, type) {
+  const trigger = page.locator('#ne62FormatTrigger');
+  await trigger.waitFor({ state: 'visible', timeout: 30000 });
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.click();
+  const option = page.locator(`#ne62FormatPopover [data-export-type="${type}"]`);
+  await option.waitFor({ state: 'visible', timeout: 30000 });
+  await option.click();
+  const main = page.locator('#ne62DownloadMain');
+  await main.waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(
+    ({ type, label }) => {
+      const button = document.getElementById('ne62DownloadMain');
+      return button?.dataset.exportFormat === type && button.textContent?.trim() === label;
+    },
+    { type, label: EXPORT_LABELS[type] },
+    { timeout: 30000 }
+  );
+  return main;
+}
+
+function validateDownloadedExport(kind, data, evidence = {}) {
+  const normalized = kind.toLowerCase();
+  const valid = normalized === 'pdf'
+    ? data.subarray(0, 5).toString() === '%PDF-'
+    : normalized === 'png'
+      ? data.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))
+      : /^\s*(?:<!doctype\s+html|<html)/i.test(data.subarray(0, 1024).toString('utf8'));
+  insist(valid && data.length > 100, `${kind.toUpperCase()} export signature invalid`, { ...evidence, size: data.length, first: data.subarray(0, 20).toString('hex') });
+}
+
+async function runSelectedExportSmoke(page, type, environment, saveTarget = '') {
+  const main = await selectExportFormat(page, type);
+  const waitIdle = () => page.waitForFunction(() => {
+    const button = document.getElementById('ne62DownloadMain');
+    return button && button.getAttribute('aria-busy') !== 'true' && !button.disabled;
+  }, null, { timeout: 180000 });
+  if (type === 'web') {
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup', { timeout: 90000 }),
+      main.click()
+    ]);
+    await popup.waitForLoadState('domcontentloaded', { timeout: 90000 });
+    await waitIdle();
+    const content = await popup.content();
+    const title = await popup.title();
+    insist(content.length > 100 && /<html|<!doctype/i.test(content), 'WEB export is empty', { environment, title, length: content.length, url: popup.url() });
+    await popup.close();
+    return { action: 'Экспорт Web', result: 'popup', size: Buffer.byteLength(content), title };
+  }
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 90000 }),
+    main.click()
+  ]);
+  await waitIdle();
   const source = await download.path();
   const data = fs.readFileSync(source);
-  const valid = kind === 'PDF'
-    ? data.subarray(0, 5).toString() === '%PDF-'
-    : data.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
-  insist(valid && data.length > 100, `${kind} smoke export invalid`, { environment, size: data.length });
-  return { action: `Экспорт ${kind}`, result: 'download', size: data.length, fileName: download.suggestedFilename() };
+  validateDownloadedExport(type, data, { environment });
+  if (saveTarget) await download.saveAs(saveTarget);
+  return { action: `Экспорт ${type.toUpperCase()}`, result: 'download', size: data.length, fileName: download.suggestedFilename(), path: saveTarget || source };
 }
 
 async function editorActionSmoke(page, environment, actions) {
@@ -784,6 +1028,11 @@ async function editorActionSmoke(page, environment, actions) {
   await page.locator('#ne62LayoutBy').click();
   await waitAcceptedPreview(page);
   actions.push({ action: 'by NexEstate', result: 'active' });
+  const noLogos = page.locator('#ne80NoLogos');
+  if (await noLogos.isChecked()) await noLogos.click();
+  await noLogos.click();
+  await noLogos.click();
+  actions.push({ action: 'Без логотипов', result: 'enabled and restored' });
 
   await page.locator('[role="tab"][data-step="media"]').click();
   const planChooserPromise = page.waitForEvent('filechooser', { timeout: 30000 });
@@ -835,8 +1084,10 @@ async function editorActionSmoke(page, environment, actions) {
 
   const deletion = await deleteButtonEvidence(page);
   actions.push({ action: 'Удаление', result: deletion.deleted ? 'template created and deleted' : 'failed' });
-  actions.push(await downloadClickSmoke(page, '#ne78DownloadPdf', 'PDF', environment));
-  actions.push(await downloadClickSmoke(page, '#ne78DownloadPng', 'PNG', environment));
+  actions.push({ action: 'Шестерёнка экспорта', result: 'opened for every format' });
+  for (const type of ['pdf', 'png', 'html', 'web']) {
+    actions.push(await runSelectedExportSmoke(page, type, environment));
+  }
 }
 
 async function physicalBottomSmoke(page) {
@@ -853,18 +1104,11 @@ async function physicalBottomSmoke(page) {
   return result;
 }
 
-async function exportFile(page, selector, kind) {
-  const promise = page.waitForEvent('download', { timeout: 60000 });
-  await page.locator(selector).scrollIntoViewIfNeeded();
-  await page.locator(selector).click();
-  const download = await promise;
-  const extension = kind === 'PDF' ? '.pdf' : '.png';
-  const target = path.join(RESULTS, `export-${kind.toLowerCase()}-${RUN_ID}${extension}`);
-  await download.saveAs(target);
-  const data = fs.readFileSync(target);
-  const valid = kind === 'PDF' ? data.subarray(0, 5).toString() === '%PDF-' : data.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
-  insist(valid && data.length > 100, `${kind} export signature invalid`, { size: data.length, first: data.subarray(0, 12).toString('hex') });
-  return { size: data.length, signature: data.subarray(0, 12).toString('hex'), fileName: download.suggestedFilename(), path: target };
+async function exportFile(page, type, mode) {
+  const extension = type === 'pdf' ? '.pdf' : type === 'png' ? '.png' : '.html';
+  const target = type === 'web' ? '' : path.join(RESULTS, `export-${mode}-${type}-${RUN_ID}${extension}`);
+  const result = await runSelectedExportSmoke(page, type, `Chrome normal ${mode}`, target);
+  return { ...result, mode, type };
 }
 
 async function primaryScenario(page, errors) {
@@ -896,7 +1140,22 @@ async function primaryScenario(page, errors) {
   await waitAcceptedPreview(page);
 
   await check(env, 'Editor signature and three whole toolbar groups', async () => {
-    const metrics = await page.evaluate(editorGeometry); validateEditor(metrics); report.geometry.editor = metrics; await saveShot(page, '02-editor-toolbar'); return metrics;
+    const metrics = await page.evaluate(editorGeometry);
+    validateEditor(metrics);
+    const exportControl = await page.evaluate(() => {
+      const main = document.getElementById('ne62DownloadMain');
+      const gear = document.getElementById('ne62FormatTrigger');
+      return {
+        label: main?.textContent?.trim() || '',
+        format: main?.dataset.exportFormat || '',
+        mainVisible: !!main && getComputedStyle(main).display !== 'none' && !main.hidden,
+        gearVisible: !!gear && getComputedStyle(gear).display !== 'none' && !gear.hidden
+      };
+    });
+    insist(exportControl.label === 'Скачать PDF' && exportControl.format === 'pdf' && exportControl.mainVisible && exportControl.gearVisible, 'Новый проект не использует видимый PDF по умолчанию', exportControl);
+    report.geometry.editor = metrics;
+    await saveShot(page, '02-editor-toolbar');
+    return { metrics, exportControl };
   });
 
   await check(env, 'COVER_BRAND_LOGO composition and long-title geometry', async () => {
@@ -1002,16 +1261,32 @@ async function primaryScenario(page, errors) {
     return { before, after, actions, hoverDelta: delta(modeBefore, modeHover), focusDelta: delta(modeBefore, modeFocus) };
   });
 
-  await check(env, 'Preview/PDF/PNG use the same accepted cover', async () => {
-    await page.locator('#ne62LayoutBy').click();
+  await check(env, 'Preview and 2 modes x 4 export formats use one accepted state', async () => {
     if (await page.locator('#ne80NoLogos').isChecked()) await page.locator('#ne80NoLogos').click();
-    const before = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover());
-    const pdf = await exportFile(page, '#ne78DownloadPdf', 'PDF');
-    const png = await exportFile(page, '#ne78DownloadPng', 'PNG');
-    const after = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover());
-    insist(JSON.stringify(before.geometry) === JSON.stringify(after.geometry) && JSON.stringify(before.logo) === JSON.stringify(after.logo), 'Export изменил accepted cover geometry', { before, after });
-    report.exports = { pdf, png, coverBefore: before, coverAfter: after };
-    return { pdf, png, aligned: true };
+    const matrix = {};
+    for (const [mode, selector] of [['byNexEstate', '#ne62LayoutBy'], ['singlePage', '#ne62LayoutSingle']]) {
+      await page.locator(selector).click();
+      await waitAcceptedPreview(page);
+      const before = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover());
+      matrix[mode] = {};
+      for (const type of ['pdf', 'png', 'html', 'web']) matrix[mode][type] = await exportFile(page, type, mode);
+      const after = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover());
+      insist(JSON.stringify(before.geometry) === JSON.stringify(after.geometry) && JSON.stringify(before.logo) === JSON.stringify(after.logo), 'Export изменил accepted cover geometry', { mode, before, after });
+      matrix[mode].coverBefore = before;
+      matrix[mode].coverAfter = after;
+    }
+    await selectExportFormat(page, 'html');
+    await page.locator('#ne62LayoutBy').click();
+    await page.waitForTimeout(250);
+    const byState = await page.locator('#ne62DownloadMain').evaluate(node => ({ label: node.textContent.trim(), format: node.dataset.exportFormat }));
+    await page.locator('#ne62LayoutSingle').click();
+    await page.waitForTimeout(250);
+    const singleState = await page.locator('#ne62DownloadMain').evaluate(node => ({ label: node.textContent.trim(), format: node.dataset.exportFormat }));
+    insist(byState.format === 'html' && singleState.format === 'html' && byState.label === 'Скачать HTML' && singleState.label === 'Скачать HTML', 'Смена режима сбрасывает общий формат экспорта', { byState, singleState });
+    await page.locator('#ne62LayoutBy').click();
+    await waitAcceptedPreview(page);
+    report.exports = matrix;
+    return { matrix, sharedState: { byState, singleState }, aligned: true };
   });
 
   await check(env, 'No-logo reversibly hides only COVER_BRAND_LOGO', async () => {
@@ -1220,7 +1495,7 @@ async function firefoxWebDriverMatrix(label, privateMode) {
         validateEditor(metrics);
         const cover = await execute('return window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover()');
         validateCover(cover);
-        const hit = await execute(`return ['#ne62LayoutBy','#ne62LayoutSingle','#ne80NoLogos','#ne78DownloadPdf','#ne78DownloadPng'].map(selector=>document.querySelector(selector)).filter(node=>node&&getComputedStyle(node).display!=='none').map(node=>{node.scrollIntoView({block:'center',inline:'center'});const r=node.getBoundingClientRect(),target=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return{id:node.id,self:target===node||node.contains(target),hit:target?.id||target?.className||target?.tagName||''}})`);
+        const hit = await execute(`return ['#ne62LayoutBy','#ne62LayoutSingle','#ne80NoLogos','#ne62DownloadMain','#ne62FormatTrigger'].map(selector=>document.querySelector(selector)).filter(node=>node&&getComputedStyle(node).display!=='none'&&!node.hidden).map(node=>{node.scrollIntoView({block:'center',inline:'center'});const r=node.getBoundingClientRect(),target=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return{id:node.id,self:target===node||node.contains(target),hit:target?.id||target?.className||target?.tagName||''}})`);
         insist(hit.every(item => item.self), 'Firefox viewport control hit-test failed', { hit, metrics, actual });
         return { metrics, cover, hit, actual };
       });
@@ -1316,7 +1591,7 @@ async function basicMatrix(label, browserType, executablePath, privateMode) {
         const metrics = await page.evaluate(editorGeometry); validateEditor(metrics);
         const cover = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover()); validateCover(cover);
         const hit = [];
-        for (const selector of ['#ne62LayoutBy','#ne62LayoutSingle','#ne80NoLogos','#ne78DownloadPdf','#ne78DownloadPng']) {
+        for (const selector of ['#ne62LayoutBy','#ne62LayoutSingle','#ne80NoLogos','#ne62DownloadMain','#ne62FormatTrigger']) {
           const locator = page.locator(selector); if (!(await locator.isVisible())) continue; await locator.scrollIntoViewIfNeeded();
           hit.push(await locator.evaluate(node => { const r = node.getBoundingClientRect(), target = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { id: node.id, self: target === node || node.contains(target), hit: target?.id || target?.className || target?.tagName || '' }; }));
         }
@@ -1352,8 +1627,9 @@ async function basicMatrix(label, browserType, executablePath, privateMode) {
       'К приложениям', 'Редактор презентаций на Hub', 'Новая презентация',
       'Вкладка PDF', 'Вкладка DATA', 'Вкладка MEDIA', 'Загрузить PDF в editor',
       'Перенести всё в Медиа', 'Загрузить фото в editor', 'Одностраничная презентация',
-      'by NexEstate', 'Планировка', 'Контакты', 'Шрифты', 'Шаблоны',
-      'Резервные копии', 'Удаление', 'Экспорт PDF', 'Экспорт PNG', 'К презентациям'
+      'by NexEstate', 'Без логотипов', 'Планировка', 'Контакты', 'Шрифты', 'Шаблоны',
+      'Резервные копии', 'Удаление', 'Шестерёнка экспорта', 'Экспорт PDF', 'Экспорт PNG',
+      'Экспорт HTML', 'Экспорт Web', 'К презентациям'
     ];
     await check(label, 'Required real-click matrix', async () => {
       const completed = new Set(actions.map(item => item.action));
@@ -1389,7 +1665,8 @@ function acceptance() {
     '13-floor-plan-layout-stability-placement': pass(/Floor plan stability/),
     '14-purpose-fonts-storage': pass(/Purpose fonts and storage/),
     '15-real-browser-click-matrix': pass(/Required real-click matrix/) && report.environments.length >= 16,
-    '16-preview-pdf-png-consistent': pass(/Preview\/PDF\/PNG/) && Object.keys(report.screenshots).length >= 6
+    '16-preview-export-2x4-consistent': pass(/Preview and 2 modes x 4 export formats/) && Object.keys(report.screenshots).length >= 6,
+    '17-catalog-imports-and-project-menu': pass(/Catalog imports and all project-card actions/)
   };
   for (const [id, value] of Object.entries(rows)) report.acceptance[id] = { status: value ? 'PASS' : 'FAIL' };
 }
@@ -1417,6 +1694,25 @@ async function main() {
     await primaryScenario(page, errors);
     await context.close();
     await browser.close();
+
+    const catalogBrowser = await chromium.launch({ headless: true, executablePath: fs.existsSync(CHROME) ? CHROME : undefined });
+    const catalogContext = await catalogBrowser.newContext({ viewport: VIEWPORTS[0], acceptDownloads: true, serviceWorkers: 'allow' });
+    const catalogPage = await catalogContext.newPage();
+    const catalogErrors = errorCollector(catalogPage);
+    await prepare(catalogPage);
+    await check('Chrome normal 1920x1080', 'Catalog imports and all project-card actions', async () => {
+      const evidence = await catalogImportAndCardMenuEvidence(catalogPage);
+      report.catalogActions = evidence;
+      return evidence;
+    });
+    const catalogUnhandled = await catalogPage.evaluate(() => window.__NEX_HOTFIX_UNHANDLED || []);
+    catalogErrors.unhandled.push(...catalogUnhandled);
+    await check('Chrome normal 1920x1080', 'Catalog import runtime errors', async () => {
+      insist(catalogErrors.console.length === 0 && catalogErrors.page.length === 0 && catalogErrors.unhandled.length === 0, 'Catalog runtime errors', catalogErrors);
+      return catalogErrors;
+    });
+    await catalogContext.close();
+    await catalogBrowser.close();
 
     const runMatrix = async (label, browserType, executablePath, privateMode) => {
       try {

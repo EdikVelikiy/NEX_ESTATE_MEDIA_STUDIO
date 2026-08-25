@@ -17663,8 +17663,8 @@ function drawCoverV82(api,model,coverEntries,p,themeKey,total){
   const c=api.newCanvas(api.W,api.H),ctx=c.getContext('2d'),data=currentRecord?.data||dataFromForm(),features=api.selectedFeatures(),branded=!hideBrandV82();api.reset(ctx);
   ctx.fillStyle=p.dark;ctx.fillRect(0,0,560,1320);api.drawWave(ctx,0,0,560,1320,p.inverse);api.drawPhotoGrid(ctx,p,coverEntries);
   const slideRect={x:0,y:0,w:api.W,h:api.H},brandColumnRect={x:0,y:0,w:560,h:1320},photoRect={x:560,y:0,w:api.W-560,h:1320};
-  const brandBox=branded?tintLogoV82(ctx,48,48,103,p.inverse,'full'):null;
-  const scenario=cleanV82(data.scenario,50),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260),contentTop=brandBox?Math.max(190,brandBox.y+brandBox.h+60):190,titleY=scenario?contentTop+42:contentTop;let y=titleY;
+  const brandBox=branded?tintLogoV82(ctx,56,38,90,p.inverse,'full'):null;
+  const scenario=cleanV82(data.scenario,50),title=cleanV82(data.objName,12000),purpose=cleanV82(data.use,260),contentTop=brandBox?Math.max(250,brandBox.y+brandBox.h+60):190,titleY=scenario?contentTop+42:contentTop;let y=titleY;
   if(scenario){ctx.fillStyle=p.inverseMuted;ctx.font='700 17px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(scenario.toLocaleUpperCase('ru-RU'),64,contentTop)}
   let titleFit={fits:true,truncated:false,lines:[],height:0,size:0,lineHeight:0};if(title){titleFit=api.fitBlock(ctx,title,432,330,60,23,'700',1.06,4);titleFit.weight='700';titleFit.family=api.fontStack();api.drawLines(ctx,titleFit,64,titleY,p.inverse);y=titleY+titleFit.height+34}
   const titleRect={x:64,y:titleY,w:432,h:title?titleFit.height:0};
@@ -18769,6 +18769,9 @@ window.NEXESTATE_FINAL_FIX_LOADED=true;
 #presentationStudio .ns-media-card .ne87-media-drag:active{cursor:grabbing}
 #presentationStudio .ns-media-card.ne87-drag-over{outline:2px solid #4eb9ff;outline-offset:2px}
 #presentationStudio .ns-media-card .ns-media-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#presentationStudio.ne78-redesign.ne83-footer-toolbar #ne62DownloadMain{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+#presentationStudio.ne78-redesign.ne83-footer-toolbar #ne78DownloadPdf,
+#presentationStudio.ne78-redesign.ne83-footer-toolbar #ne78DownloadPng{display:none!important}
 #presentationStudio .ne62-download-main[aria-busy="true"]{cursor:wait;opacity:.72}
 #presentationStudio .ne87-export-status{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8ed6ff;font-size:10px}
 @media(max-width:700px){
@@ -18779,8 +18782,8 @@ window.NEXESTATE_FINAL_FIX_LOADED=true;
 <script type="text/plain" id="nexestate-presentation-media-fix-v87-runtime">
 (()=>{
 'use strict';
-const VERSION_V87='87.0-presentation-media-fix-20260825';
-const EXPORTS_V87=new Set(['pdf','web','html']);
+const VERSION_V87='87.1-final-regression-fix-20260826';
+const EXPORTS_V87=new Set(['pdf','png','web','html']);
 const DESCRIPTION_HEAD_V87=/^(?:описание(?:\s+(?:объекта|помещения))?|об\s+объекте|description)\s*(?::|—|–|-)?\s*(.*)$/iu;
 const DESCRIPTION_STOP_V87=/^(?:основные\s+данные|характеристики|преимущества|планировка|фотографии|контакты|контакт\s+брокера|адрес|метро|назначение|площадь|цена|стоимость|этаж(?:ность)?|мощность|парковка)\s*:?[\s\d]*$/iu;
 const DESCRIPTION_VARIANT_V87=/^(?:материал|вариант|фрагмент|блок|описание)\s*(?:№|#)?\s*(?:\d{1,2}|[А-ЯA-Z])\s*(?::|—|–|-)?\s*(.*)$/iu;
@@ -18855,22 +18858,35 @@ if(!bridgeV87?.wrapParser?.((previous,raw,fileName,api)=>applyDescriptionClassif
 
 function formatV87(){const preferred=currentSettings?.exportFormat,fallback=currentSettings?.exportType;return EXPORTS_V87.has(preferred)?preferred:EXPORTS_V87.has(fallback)?fallback:'pdf'}
 function syncExportV87(save=false){if(!currentSettings)return'pdf';currentSettings.exportFormat=formatV87();currentSettings.exportType=currentSettings.exportFormat;if(save)scheduleSave?.();return currentSettings.exportFormat}
-function exportInfoV87(type){return{pdf:{label:'Скачать PDF',title:'Скачать презентацию PDF',mime:'application/pdf',extension:'.pdf'},web:{label:'Открыть WEB',title:'Открыть интерактивную WEB-презентацию',mime:'text/html',extension:'новая вкладка'},html:{label:'Скачать HTML',title:'Скачать автономную HTML-презентацию',mime:'text/html',extension:'.html'}}[type]}
+function exportInfoV87(type){return{pdf:{label:'Скачать PDF',title:'Скачать презентацию PDF',mime:'application/pdf',extension:'.pdf'},png:{label:'Скачать PNG',title:'Скачать презентацию PNG',mime:'image/png',extension:'.png'},web:{label:'Открыть WEB',title:'Открыть интерактивную WEB-презентацию',mime:'text/html',extension:'новая вкладка'},html:{label:'Скачать HTML',title:'Скачать автономную HTML-презентацию',mime:'text/html',extension:'.html'}}[type]}
 const exportBridgeV87=window.NEXESTATE_V62_BRIDGE;
 if(!exportBridgeV87)throw new Error('NexEstate V62 export bridge unavailable for V87');
 function selectExportV87(type){if(!currentSettings||!EXPORTS_V87.has(type))return;currentSettings.exportFormat=type;currentSettings.exportType=type;exportBridgeV87.refreshBottomBar();scheduleSave?.()}
 const buildFormatBeforeV87=exportBridgeV87.buildFormatPopover;
-function buildFormatPopoverV87(){const popover=buildFormatBeforeV87();const options=popover?.querySelector('.ne62-format-options');if(options&&options.dataset.ne87!=='1'){options.dataset.ne87='1';options.replaceChildren();[['pdf','PDF'],['web','WEB'],['html','HTML']].forEach(([value,label])=>{const button=exportBridgeV87.button(label,()=>{selectExportV87(value);exportBridgeV87.closePopover(popover,true)});button.dataset.exportType=value;button.setAttribute('role','radio');options.appendChild(button)})}return popover}
+function buildFormatPopoverV87(){const popover=buildFormatBeforeV87();const options=popover?.querySelector('.ne62-format-options');if(options&&options.dataset.ne87!=='1'){options.dataset.ne87='1';options.replaceChildren();[['pdf','PDF'],['png','PNG'],['html','HTML'],['web','Web']].forEach(([value,label])=>{const button=exportBridgeV87.button(label,()=>{selectExportV87(value);exportBridgeV87.closePopover(popover,true)});button.dataset.exportType=value;button.setAttribute('role','radio');options.appendChild(button)})}return popover}
 exportBridgeV87.buildFormatPopover=buildFormatPopoverV87;
 function refreshFormatPopoverV87(){const type=syncExportV87();document.querySelectorAll('#ne62FormatPopover [data-export-type]').forEach(button=>button.setAttribute('aria-checked',String(button.dataset.exportType===type)))}
 exportBridgeV87.refreshFormatPopover=refreshFormatPopoverV87;
+function positionFormatPopoverV87(popover,anchor){
+  if(typeof window.NEXESTATE_V63_POSITION_POPOVER==='function'){window.NEXESTATE_V63_POSITION_POPOVER(popover,anchor);return}
+  popover.hidden=false;popover.style.visibility='hidden';const rect=anchor.getBoundingClientRect(),box=popover.getBoundingClientRect(),left=Math.max(10,Math.min(innerWidth-box.width-10,rect.right-box.width)),barTop=anchor.closest('.ne53-exportbar')?.getBoundingClientRect().top||rect.top;popover.style.left=Math.round(left)+'px';popover.style.top=Math.round(Math.max(10,barTop-box.height-10))+'px';popover.style.visibility='visible';
+}
+function toggleFormatPopoverV87(anchor){
+  const popover=buildFormatPopoverV87(),opening=popover.hidden;document.querySelectorAll('#presentationStudio .ne62-popover:not([hidden])').forEach(item=>exportBridgeV87.closePopover(item,false));if(!opening)return;
+  popover.dataset.anchorId=anchor.id;anchor.setAttribute('aria-expanded','true');refreshFormatPopoverV87();positionFormatPopoverV87(popover,anchor);popover.querySelector('.ne62-popover-close')?.focus({preventScroll:true});
+}
 const refreshBottomBeforeV87=exportBridgeV87.refreshBottomBar;
-function refreshBottomBarV87(){syncExportV87();refreshBottomBeforeV87();const type=formatV87(),info=exportInfoV87(type),main=byId('ne62DownloadMain');if(main){main.hidden=false;main.removeAttribute('aria-hidden');main.tabIndex=0;main.textContent=info.label;main.title=`${info.title} · ${info.mime} · ${info.extension}`;main.dataset.exportFormat=type}const pdf=byId('ne78DownloadPdf');if(pdf){pdf.hidden=true;pdf.setAttribute('aria-hidden','true');pdf.tabIndex=-1}refreshFormatPopoverV87()}
+function refreshBottomBarV87(){
+  syncExportV87();const existing=byId('ne62FormatPopover'),wasOpen=!!existing&&!existing.hidden;refreshBottomBeforeV87();const type=formatV87(),info=exportInfoV87(type),main=byId('ne62DownloadMain'),gear=byId('ne62FormatTrigger'),popover=buildFormatPopoverV87();
+  if(main){main.hidden=false;main.removeAttribute('aria-hidden');main.tabIndex=0;main.textContent=info.label;main.title=`${info.title} · ${info.mime} · ${info.extension}`;main.dataset.exportFormat=type;main.onclick=runSelectedExportV87}
+  if(gear){gear.onclick=event=>{event.preventDefault();toggleFormatPopoverV87(gear)}}
+  ['ne78DownloadPdf','ne78DownloadPng'].forEach(id=>{const legacy=byId(id);if(legacy){legacy.hidden=true;legacy.setAttribute('aria-hidden','true');legacy.tabIndex=-1}});refreshFormatPopoverV87();if(wasOpen&&popover&&gear){popover.hidden=false;popover.dataset.anchorId=gear.id;gear.setAttribute('aria-expanded','true');positionFormatPopoverV87(popover,gear)}
+}
 exportBridgeV87.refreshBottomBar=refreshBottomBarV87;
 async function runSelectedExportV87(){
   if(exportBusyV87){toastSafe?.('Экспорт уже выполняется. Дождитесь завершения.','warn');return false}const type=syncExportV87(),main=byId('ne62DownloadMain'),info=exportInfoV87(type);exportBusyV87=true;
   if(main){main.disabled=true;main.setAttribute('aria-busy','true');main.textContent='Подготовка…'}let status=byId('ne87ExportStatus');if(!status){status=document.createElement('span');status.id='ne87ExportStatus';status.className='ne87-export-status';main?.parentElement?.insertBefore(status,main)}status.textContent='Подготовка экспорта…';
-  try{await new Promise(requestAnimationFrame);status.textContent=type==='pdf'?'Формирование PDF…':type==='web'?'Открытие WEB…':'Формирование HTML…';const action=type==='pdf'?window.dsExportPDF:type==='web'?window.dsOpenNewTab:window.dsDownloadHTML;if(typeof action!=='function')throw new Error(`Экспорт ${type.toUpperCase()} недоступен`);await Promise.resolve(action());status.textContent=`${info.label}: готово`;return true}catch(error){status.textContent=`Ошибка: ${error?.message||error}`;toastSafe?.(status.textContent,'err');return false}finally{exportBusyV87=false;if(main){main.disabled=false;main.removeAttribute('aria-busy');main.textContent=info.label}}
+  try{await new Promise(requestAnimationFrame);status.textContent=type==='pdf'?'Формирование PDF…':type==='png'?'Формирование PNG…':type==='web'?'Открытие WEB…':'Формирование HTML…';const action=type==='pdf'?window.dsExportPDF:type==='png'?window.dsDownloadPNGs:type==='web'?window.dsOpenNewTab:window.dsDownloadHTML;if(typeof action!=='function')throw new Error(`Экспорт ${type.toUpperCase()} недоступен`);await Promise.resolve(action());status.textContent=`${info.label}: готово`;return true}catch(error){status.textContent=`Ошибка: ${error?.message||error}`;toastSafe?.(status.textContent,'err');return false}finally{exportBusyV87=false;if(main){main.disabled=false;main.removeAttribute('aria-busy');main.textContent=info.label}}
 }
 exportBridgeV87.runSelectedExport=runSelectedExportV87;
 
