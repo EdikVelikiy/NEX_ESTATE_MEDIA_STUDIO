@@ -1611,7 +1611,7 @@ body.studio-lite.video-mode #vxControls{
       </div>
     </div>
     <div class="group context-hidden" id="photoFormatGroup"><h4>Формат фото</h4>
-      <div class="seg" id="fmt"><button data-f="auto">Авто</button><button data-f="jpeg" class="on">JPG</button><button data-f="webp">WebP</button><button data-f="png">PNG</button></div>
+      <div class="seg" id="fmt"><button data-f="auto">Авто</button><button data-f="jpeg" class="on">JPG</button><button data-f="webp">WebP</button><button data-f="png">PNG</button><button data-f="pdf">PDF</button></div>
     </div>
   
 <div class="group" id="vxControls" style="display:none">
@@ -2033,7 +2033,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 <script>
 const MARKS={"A_dark":"./assets/marks/A_dark.svg","A_light":"./assets/marks/A_light.svg","B_dark":"./assets/marks/B_dark.svg","B_light":"./assets/marks/B_light.svg","C_dark":"./assets/marks/C_dark.svg","C_light":"./assets/marks/C_light.svg","D_dark":"./assets/marks/D_dark.svg","D_light":"./assets/marks/D_light.svg","E_dark":"./assets/marks/E_dark.png","E_light":"./assets/marks/E_light.png","F_dark":"./assets/marks/F_dark.svg","F_light":"./assets/marks/F_light.svg"}, SPECS={"A_dark":{"w":745,"h":510},"A_light":{"w":745,"h":510},"B_dark":{"w":657,"h":318},"B_light":{"w":657,"h":318},"C_dark":{"w":380,"h":380},"C_light":{"w":380,"h":380},"D_dark":{"w":618,"h":619},"D_light":{"w":618,"h":619},"E_dark":{"w":1100,"h":842},"E_light":{"w":1100,"h":842},"F_dark":{"w":745,"h":285},"F_light":{"w":745,"h":285}};
-const state={variant:'A',theme:'light',pos:'mc',tile:false,size:42,op:18,mg:4,shadow:false,lightBoost:false,greenLogo:false,fmt:'jpeg',qualityMode:'original',markMode:false,markColor:'#35b84b',markThickness:Number(localStorage.getItem('nexestate-mark-thickness'))||3,markOpacity:Number(localStorage.getItem('nexestate-mark-opacity'))||100,infoBarPos:localStorage.getItem('nexestate-info-bar-position')||'bottom',photoEnhance:false,photoEnhanceMode:'off'};
+const state={variant:'A',theme:'light',pos:'mc',tile:false,size:42,op:18,mg:4,shadow:false,lightBoost:false,greenLogo:false,fmt:'jpeg',qualityMode:'original',markMode:false,markColor:localStorage.getItem('nexestate-mark-color')||'#35b84b',markThickness:Number(localStorage.getItem('nexestate-mark-thickness'))||3,markOpacity:Number(localStorage.getItem('nexestate-mark-opacity'))||100,infoBarPos:localStorage.getItem('nexestate-info-bar-position')||'bottom',photoEnhance:false,photoEnhanceMode:'off'};
 let lightBoostBackup=null;
 const imgs=[]; let cur=-1,photoRecordSequence=0;
 const markCache={},markLoadPromises={},markObjectUrls={};
@@ -2228,8 +2228,20 @@ async function fileFingerprint(file){
   for(const value of bytes){h1=Math.imul(h1^value,0x01000193);h2=Math.imul(h2+value,0x85ebca6b);}
   return `${file.size}:${(h1>>>0).toString(16)}${(h2>>>0).toString(16)}`;
 }
+const PHOTO_MARK_STORE_PREFIX='nexestate-photo-marks-v1:';
+function loadPersistedPhotoMarks(fingerprint){
+  try{
+    const parsed=JSON.parse(localStorage.getItem(PHOTO_MARK_STORE_PREFIX+fingerprint)||'null');
+    return Array.isArray(parsed?.marks)?parsed.marks.filter(mark=>Array.isArray(mark?.points)&&mark.points.length>=2).map(mark=>JSON.parse(JSON.stringify(mark))):[];
+  }catch(error){console.warn('Не удалось восстановить разметку фотографии',error);return[];}
+}
+function persistPhotoMarks(record){
+  if(!record?.fingerprint)return;
+  try{localStorage.setItem(PHOTO_MARK_STORE_PREFIX+record.fingerprint,JSON.stringify({version:1,updatedAt:new Date().toISOString(),marks:record.rects||[]}));}
+  catch(error){console.warn('Не удалось сохранить разметку фотографии',error);}
+}
 function loadImageFile(f,fingerprint){return new Promise(resolve=>{const im=new Image();const objectUrl=URL.createObjectURL(f);
-  im.onload=()=>{imgs.push({id:globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${++photoRecordSequence}`,fingerprint,img:im,objectUrl,name:f.name.replace(/\.[^.]+$/,''),rects:[],redoRects:[],photoTools:[],sourceSize:f.size||0,sourceType:f.type||guessImageMime(f.name),sourceName:f.name,sourceWidth:im.naturalWidth||im.width,sourceHeight:im.naturalHeight||im.height});if(cur<0)cur=0;buildStage();resolve(true);};
+  im.onload=()=>{imgs.push({id:globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${++photoRecordSequence}`,fingerprint,img:im,objectUrl,name:f.name.replace(/\.[^.]+$/,''),rects:loadPersistedPhotoMarks(fingerprint),redoRects:[],photoTools:[],sourceSize:f.size||0,sourceType:f.type||guessImageMime(f.name),sourceName:f.name,sourceWidth:im.naturalWidth||im.width,sourceHeight:im.naturalHeight||im.height});if(cur<0)cur=0;buildStage();resolve(true);};
   im.onerror=()=>{URL.revokeObjectURL(objectUrl);resolve(false);};im.src=objectUrl;});}
 window.addEventListener('pagehide',()=>{
   imgs.forEach(record=>{if(record?.objectUrl)URL.revokeObjectURL(record.objectUrl);});
@@ -2291,14 +2303,14 @@ function drawPhotoMarks(g,W,H,marks){
     g.globalAlpha=Number.isFinite(Number(mark.opacity))?Number(mark.opacity)/100:1;
     g.lineWidth=Math.max(2,W*.00115*(mark.thickness||3));
     g.setLineDash([]);g.lineJoin='round';g.lineCap='round';
-    if(Array.isArray(mark.points)&&mark.points.length>=3){
+    if(Array.isArray(mark.points)&&mark.points.length>=(mark.kind==='polyline'?2:3)){
       g.beginPath();
       mark.points.forEach((point,index)=>{
         const x=Math.max(0,Math.min(1,Number(point.x)||0))*W;
         const y=Math.max(0,Math.min(1,Number(point.y)||0))*H;
         if(index===0)g.moveTo(x,y);else g.lineTo(x,y);
       });
-      g.closePath();g.stroke();
+      if(mark.kind!=='polyline')g.closePath();g.stroke();
     }else{
       g.strokeRect(mark.x*W,mark.y*H,mark.w*W,mark.h*H);
     }
@@ -2312,8 +2324,8 @@ function photoOutputPlan(rec){
   const width=Math.max(1,Math.round(sourceW*scale)),height=Math.max(1,Math.round(sourceH*scale));
   let format=state.fmt||'jpeg';
   if(format==='webp'&&!window.NEXPhotoEngine?.supportsWebP?.())format='jpeg';
-  const type=format==='png'?'image/png':format==='webp'?'image/webp':format==='auto'?'image/jpeg': 'image/jpeg';
-  const extension=format==='png'?'png':format==='webp'?'webp':'jpg';
+  const type=format==='pdf'?'application/pdf':format==='png'?'image/png':format==='webp'?'image/webp':format==='auto'?'image/jpeg': 'image/jpeg';
+  const extension=format==='pdf'?'pdf':format==='png'?'png':format==='webp'?'webp':'jpg';
   const quality=state.qualityMode==='original'?(format==='webp'?0.96:0.98):state.qualityMode==='high'?(format==='webp'?0.89:0.92):(format==='webp'?0.78:0.82);
   return {width,height,format,type,extension,quality,sourceW,sourceH};
 }
@@ -2360,7 +2372,7 @@ async function compositeTo(canvas,rec,forExport=false){
   g.save();g.globalAlpha=state.op/100;
   if(state.shadow){const white=key.endsWith('_light');g.shadowColor=white?'rgba(0,0,0,.45)':'rgba(255,255,255,.4)';g.shadowBlur=mw*0.05;g.shadowOffsetY=mw*0.008;}
   g.drawImage(mk,x,y,mw,mh);g.restore();drawPhotoInfoBar(g,W,H);window.NEXPhotoTools?.draw?.(g,W,H,rec.photoTools);}
-let stageCanvas=null,photoToolsController=null,renderTok=0,photoLogoRequest=0;
+let stageCanvas=null,photoToolsController=null,markKeyboardAbort=null,renderTok=0,photoLogoRequest=0;
 function resetPhotoContext(){
   photoToolsController?.destroy?.();photoToolsController=null;
   stage.querySelectorAll('.canvas-holder').forEach(e=>e.remove());
@@ -2392,7 +2404,7 @@ function removePhotoAt(index){
   buildStage();
 }
 async function buildStage(){
-  photoToolsController?.destroy?.();photoToolsController=null;
+  photoToolsController?.destroy?.();photoToolsController=null;markKeyboardAbort?.abort?.();markKeyboardAbort=new AbortController();
   stage.querySelectorAll('.canvas-holder').forEach(e=>e.remove());
   if(cur<0||!imgs.length){resetPhotoContext();return;}
   const rec=imgs[cur];
@@ -2416,8 +2428,9 @@ async function buildStage(){
   const toolControls=document.createElement('div');toolControls.className='photo-tool-controls context-hidden';
   const quickMarkBtn=document.createElement('button');quickMarkBtn.type='button';quickMarkBtn.className='photo-action';quickMarkBtn.dataset.selectionTool='quick';quickMarkBtn.textContent='Быстрое выделение';
   const flexibleMarkBtn=document.createElement('button');flexibleMarkBtn.type='button';flexibleMarkBtn.className='photo-action';flexibleMarkBtn.dataset.selectionTool='flexible';flexibleMarkBtn.textContent='Редактируемое выделение';
+  const polylineMarkBtn=document.createElement('button');polylineMarkBtn.type='button';polylineMarkBtn.className='photo-action';polylineMarkBtn.dataset.selectionTool='polyline';polylineMarkBtn.textContent='Ломаная';polylineMarkBtn.title='Кликайте по контуру. Enter или двойной клик — завершить, Esc — отменить, Backspace — убрать точку';
   const markColor=document.createElement('select');markColor.className='mark-color-select';markColor.setAttribute('aria-label','Цвет выделения');
-  [['#35b84b','Зелёный'],['#ef3f3f','Красный'],['#f1c64b','Жёлтый'],['#ffffff','Белый'],['#3d9cff','Синий']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;markColor.appendChild(o)});
+  [['#35b84b','Зелёный'],['#96FBD9','Мятный контур'],['#ef3f3f','Красный'],['#f1c64b','Жёлтый'],['#ffffff','Белый'],['#3d9cff','Синий']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;markColor.appendChild(o)});
   markColor.value=state.markColor;
   const makeRange=(label,min,max,value,aria)=>{
     const wrap=document.createElement('label');wrap.className='mark-live-range';
@@ -2434,10 +2447,13 @@ async function buildStage(){
   const undoMark=document.createElement('button');undoMark.type='button';undoMark.className='photo-action mark-history-hidden';undoMark.textContent='Назад';
   const redoMark=document.createElement('button');redoMark.type='button';redoMark.className='photo-action mark-history-hidden';redoMark.textContent='Повторить';
   const editMark=document.createElement('button');editMark.type='button';editMark.className='photo-action mark-history-hidden';editMark.textContent='Изменить последнее';
+  const duplicateMark=document.createElement('button');duplicateMark.type='button';duplicateMark.className='photo-action mark-active-only';duplicateMark.textContent='Дублировать';
+  const deleteMark=document.createElement('button');deleteMark.type='button';deleteMark.className='photo-action danger mark-active-only';deleteMark.textContent='Удалить объект';
   const clearMarks=document.createElement('button');clearMarks.type='button';clearMarks.className='photo-action danger mark-history-hidden';clearMarks.textContent='Сбросить';
+  const markObjectSelect=document.createElement('select');markObjectSelect.className='mark-color-select mark-object-select';markObjectSelect.setAttribute('aria-label','Выбрать объект разметки');
   const zoom=makeRange('Масштаб',50,200,100,'Масштаб рабочей области');zoom.output.textContent='100%';zoom.wrap.classList.add('mark-zoom-range');
-  toolChooser.append(quickMarkBtn,flexibleMarkBtn);
-  markTools.append(markColor,thickness.wrap,opacity.wrap,applyMark,cancelMark,undoMark,redoMark,editMark,clearMarks,zoom.wrap);
+  toolChooser.append(quickMarkBtn,flexibleMarkBtn,polylineMarkBtn);
+  markTools.append(markColor,thickness.wrap,opacity.wrap,applyMark,cancelMark,duplicateMark,deleteMark,undoMark,redoMark,editMark,markObjectSelect,clearMarks,zoom.wrap);
   toolsBody.append(toolChooser,markTools,toolControls);toolsPanel.append(toolsSummary,toolsBody);holder.appendChild(toolsPanel);
 
   const previewWrap=document.createElement('div');previewWrap.className='photo-preview-wrap';
@@ -2447,13 +2463,22 @@ async function buildStage(){
   const selectionSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');selectionSvg.setAttribute('viewBox','0 0 100 100');selectionSvg.setAttribute('preserveAspectRatio','none');
   const rotationLine=document.createElementNS('http://www.w3.org/2000/svg','line');rotationLine.classList.add('selection-rotation-line');
   const polygon=document.createElementNS('http://www.w3.org/2000/svg','polygon');polygon.classList.add('selection-polygon');polygon.setAttribute('vector-effect','non-scaling-stroke');
-  selectionSvg.append(rotationLine,polygon);selectionLayer.appendChild(selectionSvg);surface.appendChild(selectionLayer);
+  const polyline=document.createElementNS('http://www.w3.org/2000/svg','polyline');polyline.classList.add('selection-polygon','selection-polyline');polyline.setAttribute('vector-effect','non-scaling-stroke');
+  selectionSvg.append(rotationLine,polygon,polyline);selectionLayer.appendChild(selectionSvg);surface.appendChild(selectionLayer);
 
-  let activeSelection=null,creationStart=null,dragState=null,editingOriginal=null,selectionTool='flexible',selectionControlsOpen=false;
+  let activeSelection=null,creationStart=null,dragState=null,editingOriginal=null,editingIndex=-1,selectionTool='flexible',selectionControlsOpen=false,polylineBuilding=false,polylinePreview=null,polylineLastTap=null;
   const activeUndo=[],activeRedo=[];
   const cloneSelection=value=>value?JSON.parse(JSON.stringify(value)):null;
   const clampPoint=point=>({x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))});
   const canvasPoint=e=>{const b=surface.getBoundingClientRect();return clampPoint({x:(e.clientX-b.left)/Math.max(1,b.width),y:(e.clientY-b.top)/Math.max(1,b.height)});};
+  const pointDistance=(a,b)=>{const bounds=surface.getBoundingClientRect();return Math.hypot((a.x-b.x)*Math.max(1,bounds.width),(a.y-b.y)*Math.max(1,bounds.height));};
+  const snapPolylinePoint=(point,event)=>{
+    const previous=activeSelection?.points?.at(-1);if(!event?.shiftKey||!previous)return point;
+    const bounds=surface.getBoundingClientRect(),dx=(point.x-previous.x)*Math.max(1,bounds.width),dy=(point.y-previous.y)*Math.max(1,bounds.height),length=Math.hypot(dx,dy);
+    if(length<1)return previous;const angle=Math.round(Math.atan2(dy,dx)/(Math.PI/4))*(Math.PI/4);
+    return clampPoint({x:previous.x+Math.cos(angle)*length/Math.max(1,bounds.width),y:previous.y+Math.sin(angle)*length/Math.max(1,bounds.height)});
+  };
+  const compactPolylinePoints=points=>(points||[]).map(clampPoint).filter((point,index,array)=>index===0||pointDistance(point,array[index-1])>=2);
   const centroid=points=>points.reduce((acc,p)=>({x:acc.x+p.x/points.length,y:acc.y+p.y/points.length}),{x:0,y:0});
   const rotationPoint=points=>{
     const c=centroid(points),mid={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
@@ -2477,15 +2502,21 @@ async function buildStage(){
     selectionLayer.classList.toggle('quick-selection',active&&selectionTool==='quick');
     quickMarkBtn.classList.toggle('active-mark',state.markMode&&selectionTool==='quick');
     flexibleMarkBtn.classList.toggle('active-mark',state.markMode&&selectionTool==='flexible');
+    polylineMarkBtn.classList.toggle('active-mark',state.markMode&&selectionTool==='polyline');
     quickMarkBtn.setAttribute('aria-pressed',String(state.markMode&&selectionTool==='quick'));
     flexibleMarkBtn.setAttribute('aria-pressed',String(state.markMode&&selectionTool==='flexible'));
-    previewWrap.classList.toggle('mark-mode',state.markMode&&!active);
+    polylineMarkBtn.setAttribute('aria-pressed',String(state.markMode&&selectionTool==='polyline'));
+    previewWrap.classList.toggle('mark-mode',state.markMode);
     undoMark.classList.toggle('mark-history-hidden',active?activeUndo.length===0:rec.rects.length===0);
     redoMark.classList.toggle('mark-history-hidden',active?activeRedo.length===0:rec.redoRects.length===0);
     editMark.classList.toggle('mark-history-hidden',active||rec.rects.length===0);
     clearMarks.classList.toggle('mark-history-hidden',active||rec.rects.length===0);
     quickMarkBtn.disabled=active;
     flexibleMarkBtn.disabled=active;
+    polylineMarkBtn.disabled=active;
+    markObjectSelect.disabled=active||!rec.rects.length;
+    const selectSignature=rec.rects.map(mark=>`${mark.kind||'selection'}:${mark.points?.length||0}`).join('|');
+    if(markObjectSelect.dataset.signature!==selectSignature){const selectedValue=markObjectSelect.value;markObjectSelect.dataset.signature=selectSignature;markObjectSelect.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=rec.rects.length?'Выбрать объект…':'Объектов пока нет';markObjectSelect.appendChild(placeholder);rec.rects.forEach((mark,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`${index+1}. ${mark.kind==='polyline'?'Ломаная':'Выделение'} (${mark.points?.length||0} точек)`;markObjectSelect.appendChild(option)});if(!active&&[...markObjectSelect.options].some(option=>option.value===selectedValue))markObjectSelect.value=selectedValue;}
   };
   const beginActiveChange=()=>cloneSelection(activeSelection);
   const finishActiveChange=before=>{
@@ -2494,11 +2525,17 @@ async function buildStage(){
   };
   const renderSelection=()=>{
     selectionLayer.querySelectorAll('.selection-handle').forEach(handle=>handle.remove());
-    if(!activeSelection){polygon.setAttribute('points','');syncMarkHistory();return;}
+    if(!activeSelection){polygon.setAttribute('points','');polyline.setAttribute('points','');rotationLine.style.display='none';syncMarkHistory();return;}
     const points=activeSelection.points.map(clampPoint);activeSelection.points=points;
-    polygon.setAttribute('points',points.map(point=>`${point.x*100},${point.y*100}`).join(' '));
-    polygon.style.stroke=activeSelection.color;polygon.style.opacity=String((activeSelection.opacity||100)/100);polygon.style.strokeWidth=`${Math.max(2,activeSelection.thickness||3)}px`;
-    if(selectionTool==='flexible'){
+    const isPolyline=activeSelection.kind==='polyline'||selectionTool==='polyline';
+    const visiblePoints=isPolyline&&polylineBuilding&&polylinePreview?[...points,polylinePreview]:points;
+    polygon.setAttribute('points',isPolyline?'':points.map(point=>`${point.x*100},${point.y*100}`).join(' '));
+    polyline.setAttribute('points',isPolyline?visiblePoints.map(point=>`${point.x*100},${point.y*100}`).join(' '):'');
+    [polygon,polyline].forEach(shape=>{shape.style.stroke=activeSelection.color;shape.style.opacity=String((activeSelection.opacity||100)/100);shape.style.strokeWidth=`${Math.max(2,activeSelection.thickness||3)}px`});
+    if(isPolyline){
+      rotationLine.style.display='none';
+      points.forEach((point,index)=>{const handle=document.createElement('button');handle.type='button';handle.className='selection-handle selection-corner';handle.style.left=`${point.x*100}%`;handle.style.top=`${point.y*100}%`;handle.dataset.corner=String(index);handle.setAttribute('aria-label',`Переместить узел ${index+1}`);selectionLayer.appendChild(handle);handle.classList.toggle('is-active',dragState?.kind==='corner'&&dragState.index===index)});
+    }else if(selectionTool==='flexible'){
       const rotation=rotationPoint(points),topMid={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
       rotationLine.setAttribute('x1',String(topMid.x*100));rotationLine.setAttribute('y1',String(topMid.y*100));rotationLine.setAttribute('x2',String(rotation.x*100));rotationLine.setAttribute('y2',String(rotation.y*100));
       rotationLine.style.stroke=activeSelection.color;rotationLine.style.opacity=String((activeSelection.opacity||100)/100);rotationLine.style.display='';
@@ -2528,31 +2565,48 @@ async function buildStage(){
   const activateSelectionTool=tool=>{
     photoToolsController?.cancelActive?.();photoToolsController?.setSuspended?.(true);
     selectionControlsOpen=true;
-    selectionTool=tool;state.markMode=true;creationStart=null;syncMarkHistory();
-    window.NEXStudio?.toast?.(tool==='quick'?'Нажмите на объект или протяните рамку. Затем примените или отмените выделение.':'Нажмите на объект или протяните рамку. Форму можно менять точками, сторонами и поворотом.','info');
+    selectionTool=tool;state.markMode=true;creationStart=null;polylineBuilding=tool==='polyline';polylinePreview=null;syncMarkHistory();
+    const message=tool==='quick'?'Нажмите на объект или протяните рамку. Затем примените или отмените выделение.':tool==='polyline'?'Кликайте по контуру. Enter или двойной клик завершит линию; Esc отменит, Backspace удалит последнюю точку, Shift выровняет сегмент.':'Нажмите на объект или протяните рамку. Форму можно менять точками, сторонами и поворотом.';
+    window.NEXStudio?.toast?.(message,'info');
   };
   quickMarkBtn.onclick=()=>activateSelectionTool('quick');
   flexibleMarkBtn.onclick=()=>activateSelectionTool('flexible');
-  markColor.onchange=()=>{state.markColor=markColor.value;if(activeSelection){const before=beginActiveChange();activeSelection.color=state.markColor;finishActiveChange(before);renderSelection();}};
+  polylineMarkBtn.onclick=()=>activateSelectionTool('polyline');
+  markColor.onchange=()=>{state.markColor=markColor.value;localStorage.setItem('nexestate-mark-color',state.markColor);if(state.markColor.toUpperCase()==='#96FBD9'){state.markOpacity=100;opacity.input.value='100';opacity.output.textContent='100%';localStorage.setItem('nexestate-mark-opacity','100')}if(activeSelection){const before=beginActiveChange();activeSelection.color=state.markColor;activeSelection.opacity=state.markOpacity;finishActiveChange(before);renderSelection();}};
   thickness.input.oninput=()=>{state.markThickness=Math.max(1,Math.min(12,Number(thickness.input.value)||3));thickness.output.textContent=String(state.markThickness);localStorage.setItem('nexestate-mark-thickness',String(state.markThickness));if(activeSelection){activeSelection.thickness=state.markThickness;renderSelection();}};
   thickness.input.onchange=()=>{if(activeSelection)activeUndo.push({...cloneSelection(activeSelection),thickness:Number(thickness.input.defaultValue)||3});};
   opacity.input.oninput=()=>{state.markOpacity=Math.max(20,Math.min(100,Number(opacity.input.value)||100));opacity.output.textContent=`${state.markOpacity}%`;localStorage.setItem('nexestate-mark-opacity',String(state.markOpacity));if(activeSelection){activeSelection.opacity=state.markOpacity;renderSelection();}};
   zoom.input.oninput=()=>{const value=Math.max(50,Math.min(200,Number(zoom.input.value)||100));zoom.output.textContent=`${value}%`;surface.style.width=`${value}%`;};
-  applyMark.onclick=()=>{if(!activeSelection)return;rec.rects.push(cloneSelection(activeSelection));rec.redoRects=[];activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;photoToolsController?.setSuspended?.(false);renderSelection();render();};
-  cancelMark.onclick=()=>{if(editingOriginal)rec.rects.push(editingOriginal);activeSelection=null;editingOriginal=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;photoToolsController?.setSuspended?.(false);renderSelection();render();};
-  undoMark.onclick=()=>{if(activeSelection&&activeUndo.length){activeRedo.push(cloneSelection(activeSelection));activeSelection=activeUndo.pop();renderSelection();return;}const value=rec.rects.pop();if(value)rec.redoRects.push(value);syncMarkHistory();render();};
-  redoMark.onclick=()=>{if(activeSelection&&activeRedo.length){activeUndo.push(cloneSelection(activeSelection));activeSelection=activeRedo.pop();renderSelection();return;}const value=rec.redoRects.pop();if(value)rec.rects.push(value);syncMarkHistory();render();};
-  editMark.onclick=()=>{if(activeSelection||!rec.rects.length)return;editingOriginal=cloneSelection(rec.rects.pop());activeSelection=cloneSelection(editingOriginal);selectionTool='flexible';activeSelection.selectionType='flexible';state.markMode=true;activeUndo.length=0;activeRedo.length=0;markColor.value=activeSelection.color||state.markColor;thickness.input.value=String(activeSelection.thickness||3);opacity.input.value=String(activeSelection.opacity||100);renderSelection();render();};
-  clearMarks.onclick=()=>{if(!rec.rects.length)return;rec.redoRects=rec.rects.splice(0).reverse();syncMarkHistory();render();};
+  const resetActiveSelection=()=>{activeSelection=null;editingOriginal=null;editingIndex=-1;creationStart=null;dragState=null;polylineBuilding=false;polylinePreview=null;polylineLastTap=null;activeUndo.length=0;activeRedo.length=0;state.markMode=false;photoToolsController?.setSuspended?.(false)};
+  const editObjectAt=index=>{if(activeSelection||index<0||index>=rec.rects.length)return;editingIndex=index;editingOriginal=cloneSelection(rec.rects[index]);rec.rects.splice(index,1);activeSelection=cloneSelection(editingOriginal);selectionTool=activeSelection.kind==='polyline'?'polyline':'flexible';activeSelection.selectionType=selectionTool;polylineBuilding=false;polylinePreview=null;state.markMode=true;selectionControlsOpen=true;activeUndo.length=0;activeRedo.length=0;markColor.value=activeSelection.color||state.markColor;thickness.input.value=String(activeSelection.thickness||3);thickness.output.textContent=String(activeSelection.thickness||3);opacity.input.value=String(activeSelection.opacity||100);opacity.output.textContent=`${activeSelection.opacity||100}%`;renderSelection();render();};
+  const finishPolyline=()=>{if(!polylineBuilding||!activeSelection)return false;activeSelection.points=compactPolylinePoints(activeSelection.points);polylinePreview=null;if(activeSelection.points.length<2){window.NEXStudio?.toast?.('Для полилинии нужны минимум две разные точки.','warning');return false}polylineBuilding=false;renderSelection();applyMark.click();return true;};
+  applyMark.onclick=()=>{if(!activeSelection)return;if(activeSelection.kind==='polyline'){activeSelection.points=compactPolylinePoints(activeSelection.points);if(activeSelection.points.length<2)return window.NEXStudio?.toast?.('Для полилинии нужны минимум две точки.','warning')}const value=cloneSelection(activeSelection);if(editingIndex>=0)rec.rects.splice(Math.min(editingIndex,rec.rects.length),0,value);else rec.rects.push(value);rec.redoRects=[];persistPhotoMarks(rec);resetActiveSelection();renderSelection();render();};
+  cancelMark.onclick=()=>{if(editingOriginal&&editingIndex>=0)rec.rects.splice(Math.min(editingIndex,rec.rects.length),0,editingOriginal);persistPhotoMarks(rec);resetActiveSelection();renderSelection();render();};
+  undoMark.onclick=()=>{if(activeSelection&&activeUndo.length){activeRedo.push(cloneSelection(activeSelection));activeSelection=activeUndo.pop();renderSelection();return;}const value=rec.rects.pop();if(value){rec.redoRects.push(value);persistPhotoMarks(rec)}syncMarkHistory();render();};
+  redoMark.onclick=()=>{if(activeSelection&&activeRedo.length){activeUndo.push(cloneSelection(activeSelection));activeSelection=activeRedo.pop();renderSelection();return;}const value=rec.redoRects.pop();if(value){rec.rects.push(value);persistPhotoMarks(rec)}syncMarkHistory();render();};
+  editMark.onclick=()=>editObjectAt(rec.rects.length-1);
+  markObjectSelect.onchange=()=>{const raw=markObjectSelect.value;markObjectSelect.value='';if(raw==='')return;const index=Number(raw);if(Number.isInteger(index))editObjectAt(index)};
+  duplicateMark.onclick=()=>{if(!activeSelection)return;const copy=cloneSelection(activeSelection);copy.points=copy.points.map(point=>clampPoint({x:point.x+.015,y:point.y+.015}));rec.rects.push(copy);rec.redoRects=[];persistPhotoMarks(rec);syncMarkHistory();render();window.NEXStudio?.toast?.('Объект разметки продублирован.','success')};
+  deleteMark.onclick=()=>{if(!activeSelection)return;persistPhotoMarks(rec);resetActiveSelection();renderSelection();render();window.NEXStudio?.toast?.('Объект разметки удалён.','success')};
+  clearMarks.onclick=()=>{if(!rec.rects.length)return;rec.redoRects=rec.rects.splice(0).reverse();persistPhotoMarks(rec);syncMarkHistory();render();};
 
   surface.addEventListener('pointerdown',e=>{
+    if(state.markMode&&selectionTool==='polyline'&&polylineBuilding){
+      e.preventDefault();const point=snapPolylinePoint(canvasPoint(e),e),before=cloneSelection(activeSelection),now=performance.now(),doubleTap=e.pointerType==='mouse'&&polylineLastTap&&now-polylineLastTap.time<=450&&pointDistance(point,polylineLastTap.point)<=14;
+      polylineLastTap={time:now,point};
+      if(!activeSelection)activeSelection={kind:'polyline',points:[point],color:state.markColor,thickness:state.markThickness||3,opacity:state.markOpacity||100,selectionType:'polyline'};
+      else if(pointDistance(point,activeSelection.points.at(-1))>=2)activeSelection.points.push(point);
+      if(before)finishActiveChange(before);polylinePreview=point;renderSelection();
+      if(doubleTap||e.pointerType==='mouse'&&e.detail>=2){polylineLastTap=null;finishPolyline()}
+      return;
+    }
     if(!activeSelection){
       if(!state.markMode)return;
       e.preventDefault();creationStart=canvasPoint(e);surface.setPointerCapture?.(e.pointerId);return;
     }
     if(selectionTool==='quick')return;
     const corner=e.target.closest?.('[data-corner]'),side=e.target.closest?.('[data-side]'),rotate=e.target.closest?.('[data-rotate]');
-    if(!corner&&!side&&!rotate&&e.target!==polygon)return;
+    if(!corner&&!side&&!rotate&&e.target!==polygon&&e.target!==polyline)return;
     e.preventDefault();surface.setPointerCapture?.(e.pointerId);
     const start=canvasPoint(e),before=beginActiveChange();
     if(corner)dragState={kind:'corner',index:Number(corner.dataset.corner),start,before};
@@ -2563,6 +2617,7 @@ async function buildStage(){
   });
   surface.addEventListener('pointermove',e=>{
     const point=canvasPoint(e);
+    if(polylineBuilding&&activeSelection){polylinePreview=snapPolylinePoint(point,e);renderSelection();return;}
     if(creationStart){activeSelection=makeRectangle(creationStart,point);renderSelection();return;}
     if(!dragState||!activeSelection)return;
     if(dragState.kind==='corner')activeSelection.points[dragState.index]=point;
@@ -2597,6 +2652,19 @@ async function buildStage(){
     if(dragState){finishActiveChange(dragState.before);dragState=null;renderSelection();}
   };
   surface.addEventListener('pointerup',finishPointer);surface.addEventListener('pointercancel',()=>{creationStart=null;dragState=null;renderSelection();});
+  surface.addEventListener('dblclick',event=>{if(polylineBuilding){event.preventDefault();finishPolyline()}});
+  surface.addEventListener('dragstart',event=>{if(state.markMode)event.preventDefault()});
+  surface.addEventListener('selectstart',event=>{if(state.markMode)event.preventDefault()});
+  window.addEventListener('keydown',event=>{
+    if(polylineBuilding&&!activeSelection&&event.key==='Escape'){event.preventDefault();resetActiveSelection();renderSelection();return}
+    if(polylineBuilding&&activeSelection){
+      if(event.key==='Enter'){event.preventDefault();finishPolyline();return}
+      if(event.key==='Escape'){event.preventDefault();cancelMark.click();return}
+      if(event.key==='Backspace'){event.preventDefault();const before=cloneSelection(activeSelection);activeSelection.points.pop();if(!activeSelection.points.length){cancelMark.click();return}finishActiveChange(before);polylinePreview=activeSelection.points.at(-1);renderSelection();return}
+    }
+    if(activeSelection&&event.key==='Escape'){event.preventDefault();cancelMark.click()}
+    else if(activeSelection&&event.key==='Delete'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')){event.preventDefault();deleteMark.click()}
+  },{signal:markKeyboardAbort.signal});
   renderSelection();
   photoToolsController=window.NEXPhotoTools?.mount?.({
     chooser:toolChooser,
@@ -2751,11 +2819,29 @@ function updatePhotoMetrics(rec,plan,blob){
   if(!target)return;
   const sourceSize=Number(rec.sourceSize)||0;
   const reduction=sourceSize?Math.round((1-blob.size/sourceSize)*100):null;
-  const qualityNote=plan.format==='png'
+  const qualityNote=plan.format==='pdf'
+    ?'PDF · исходное разрешение композиции сохранено'
+    :plan.format==='png'
     ?'PNG · без потери пиксельных данных'
     :`${plan.format.toUpperCase()} · ${plan.qualityAssessment==='visually-lossless'?'без визуально заметной потери качества':'максимально безопасное качество для выбранного режима'}${plan.quality?` · качество ${Math.round(plan.quality*100)}%`:''}`;
   target.innerHTML=`<b>Последний результат</b><span>${plan.sourceW}×${plan.sourceH} → ${plan.width}×${plan.height}</span><span>${formatFileSize(sourceSize)} → ${formatFileSize(blob.size)}${reduction===null?'':` · ${reduction>=0?'−':'+'}${Math.abs(reduction)}%`}</span><span>${qualityNote}</span>`;
   target.classList.add('show');
+}
+function bytesFromAscii(value){const output=new Uint8Array(value.length);for(let index=0;index<value.length;index++)output[index]=value.charCodeAt(index)&255;return output;}
+function singleImagePdfBlob(jpegBytes,width,height){
+  const parts=[],offsets=[0];let length=0;
+  const append=value=>{const bytes=value instanceof Uint8Array?value:bytesFromAscii(value);parts.push(bytes);length+=bytes.length;};
+  const object=(id,value)=>{offsets[id]=length;append(`${id} 0 obj\n`);append(value);append('\nendobj\n');};
+  append('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  object(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  object(2,'<< /Type /Pages /Kids [5 0 R] /Count 1 >>');
+  offsets[3]=length;append(`3 0 obj\n<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);append(jpegBytes);append('\nendstream\nendobj\n');
+  const landscape=width>height,pageWidth=landscape?841.89:595.28,pageHeight=landscape?595.28:841.89,scale=Math.min(pageWidth/width,pageHeight/height),drawWidth=width*scale,drawHeight=height*scale,offsetX=(pageWidth-drawWidth)/2,offsetY=(pageHeight-drawHeight)/2;
+  const stream=`q\n${drawWidth.toFixed(3)} 0 0 ${drawHeight.toFixed(3)} ${offsetX.toFixed(3)} ${offsetY.toFixed(3)} cm\n/Im0 Do\nQ`;
+  object(4,`<< /Length ${bytesFromAscii(stream).length} >>\nstream\n${stream}\nendstream`);
+  object(5,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth.toFixed(3)} ${pageHeight.toFixed(3)}] /Resources << /XObject << /Im0 3 0 R >> >> /Contents 4 0 R >>`);
+  const xrefOffset=length;let xref='xref\n0 6\n0000000000 65535 f \n';for(let id=1;id<=5;id++)xref+=String(offsets[id]).padStart(10,'0')+' 00000 n \n';append(xref);append(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+  return new Blob(parts,{type:'application/pdf'});
 }
 async function createPhotoExport(index){
   const rec=imgs[index];
@@ -2765,6 +2851,13 @@ async function createPhotoExport(index){
   try{
     await compositeTo(canvas,rec,true);
     canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,1,1);
+    if(plan.format==='pdf'){
+      const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Не удалось подготовить изображение для PDF.')),'image/jpeg',.98));
+      const blob=singleImagePdfBlob(new Uint8Array(await jpegBlob.arrayBuffer()),canvas.width,canvas.height);
+      if(!blob.size)throw new Error('Получен пустой PDF-файл.');
+      updatePhotoMetrics(rec,plan,blob);
+      return {blob,plan,name:`${safePhotoBase(rec,index)}_NEX_ESTATE.pdf`};
+    }
     const encoded=window.NEXPhotoEngine?.smartEncode
       ? await window.NEXPhotoEngine.smartEncode(canvas,{format:plan.format,mode:state.qualityMode,sourceSize:rec.sourceSize,onProgress:value=>updatePhotoProcessingStatus(`Интеллектуальное сжатие: ${Math.round(value)}%`,value)})
       : {blob:window.NEXPhotoEngine

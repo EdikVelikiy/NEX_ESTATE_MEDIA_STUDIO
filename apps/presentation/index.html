@@ -6458,7 +6458,7 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
     return bits.toString(16).padStart(16,'0');
   }
   function perceptualDistance(left,right){if(!left||!right)return 64;let value=BigInt('0x'+left)^BigInt('0x'+right),count=0;while(value){count+=Number(value&1n);value>>=1n}return count}
-  function sameVisual(left,right){if(left.hash&&right.hash&&left.hash===right.hash)return true;const leftRatio=left.width/Math.max(1,left.height),rightRatio=right.width/Math.max(1,right.height);return Math.abs(leftRatio-rightRatio)<=.045&&perceptualDistance(left.perceptualHash,right.perceptualHash)<=3}
+  function sameVisual(left,right){return!!(left?.hash&&right?.hash&&left.hash===right.hash)}
   function candidateDecision(canvas,analysis,pageText=''){
     const width=canvas.width,height=canvas.height,area=width*height;
     const technicalContext=/(?:планировк|поэтажн|карта|схем|генплан|экспликац|черт[её]ж|план\s+бти)/i.test(pageText);
@@ -6566,7 +6566,7 @@ html[data-theme="premium-blue"] #presentationStudio.ne53-studio .ne54-pdf-status
       }catch(error){console.warn('PDF image skipped',error)}
     }
     let flattened=false,photos=candidates.slice();
-    for(const candidate of candidates.filter(item=>Math.abs(item.width/item.height-pageRatio)<.08)){
+    for(const candidate of candidates.length===1?candidates.filter(item=>Math.abs(item.width/item.height-pageRatio)<.08):[]){
       const segmented=await segmentFlattenedPage(candidate.canvas,pageNumber,1),keptSegments=[];
       for(const item of segmented){const decision=candidateDecision(item.canvas,item.analysis,pageText);if(decision.keep)keptSegments.push(item);else rejected.push(Object.assign(item,{rejectedReason:decision.reason}))}
       flattened=true;photos=photos.filter(item=>item!==candidate);photos.push(...keptSegments);rejected.push(Object.assign(candidate,{isPagePreview:true,sourceKind:'pdf-page-composite',rejectedReason:keptSegments.length?'составная страница PDF: выделено отдельных блоков '+keptSegments.length:'полная составная страница PDF — доступна только через «Оставить»'}));
@@ -9390,7 +9390,7 @@ function buildCompactBarV62(){
   layout.append(layoutSwitch,theme,photo,floor);
   const finalActions=document.createElement('section');finalActions.className='ne62-bar-group ne62-final-group';finalActions.setAttribute('aria-label','Финальные действия');
   const convert=existingConvert||buttonV62('Преобразовать по шаблону',function(){byId('ne54ConvertButton')?.click()});
-  const download=buttonV62('Скачать PDF',runSelectedExportV62,'ne62-download-main');download.id='ne62DownloadMain';
+  const download=buttonV62('Скачать PDF',function(){return runSelectedExportV62()},'ne62-download-main');download.id='ne62DownloadMain';
   const gear=buttonV62('',function(){toggleFormatPopoverV62(gear)},'ne62-gear');gear.id='ne62FormatTrigger';gear.innerHTML=gearSvgV62();gear.setAttribute('aria-label','Выбрать формат скачивания');gear.setAttribute('aria-haspopup','dialog');gear.setAttribute('aria-controls','ne62FormatPopover');gear.setAttribute('aria-expanded','false');
   finalActions.append(convert,download,gear);bar.append(work,layout,finalActions);window.dsRenderPresets?.(false);refreshBottomBarV62();
 }
@@ -9577,6 +9577,15 @@ window.NEXESTATE_V62_TEST={
   validate:validateSinglePageExportV62,
   build:function(forExport){return buildSinglePageCanvasV62({forExport:!!forExport})},
   refresh:refreshUiV62
+};
+window.NEXESTATE_V62_BRIDGE={
+  get buildFormatPopover(){return buildFormatPopoverV62},set buildFormatPopover(value){buildFormatPopoverV62=value},
+  get selectExport(){return selectExportV62},set selectExport(value){selectExportV62=value},
+  get refreshFormatPopover(){return refreshFormatPopoverV62},set refreshFormatPopover(value){refreshFormatPopoverV62=value},
+  get refreshBottomBar(){return refreshBottomBarV62},set refreshBottomBar(value){refreshBottomBarV62=value},
+  get runSelectedExport(){return runSelectedExportV62},set runSelectedExport(value){runSelectedExportV62=value},
+  button:buttonV62,
+  closePopover:closePopoverV62
 };
 })();
 </script>
@@ -12525,7 +12534,7 @@ const BY_THEME_ORDER_V73=['deepSapphire','emeraldGraphite','lightSteel','burgund
 const BY_THEME_NAMES_V73={original:'Фирменный зелёный',deepSapphire:'Глубокий сапфир',emeraldGraphite:'Аметистовый тёмный',lightSteel:'Светлый стальной',burgundyGraphite:'Мягкий антрацит',darkJade:'Тёмный нефрит',brandGreen:'Фирменный зелёный'};
 const SINGLE_THEME_NAMES_V73={warmGold:'Тёплый золотой',lightBlue:'Светло-синий',premiumDark:'Премиальный тёмный',darkJade:'Тёмный нефрит',brandGreen:'Фирменный зелёный'};
 const SAFE_LINK_V73=/^https:\/\/[A-Za-z0-9.-]+(?:[\/:?#][^\s]*)?$/i;
-const TEMPLATE_SAFE_KEYS_V73=['brandModeEnabled','activeBrandedLayout','brandLayout','presentationLayout','byNexEstateTheme','byNexEstateThemeV71','singlePageTheme','singlePageThemeV71','userDesign','userTheme','customThemeKey','selectedFont','byNexEstateFont','singlePageFont','hideAppBranding','showContactPage','companyTelegram','companyTelegramLabel','companyInstagram','companyInstagramLabel','showSite','siteUrl','closedSale','galleryMode','galleryTitles','galleryPages','pageOrder','hiddenPages','coverEnabled','floorPlanPlacement','features','userCharacteristicIds','byNexEstateCharacteristicIds','singlePageCharacteristicIds','byNexEstateFeatureValues','singlePageFeatureValues','selectedSinglePageAdvantageIds','singlePageAdvantageLabels','singlePageHero','singlePageHeroStretch','singlePageHeroExplicitlyCleared','singlePageExcludedAssetIds','brokerPhotoChoice','broker'];
+const TEMPLATE_SAFE_KEYS_V73=['brandModeEnabled','activeBrandedLayout','brandLayout','presentationLayout','byNexEstateTheme','byNexEstateThemeV71','singlePageTheme','singlePageThemeV71','userDesign','userTheme','customThemeKey','selectedFont','byNexEstateFont','singlePageFont','hideAppBranding','showContactPage','companyTelegram','companyTelegramLabel','showCompanyTelegram','companyInstagram','companyInstagramLabel','showCompanyInstagram','showSite','siteUrl','exportFormat','closedSale','galleryMode','galleryTitles','galleryPages','pageOrder','hiddenPages','coverEnabled','floorPlanPlacement','features','userCharacteristicIds','byNexEstateCharacteristicIds','singlePageCharacteristicIds','byNexEstateFeatureValues','singlePageFeatureValues','selectedSinglePageAdvantageIds','singlePageAdvantageLabels','singlePageHero','singlePageHeroStretch','singlePageHeroExplicitlyCleared','singlePageExcludedAssetIds','brokerPhotoChoice','broker'];
 let cropDraftV73=null,cropPointerV73=null,focusNoticeTimerV73=0,focusCloneTimerV73=0,templateDeleteTimerV73=0,pendingTemplateDeleteV73='',syncingUiV73=false;
 
 function ownV73(object,key){return !!object&&Object.prototype.hasOwnProperty.call(object,key)}
@@ -12539,8 +12548,10 @@ function normalizeCompanySettingsV73(base,source){
   base.showContactPage=ownV73(source,'showContactPage')?source.showContactPage===true:(Array.isArray(source.pageOrder)&&source.pageOrder.includes(CONTACT_PAGE_V73)&&!(source.hiddenPages||[]).includes(CONTACT_PAGE_V73));
   base.companyTelegram=normalizeWebV73(source.companyTelegram,'https://t.me/Nex_Estate');
   base.companyTelegramLabel=cleanText(source.companyTelegramLabel||'Мы в Telegram',60).trim()||'Мы в Telegram';
+  base.showCompanyTelegram=ownV73(source,'showCompanyTelegram')?source.showCompanyTelegram!==false:true;
   base.companyInstagram=normalizeWebV73(source.companyInstagram,'https://www.instagram.com/nex_estate_moscow/');
   base.companyInstagramLabel=cleanText(source.companyInstagramLabel||'Мы в Instagram',60).trim()||'Мы в Instagram';
+  base.showCompanyInstagram=ownV73(source,'showCompanyInstagram')?source.showCompanyInstagram!==false:true;
   base.showSite=ownV73(source,'showSite')?source.showSite!==false:true;
   base.siteUrl=normalizeWebV73(source.siteUrl||source.presoUrl||'https://nexestate.ru','https://nexestate.ru');
   base.closedSale=source.closedSale===true;
@@ -12553,7 +12564,7 @@ function normalizeCompanySettingsV73(base,source){
   return base;
 }
 const settingsDefaultsBeforeV73=settingsDefaults;
-settingsDefaults=function(){return normalizeCompanySettingsV73(Object.assign(settingsDefaultsBeforeV73(),{showContactPage:false,companyTelegram:'https://t.me/Nex_Estate',companyTelegramLabel:'Мы в Telegram',companyInstagram:'https://www.instagram.com/nex_estate_moscow/',companyInstagramLabel:'Мы в Instagram',showSite:true,siteUrl:'https://nexestate.ru',closedSale:false,customThemeKey:'soft',byNexEstateTheme:'brandGreen',byNexEstateThemeV71:'brandGreen',singlePageTheme:'brandGreen',singlePageThemeV71:'brandGreen'}),{showContactPage:false,byNexEstateTheme:'brandGreen',byNexEstateThemeV71:'brandGreen',singlePageTheme:'brandGreen',singlePageThemeV71:'brandGreen'})};
+settingsDefaults=function(){return normalizeCompanySettingsV73(Object.assign(settingsDefaultsBeforeV73(),{showContactPage:false,companyTelegram:'https://t.me/Nex_Estate',companyTelegramLabel:'Мы в Telegram',showCompanyTelegram:true,companyInstagram:'https://www.instagram.com/nex_estate_moscow/',companyInstagramLabel:'Мы в Instagram',showCompanyInstagram:true,showSite:true,siteUrl:'https://nexestate.ru',exportFormat:'pdf',closedSale:false,customThemeKey:'soft',byNexEstateTheme:'brandGreen',byNexEstateThemeV71:'brandGreen',singlePageTheme:'brandGreen',singlePageThemeV71:'brandGreen'}),{showContactPage:false,byNexEstateTheme:'brandGreen',byNexEstateThemeV71:'brandGreen',singlePageTheme:'brandGreen',singlePageThemeV71:'brandGreen'})};
 const normalizeSettingsBeforeV73=normalizeSettings;
 normalizeSettings=function(value){const source=value&&typeof value==='object'?value:{},base=normalizeSettingsBeforeV73(source);return normalizeCompanySettingsV73(base,source)};
 if(currentSettings)currentSettings=normalizeSettings(currentSettings);
@@ -12653,7 +12664,7 @@ function contactDetailsV73(){return byId('studioMgr')?.closest('details')||null}
 function updateContactUiV73(){
   const details=contactDetailsV73(),toggle=byId('ne73ShowContact'),note=byId('ne73ContactOffNote');if(!details||!currentSettings)return;
   if(toggle)toggle.checked=!!currentSettings.showContactPage;if(note)note.hidden=!!currentSettings.showContactPage;details.classList.toggle('ne73-contact-disabled',!currentSettings.showContactPage);
-  const showSite=byId('ne73ShowSite');if(showSite)showSite.checked=currentSettings.showSite!==false;const site=byId('studioSite');if(site){if(!site.value&&currentSettings.siteUrl)site.value=currentSettings.siteUrl;site.closest('label')?.classList.toggle('ne73-site-hidden',currentSettings.showSite===false)}
+  const showTg=byId('ne73ShowCompanyTelegram'),showIg=byId('ne73ShowCompanyInstagram'),showSite=byId('ne73ShowSite');if(showTg)showTg.checked=currentSettings.showCompanyTelegram!==false;if(showIg)showIg.checked=currentSettings.showCompanyInstagram!==false;if(showSite)showSite.checked=currentSettings.showSite!==false;const site=byId('studioSite');if(site){if(!site.value&&currentSettings.siteUrl)site.value=currentSettings.siteUrl;site.closest('label')?.classList.toggle('ne73-site-hidden',currentSettings.showSite===false)}
   const tg=byId('ne73CompanyTelegram'),ig=byId('ne73CompanyInstagram');if(tg&&document.activeElement!==tg)tg.value=currentSettings.companyTelegram||'https://t.me/Nex_Estate';if(ig&&document.activeElement!==ig)ig.value=currentSettings.companyInstagram||'https://www.instagram.com/nex_estate_moscow/';
 }
 function ensureContactUiV73(){
@@ -12662,9 +12673,11 @@ function ensureContactUiV73(){
   const wa=byId('studioWa')?.closest('label');if(wa){wa.classList.add('ne73-wa-hidden');if(wa.getAttribute('aria-hidden')!=='true')wa.setAttribute('aria-hidden','true')}
   byId('studioTg')?.closest('.ne61-telegram-row')?.querySelector('.ne61-telegram-open,.ne70-telegram-open')?.remove();
   let socials=byId('ne73CompanySocials');if(!socials){
-    socials=document.createElement('details');socials.id='ne73CompanySocials';socials.className='ne73-company-socials';socials.innerHTML='<summary>Соцсети компании</summary><div class="ne73-social-body"><label>Telegram компании<input id="ne73CompanyTelegram" type="url" inputmode="url"></label><label>Instagram компании<input id="ne73CompanyInstagram" type="url" inputmode="url"></label><label class="ne73-setting-check"><input id="ne73ShowSite" type="checkbox"> Показывать сайт</label></div>';details.appendChild(socials);
+    socials=document.createElement('details');socials.id='ne73CompanySocials';socials.className='ne73-company-socials';socials.innerHTML='<summary>Соцсети компании</summary><div class="ne73-social-body"><label>Telegram компании<input id="ne73CompanyTelegram" type="url" inputmode="url"></label><label class="ne73-setting-check"><input id="ne73ShowCompanyTelegram" type="checkbox"> Показывать Telegram компании</label><label>Instagram компании<input id="ne73CompanyInstagram" type="url" inputmode="url"></label><label class="ne73-setting-check"><input id="ne73ShowCompanyInstagram" type="checkbox"> Показывать Instagram компании</label><label class="ne73-setting-check"><input id="ne73ShowSite" type="checkbox"> Показывать сайт</label></div>';details.appendChild(socials);
     byId('ne73CompanyTelegram').onchange=function(){if(currentSettings){currentSettings.companyTelegram=normalizeWebV73(this.value,'https://t.me/Nex_Estate');this.value=currentSettings.companyTelegram;scheduleSave?.();scheduleRender?.()}};
+    byId('ne73ShowCompanyTelegram').onchange=function(){if(currentSettings){currentSettings.showCompanyTelegram=this.checked;scheduleSave?.();scheduleRender?.();updateContactUiV73()}};
     byId('ne73CompanyInstagram').onchange=function(){if(currentSettings){currentSettings.companyInstagram=normalizeWebV73(this.value,'https://www.instagram.com/nex_estate_moscow/');this.value=currentSettings.companyInstagram;scheduleSave?.();scheduleRender?.()}};
+    byId('ne73ShowCompanyInstagram').onchange=function(){if(currentSettings){currentSettings.showCompanyInstagram=this.checked;scheduleSave?.();scheduleRender?.();updateContactUiV73()}};
     byId('ne73ShowSite').onchange=function(){if(currentSettings){currentSettings.showSite=this.checked;scheduleSave?.();scheduleRender?.();updateContactUiV73()}};
   }
   const site=byId('studioSite');if(site&&site.dataset.ne73Site!=='1'){site.dataset.ne73Site='1';site.addEventListener('change',function(){if(currentSettings){currentSettings.siteUrl=normalizeWebV73(site.value,'https://nexestate.ru');site.value=currentSettings.siteUrl.replace(/^https?:\/\//,'');scheduleSave?.();scheduleRender?.()}})}
@@ -12725,10 +12738,10 @@ window.dsLoadPresets=loadTemplatesV73;window.dsSavePresets=saveTemplatesV73;wind
 
 function contactLinksV73(){
   if(!currentSettings)return[];const data=currentRecord?.data||dataFromForm(),broker=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||byId('studioTg')?.value),site=normalizeWebV73(data.presoUrl||byId('studioSite')?.value||currentSettings.siteUrl,'https://nexestate.ru');const lines=[];
-  if(data.mgrPhone)lines.push({label:'Телефон: '+data.mgrPhone,url:'tel:'+String(data.mgrPhone).replace(/[^+\d]/g,'')});if(broker?.valid&&!broker.empty)lines.push({label:'Telegram: '+broker.label,url:broker.url});lines.push({label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV73(currentSettings.companyTelegram,'https://t.me/Nex_Estate')});lines.push({label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV73(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')});if(currentSettings.showSite!==false&&site)lines.push({label:site.replace(/^https?:\/\//,''),url:site});return lines.filter(item=>item.url)
+  if(data.mgrPhone)lines.push({label:'Телефон: '+data.mgrPhone,url:'tel:'+String(data.mgrPhone).replace(/[^+\d]/g,'')});if(broker?.valid&&!broker.empty)lines.push({label:'Telegram: '+broker.label,url:broker.url});if(currentSettings.showCompanyTelegram!==false)lines.push({label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV73(currentSettings.companyTelegram,'https://t.me/Nex_Estate')});if(currentSettings.showCompanyInstagram!==false)lines.push({label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV73(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')});if(currentSettings.showSite!==false&&site)lines.push({label:site.replace(/^https?:\/\//,''),url:site});return lines.filter(item=>item.url)
 }
 function companyContactLinesV73(){
-  if(!currentSettings)return[];const lines=[{label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV73(currentSettings.companyTelegram,'https://t.me/Nex_Estate')},{label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV73(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')}];
+  if(!currentSettings)return[];const lines=[];if(currentSettings.showCompanyTelegram!==false)lines.push({label:currentSettings.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV73(currentSettings.companyTelegram,'https://t.me/Nex_Estate')});if(currentSettings.showCompanyInstagram!==false)lines.push({label:currentSettings.companyInstagramLabel||'Мы в Instagram',url:normalizeWebV73(currentSettings.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')});
   if(currentSettings.showSite!==false){const site=normalizeWebV73(byId('studioSite')?.value||currentSettings.siteUrl,'https://nexestate.ru');if(site)lines.push({label:'Сайт NexEstate',url:site})}return lines.filter(item=>item.url);
 }
 function attachContactSemanticsV73(canvas){
@@ -13051,10 +13064,10 @@ function drawContactV74(p,page,total){
   const phone=cleanText(data.mgrPhone||'',60).trim(),email=cleanText(data.mgrEmail||'',120).trim(),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||''),siteRaw=normalizeWebV74(data.presoUrl||currentSettings?.siteUrl,'https://nexestate.ru'),site=siteRaw==='https://nexestate.ru'?siteRaw+'/':siteRaw,instagramRaw=normalizeWebV74(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/'),instagram=instagramRaw==='https://www.instagram.com/nex_estate_moscow'?instagramRaw+'/':instagramRaw,personal=[];
   if(phone)personal.push({label:'Телефон: '+phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)personal.push({label:'Telegram: '+telegram.label,url:telegram.url});if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))personal.push({label:'E-mail: '+email,url:'mailto:'+email});
   const company=[
-    {label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV74(currentSettings?.companyTelegram,'https://t.me/Nex_Estate')},
-    {label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram},
-    {label:'nexestate.ru',url:site}
-  ].filter(function(item){return item.url}),linkRects=[];
+    currentSettings?.showCompanyTelegram!==false?{label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:normalizeWebV74(currentSettings?.companyTelegram,'https://t.me/Nex_Estate')}:null,
+    currentSettings?.showCompanyInstagram!==false?{label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram}:null,
+    currentSettings?.showSite!==false?{label:'nexestate.ru',url:site}:null
+  ].filter(function(item){return item?.url}),linkRects=[];
   personal.forEach(function(item,index){const y=1116+index*53;ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(473,y-7,4,0,Math.PI*2);ctx.fill();const layout=fitAndDrawV74(ctx,item.label,492,y,610,38,19,14,'600',p.text,1.15,2);linkRects.push({x:474,y:y-30,w:640,h:Math.max(36,layout.height+12),url:item.url,label:item.label,ne73Contact:true,group:'broker'})});
   const socialX=104,socialY=1418,socialGap=12,socialW=(1032-socialGap*2)/3,socialH=66;
   company.forEach(function(item,index){const x=socialX+index*(socialW+socialGap);fillRoundV74(ctx,x,socialY,socialW,socialH,12,p.surface2,p.line);ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(x+18,socialY+socialH/2,4,0,Math.PI*2);ctx.fill();fitAndDrawV74(ctx,item.label,x+32,socialY+19,socialW-44,socialH-22,17,13,'700',p.text,1.12,2);linkRects.push({x:x,y:socialY,w:socialW,h:socialH,url:item.url,label:item.label,ne73Contact:true,group:'company'})});
@@ -13211,7 +13224,7 @@ function drawAdvantagesV75(ctx,p,items,y){if(!items.length)return 0;const gap=16
 function drawStretchFeaturesV75(ctx,p,items,y){if(!items.length)return 0;const gap=14,w=(1504-gap*(items.length-1))/items.length,h=150;items.forEach(function(item,index){const x=100+index*(w+gap);panelV75(ctx,x,y,w,h,16,'rgba(3,14,24,.78)','rgba(255,255,255,.22)');drawVectorIconV75(ctx,item.type,x+18,y+18,34,{accent:p.accent2});const value=fitV75(ctx,cleanV75(item.value||'—',80),w-76,54,{family:fontStackV75(),weight:750,max:25,min:15,lineHeight:1.05}),label=fitV75(ctx,cleanV75(item.label||'',70),w-36,40,{family:fontStackV75(),weight:600,max:15,min:10,lineHeight:1.1});drawFitV75(ctx,value,x+62,y+19,p.inverse);drawFitV75(ctx,label,x+18,y+101,p.inverseMuted)});return h}
 function drawStretchAdvantagesV75(ctx,p,items,y){if(!items.length)return 0;const gap=12,w=(1504-gap*(items.length-1))/items.length,h=150;items.forEach(function(item,index){const x=100+index*(w+gap);panelV75(ctx,x,y,w,h,16,'rgba(3,14,24,.84)','rgba(255,255,255,.2)');drawVectorIconV75(ctx,item.icon,x+18,y+22,38,{accent:p.accent2});const label=fitV75(ctx,item.label,w-80,80,{family:fontStackV75(),weight:650,max:19,min:12,lineHeight:1.15});drawFitV75(ctx,label,x+68,y+28,p.inverse)});return h}
 function normalizeUrlV75(value,fallback=''){let raw=String(value||'').trim()||fallback;if(!raw)return'';if(/^@/.test(raw))raw='https://t.me/'+raw.slice(1);else if(!/^https?:\/\//i.test(raw))raw='https://'+raw.replace(/^\/+/, '');try{const url=new URL(raw);if(url.protocol!=='https:'&&url.protocol!=='http:')return'';url.protocol='https:';return url.href.replace(/\/$/,'')}catch(_){return''}}
-function contactLinksV75(data){const out=[],phone=cleanV75(data.mgrPhone,60),email=cleanV75(data.mgrEmail,100),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||'');if(phone)out.push({label:phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)out.push({label:'Telegram: '+telegram.label,url:telegram.url});const companyTg=normalizeUrlV75(currentSettings?.companyTelegram,'https://t.me/Nex_Estate'),instagram=normalizeUrlV75(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/'),site=normalizeUrlV75(currentSettings?.siteUrl||data.presoUrl,'https://nexestate.ru');if(companyTg)out.push({label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:companyTg});if(instagram)out.push({label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram});if(currentSettings?.showSite!==false&&site)out.push({label:site.replace(/^https?:\/\//,'').replace(/\/$/,''),url:site});if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))out.push({label:email,url:'mailto:'+email});return out.filter(function(item,index,array){return item.url&&array.findIndex(function(value){return value.url===item.url})===index}).slice(0,6)}
+function contactLinksV75(data){const out=[],phone=cleanV75(data.mgrPhone,60),email=cleanV75(data.mgrEmail,100),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||'');if(phone)out.push({label:phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)out.push({label:'Telegram: '+telegram.label,url:telegram.url});const companyTg=normalizeUrlV75(currentSettings?.companyTelegram,'https://t.me/Nex_Estate'),instagram=normalizeUrlV75(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/'),site=normalizeUrlV75(currentSettings?.siteUrl||data.presoUrl,'https://nexestate.ru');if(currentSettings?.showCompanyTelegram!==false&&companyTg)out.push({label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:companyTg});if(currentSettings?.showCompanyInstagram!==false&&instagram)out.push({label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram});if(currentSettings?.showSite!==false&&site)out.push({label:site.replace(/^https?:\/\//,'').replace(/\/$/,''),url:site});if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))out.push({label:email,url:'mailto:'+email});return out.filter(function(item,index,array){return item.url&&array.findIndex(function(value){return value.url===item.url})===index}).slice(0,6)}
 function drawFooterV75(ctx,p,data,canvas,y){ctx.strokeStyle=p.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(72,y);ctx.lineTo(1632,y);ctx.stroke();ctx.fillStyle=p.text;ctx.font='700 18px '+fontStackV75();ctx.textBaseline='top';ctx.fillText(cleanV75(data.mgr||'NexEstate',80),72,y+22);const links=contactLinksV75(data),rects=[];let x=390,row=0;ctx.font='600 15px '+fontStackV75();links.forEach(function(item){const w=Math.ceil(ctx.measureText(item.label).width)+30;if(x+w>1632&&row===0){row=1;x=390}const yy=y+18+row*34;ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(x+5,yy+9,3,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.text;ctx.fillText(item.label,x+16,yy);rects.push({x,y:yy-3,w,h:28,url:item.url,label:item.label,ne75Contact:true});x+=w});canvas.neExternalLinks=rects;ctx.fillStyle=p.accent;ctx.fillRect(72,H_V75-18,1560,4)}
 function buildSingleV75(options={}){if(!currentRecord||!currentSettings)return null;syncCanonicalDataOnly?.();const themeKey=selectedThemeV75(options),p=themeV75(themeKey),canvas=newCanvas(W_V75,H_V75),ctx=canvas.getContext('2d'),data=currentRecord?.data||dataFromForm(),assets=assetsV75(options),features=featuresV75(),advantages=advantagesV75(),closed=currentSettings?.closedSale===true,forExport=options.forExport===true;resetV75(ctx);ctx.fillStyle=p.page;ctx.fillRect(0,0,W_V75,H_V75);const header=drawHeaderV75(ctx,p,data,closed);let heroH=assets.lower.length?650:930,featureH=features.length?176:0,footerY=2460,advY=advantages.length?2238:footerY-12,contentEnd=advantages.length?advY-22:footerY-28;function metrics(){const heroY=header.height+18,featureY=heroY+heroH+18,contentY=featureY+(featureH?featureH+22:0),contentH=contentEnd-contentY;return{heroY,featureY,contentY,contentH}}let m=metrics(),descWidth=assets.lower.length?606:1560,descText=cleanV75(data.draft,12000),descFit=descriptionLayoutV75(ctx,descText,descWidth-56,m.contentH-119);while(descText&&!descFit.fits&&heroH>540){heroH-=30;m=metrics();descFit=descriptionLayoutV75(ctx,descText,descWidth-56,m.contentH-119)}drawHeroV75(ctx,p,assets.hero,m.heroY,heroH);if(features.length)drawFeaturesV75(ctx,p,features,m.featureY);const gap=22,descX=72,descW=assets.lower.length?606:1560;drawDescriptionV75(ctx,p,descText,descX,m.contentY,descW,m.contentH,canvas,forExport);if(assets.lower.length)drawLowerMediaV75(ctx,p,assets.lower,descX+descW+gap,m.contentY,1560-descW-gap,m.contentH);if(advantages.length)drawAdvantagesV75(ctx,p,advantages,advY);drawFooterV75(ctx,p,data,canvas,footerY);canvas.neStage5Renderer=STAGE5_VERSION_V75;canvas.neBrandLayout=SINGLE_LAYOUT_V75;canvas.neBrandTheme=themeKey;canvas.neStage3PageKind='singlePage';canvas.neStage5PhotoCount=assets.photoCount;canvas.neStage5LowerSlots=assets.lower.length;canvas.neStage5Plan=!!assets.plan;canvas.neStage5FeatureCount=features.length;canvas.neStage5AdvantageCount=advantages.length;canvas.neStage5TitleFits=header.titleFits;canvas.neStage5AddressFits=header.addressFits;canvas.neStage5MetroFits=header.metroFits;canvas.neClosedSaleV75=closed;return canvas}
 
@@ -16345,6 +16358,17 @@ window.NEXESTATE_UI_REDESIGN_TEST={
   refresh:()=>{ensureV78();queueSyncV78();return true},
   clearSync:clearSyncV78
 };
+window.NEXESTATE_V78_FOCUS_BRIDGE={
+  get mapping(){return mappingV78},set mapping(value){mappingV78=value},
+  get updateSync(){return updateSyncV78},set updateSync(value){updateSyncV78=value},
+  activeMode:activeModeV78,
+  registry:()=>window.NEXESTATE_STAGE2_TEST?.focusRegistry?.[activeModeV78()]||window.NEXESTATE_STAGE2_TEST?.focusRegistry?.custom,
+  sourceHost:sourceHostV78,
+  studio:studioV78,
+  active:()=>activeSyncV78,
+  clear:clearSyncV78,
+  queue:queueSyncV78
+};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueEnsureV78,{once:true});else queueEnsureV78();
 })();
 </script>
@@ -17513,7 +17537,7 @@ if(!v74BridgeV81.replaceContact(function(api,p,page,total){
   const stations=dataBridgeV81.normalizeMetroStations(data.metroStations?.length?data.metroStations:data.metro),location=[dataBridgeV81.manualClear('addr')?'':dataBridgeV81.clean(data.addr,220),dataBridgeV81.firstMetro(stations)].filter(Boolean).join(' · ');if(branded&&location)api.fitAndDraw(ctx,location,104,632,930,70,23,16,'600',p.inverseMuted,1.18,3);
   const brokerTop=branded?768:232,brokerHeight=branded?764:1300,brokerImageY=brokerTop+58,nameY=brokerTop+100,roleY=brokerTop+226,personalStart=branded?1116:brokerTop+508;api.fillRound(ctx,64,brokerTop,1112,brokerHeight,20,p.surface,p.line);api.drawBrokerCircle(ctx,p,104,brokerImageY,312);const name=api.clean(data.mgr,100),role=api.clean(data.mgrx,180);if(name||branded)api.fitAndDraw(ctx,name||(branded?'Эксперт NexEstate':''),464,nameY,650,112,38,24,'700',p.text,1.12,4);if(role||branded)api.fitAndDraw(ctx,role||(branded?'Коммерческая недвижимость полного цикла':''),464,roleY,650,82,21,16,'500',p.muted,1.24,4);
   const phone=api.clean(data.mgrPhone||'',60).trim(),email=api.clean(data.mgrEmail||'',120).trim(),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||''),personal=[];if(phone)personal.push({label:'Телефон: '+phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)personal.push({label:'Telegram: '+telegram.label,url:telegram.url});if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))personal.push({label:'E-mail: '+email,url:'mailto:'+email});
-  const company=branded?[{label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:api.normalizeWeb(currentSettings?.companyTelegram,'https://t.me/Nex_Estate')},{label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:api.normalizeWeb(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')},{label:'nexestate.ru',url:api.normalizeWeb(data.presoUrl||currentSettings?.siteUrl,'https://nexestate.ru/')}].filter(item=>item.url):[],linkRects=[];
+  const company=branded?[currentSettings?.showCompanyTelegram!==false?{label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:api.normalizeWeb(currentSettings?.companyTelegram,'https://t.me/Nex_Estate')}:null,currentSettings?.showCompanyInstagram!==false?{label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:api.normalizeWeb(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/')}:null,currentSettings?.showSite!==false?{label:'nexestate.ru',url:api.normalizeWeb(data.presoUrl||currentSettings?.siteUrl,'https://nexestate.ru/')}:null].filter(item=>item?.url):[],linkRects=[];
   personal.forEach((item,index)=>{const y=personalStart+index*53;ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(473,y-7,4,0,Math.PI*2);ctx.fill();const layout=api.fitAndDraw(ctx,item.label,492,y,610,38,19,14,'600',p.text,1.15,2);linkRects.push({x:474,y:y-30,w:640,h:Math.max(36,layout.height+12),url:item.url,label:item.label,ne73Contact:true,group:'broker'})});
   const socialX=104,socialY=1418,socialGap=12,socialW=(1032-socialGap*2)/3,socialH=66;company.forEach((item,index)=>{const x=socialX+index*(socialW+socialGap);api.fillRound(ctx,x,socialY,socialW,socialH,12,p.surface2,p.line);ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(x+18,socialY+socialH/2,4,0,Math.PI*2);ctx.fill();api.fitAndDraw(ctx,item.label,x+32,socialY+19,socialW-44,socialH-22,17,13,'700',p.text,1.12,2);linkRects.push({x,y:socialY,w:socialW,h:socialH,url:item.url,label:item.label,ne73Contact:true,group:'company'})});
   c.neExternalLinks=linkRects;c.neContactLines=personal.concat(company).map(item=>item.label);c.neContactGroups={broker:personal.map(item=>item.label),company:company.map(item=>item.label)};c.neContactBroker={name,role};c.neCompanyContactsV73=branded;c.neStage3PageKind='contact';c.neStage4Kind='contact';api.drawFooter(ctx,p,page,total);return c;
@@ -17526,7 +17550,7 @@ if(!v75BridgeV81.replaceHeader(function(api,ctx,p,data,closed){
 }))throw new Error('NexEstate brand header bridge unavailable');
 
 if(!v75BridgeV81.replaceContactLinks(function(api,data){
-  const out=[],phone=api.clean(data.mgrPhone,60),email=api.clean(data.mgrEmail,100),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||'');if(phone)out.push({label:phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)out.push({label:'Telegram: '+telegram.label,url:telegram.url});if(!hideBrandV81()){const companyTg=api.normalizeUrl(currentSettings?.companyTelegram,'https://t.me/Nex_Estate'),instagram=api.normalizeUrl(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/'),site=api.normalizeUrl(currentSettings?.siteUrl||data.presoUrl,'https://nexestate.ru');if(companyTg)out.push({label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:companyTg});if(instagram)out.push({label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram});if(currentSettings?.showSite!==false&&site)out.push({label:site.replace(/^https?:\/\//,'').replace(/\/$/,''),url:site})}if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))out.push({label:email,url:'mailto:'+email});return out.filter((item,index,array)=>item.url&&array.findIndex(value=>value.url===item.url)===index).slice(0,6);
+  const out=[],phone=api.clean(data.mgrPhone,60),email=api.clean(data.mgrEmail,100),telegram=window.NEXESTATE_NORMALIZE_TELEGRAM?.(data.mgrTg||'');if(phone)out.push({label:phone,url:'tel:'+phone.replace(/[^+\d]/g,'')});if(telegram?.valid&&!telegram.empty)out.push({label:'Telegram: '+telegram.label,url:telegram.url});if(!hideBrandV81()){const companyTg=api.normalizeUrl(currentSettings?.companyTelegram,'https://t.me/Nex_Estate'),instagram=api.normalizeUrl(currentSettings?.companyInstagram,'https://www.instagram.com/nex_estate_moscow/'),site=api.normalizeUrl(currentSettings?.siteUrl||data.presoUrl,'https://nexestate.ru');if(currentSettings?.showCompanyTelegram!==false&&companyTg)out.push({label:currentSettings?.companyTelegramLabel||'Мы в Telegram',url:companyTg});if(currentSettings?.showCompanyInstagram!==false&&instagram)out.push({label:currentSettings?.companyInstagramLabel||'Мы в Instagram',url:instagram});if(currentSettings?.showSite!==false&&site)out.push({label:site.replace(/^https?:\/\//,'').replace(/\/$/,''),url:site})}if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))out.push({label:email,url:'mailto:'+email});return out.filter((item,index,array)=>item.url&&array.findIndex(value=>value.url===item.url)===index).slice(0,6);
 }))throw new Error('NexEstate contact-link bridge unavailable');
 if(!v75BridgeV81.replaceFooter(function(api,ctx,p,data,canvas,y){
   ctx.strokeStyle=p.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(72,y);ctx.lineTo(1632,y);ctx.stroke();const name=api.clean(data.mgr,80);if(name||!hideBrandV81()){ctx.fillStyle=p.text;ctx.font='700 18px '+api.fontStack();ctx.textBaseline='top';ctx.fillText(name||'NexEstate',72,y+22)}const links=api.contactLinks(data),rects=[];let x=name||!hideBrandV81()?390:72,row=0;ctx.font='600 15px '+api.fontStack();links.forEach(item=>{const w=Math.ceil(ctx.measureText(item.label).width)+30;if(x+w>1632&&row===0){row=1;x=72}const yy=y+18+row*34;ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(x+5,yy+9,3,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.text;ctx.fillText(item.label,x+16,yy);rects.push({x,y:yy-3,w,h:28,url:item.url,label:item.label,ne75Contact:true});x+=w});canvas.neExternalLinks=rects;ctx.fillStyle=p.accent;ctx.fillRect(72,api.H-18,1560,4);
@@ -18208,7 +18232,8 @@ function ensureToolbarV83(){
   const backups=[...workControls.querySelectorAll('button')].find(node=>node.textContent.trim()==='Резервные копии');
   const check=[...workControls.querySelectorAll('button')].find(node=>node.textContent.trim()==='Проверить');
   const autosave=workControls.querySelector('.ne62-autosave');
-  orderChildrenV83(workControls,[save,preset,remove,backups,check,autosave]);
+  if(autosave)autosave.remove();
+  orderChildrenV83(workControls,[save,preset,remove,backups,check]);
   const switcher=layoutControls.querySelector('.ne62-layout-switch');
   const noLogos=$V83('ne80NoLogos')?.closest('.ne80-no-logos');
   const hero=$V83('ne62HeroTrigger'),floor=$V83('ne62FloorTrigger');
@@ -18217,10 +18242,11 @@ function ensureToolbarV83(){
     if(noLogos.parentElement!==switcher)switcher.insertBefore(noLogos,mediaRef);
     else if(mediaRef&&noLogos.nextElementSibling!==mediaRef)switcher.insertBefore(noLogos,mediaRef);
   }
-  const convert=$V83('ne54ConvertWrap'),pdf=$V83('ne78DownloadPdf'),png=$V83('ne78DownloadPng'),gear=$V83('ne62FormatTrigger');
-  orderChildrenV83(finalControls,[convert,pdf,png,gear]);
   const legacyDownload=$V83('ne62DownloadMain');
-  if(legacyDownload){legacyDownload.hidden=true;legacyDownload.setAttribute('aria-hidden','true');legacyDownload.tabIndex=-1}
+  const convert=$V83('ne54ConvertWrap'),pdf=$V83('ne78DownloadPdf'),png=$V83('ne78DownloadPng'),gear=$V83('ne62FormatTrigger');
+  if(legacyDownload){legacyDownload.hidden=false;legacyDownload.removeAttribute('aria-hidden');legacyDownload.tabIndex=0}
+  if(pdf){pdf.hidden=true;pdf.setAttribute('aria-hidden','true');pdf.tabIndex=-1}
+  orderChildrenV83(finalControls,[convert,legacyDownload,png,gear]);
   const toggle=$V83('ne73BarToggle');
   if(toggle){toggle.hidden=true;toggle.setAttribute('aria-hidden','true');toggle.tabIndex=-1}
   if(controls.parentElement!==bar)bar.prepend(controls);
@@ -18722,6 +18748,177 @@ const DESCRIPTION_FIXTURE_V86=['Характеристики','Об объект
 window.NEXESTATE_FINAL_FIX_TEST=Object.assign({},window.NEXESTATE_FINAL_FIX_TEST,{version:VERSION_V86,extractDescription:extractDescriptionV86,descriptionFixture:{input:DESCRIPTION_FIXTURE_V86,expectedStart:'Помещение расположено в ЦАО.',expectedEnd:'2 входные группы: 1 с улицы, 1 со двора.',run:()=>extractDescriptionV86(DESCRIPTION_FIXTURE_V86)},inspectProjectCards:inspectProjectCardsV86,formatSaved:value=>'Сохранено '+new Date(value).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),inspectCover:()=>window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST?.inspectCover?.()||null});
 window.NEXESTATE_FINAL_FIX_LOADED=true;
 })();
+</script>
+<style id="nexestate-presentation-media-fix-v87-style">
+#presentationStudio .ne87-description-choice{display:grid;gap:10px;margin:12px 0;padding:12px;border:1px solid #2f6e8d;border-radius:12px;background:#0b2638;color:#e8f6ff;box-shadow:0 12px 34px rgba(0,0,0,.24)}
+#presentationStudio .ne87-description-choice[hidden]{display:none!important}
+#presentationStudio .ne87-description-choice h4{margin:0;font-size:15px}
+#presentationStudio .ne87-description-choice>p{margin:0;color:#a9c6d7;font-size:12px;line-height:1.45}
+#presentationStudio .ne87-description-candidates{display:grid;gap:8px;max-height:330px;overflow:auto;overscroll-behavior:contain}
+#presentationStudio .ne87-description-candidate{display:grid;gap:7px;padding:10px;border:1px solid #31576c;border-radius:9px;background:#081d2b}
+#presentationStudio .ne87-description-candidate small{color:#76bfe9}
+#presentationStudio .ne87-description-candidate p{max-height:118px;margin:0;overflow:auto;white-space:pre-wrap;color:#d8e8f1;font-size:12px;line-height:1.45}
+#presentationStudio .ne87-description-actions{display:flex;gap:7px;flex-wrap:wrap}
+#presentationStudio .ne87-description-actions button{min-height:34px}
+#presentationStudio .ne87-description-manual{display:grid;gap:7px}
+#presentationStudio .ne87-description-manual textarea{min-height:112px;resize:vertical}
+#presentationStudio .ns-media-card>.ns-media-quality{display:none!important}
+#presentationStudio .ns-media-card>.ns-media-delete{display:none!important}
+#presentationStudio .ns-media-card .ne87-media-remove{color:#ff9da9!important;border-color:#8d3443!important;background:#351621!important}
+#presentationStudio .ns-media-card .ne87-media-drag{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+#presentationStudio .ns-media-card .ne87-media-drag:active{cursor:grabbing}
+#presentationStudio .ns-media-card.ne87-drag-over{outline:2px solid #4eb9ff;outline-offset:2px}
+#presentationStudio .ns-media-card .ns-media-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#presentationStudio .ne62-download-main[aria-busy="true"]{cursor:wait;opacity:.72}
+#presentationStudio .ne87-export-status{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8ed6ff;font-size:10px}
+@media(max-width:700px){
+  #presentationStudio .ns-media-card .ns-media-actions{width:100%;justify-content:space-between}
+  #presentationStudio .ns-media-card .ne87-media-drag,#presentationStudio .ns-media-card .ne87-media-remove{min-height:40px;flex:1 1 auto}
+}
+</style>
+<script type="text/plain" id="nexestate-presentation-media-fix-v87-runtime">
+(()=>{
+'use strict';
+const VERSION_V87='87.0-presentation-media-fix-20260825';
+const EXPORTS_V87=new Set(['pdf','web','html']);
+const DESCRIPTION_HEAD_V87=/^(?:описание(?:\s+(?:объекта|помещения))?|об\s+объекте|description)\s*(?::|—|–|-)?\s*(.*)$/iu;
+const DESCRIPTION_STOP_V87=/^(?:основные\s+данные|характеристики|преимущества|планировка|фотографии|контакты|контакт\s+брокера|адрес|метро|назначение|площадь|цена|стоимость|этаж(?:ность)?|мощность|парковка)\s*:?[\s\d]*$/iu;
+const DESCRIPTION_VARIANT_V87=/^(?:материал|вариант|фрагмент|блок|описание)\s*(?:№|#)?\s*(?:\d{1,2}|[А-ЯA-Z])\s*(?::|—|–|-)?\s*(.*)$/iu;
+const PAGE_V87=/^-{2,}\s*(?:OCR\s+)?СТРАНИЦА(?:\s+(\d+))?/iu;
+const CONTACT_TEST_V87=/(?:\+?7|8)[\s()\-–—]*(?:\d[\s()\-–—]*){10}|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|(?:https?:\/\/|www\.)\S+|(?:telegram|instagram|телефон|e-?mail|почта|сайт)\s*:/iu;
+const CONTACT_REPLACE_V87=/(?:\+?7|8)[\s()\-–—]*(?:\d[\s()\-–—]*){10}|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|(?:https?:\/\/|www\.)\S+|(?:telegram|instagram|телефон|e-?mail|почта|сайт)\s*:/giu;
+const BOILERPLATE_V87=/^(?:nex\s*estate|nexestate|коммерческая\s+недвижимость|презентация\s+объекта|страница\s+\d+|\d+\s*\/\s*\d+)$/iu;
+let pendingDescriptionV87=null,exportBusyV87=false,lastFocusDiagnosticV87='';
+function cleanV87(value,limit=12000){return String(value??'').replace(/&frasl;|&#8260;|&#x2044;/giu,'/').replace(/[\u00a0\u202f]/g,' ').replace(/[ \t]+/g,' ').replace(/\s+([,.;:!?])/g,'$1').trim().slice(0,limit)}
+function safeDescriptionLineV87(value){const source=cleanV87(value,2400),withoutContacts=source.replace(CONTACT_REPLACE_V87,' ').replace(/\s+/g,' ').trim();if(!source||BOILERPLATE_V87.test(source)||CONTACT_TEST_V87.test(source)&&withoutContacts.length<28)return'';return withoutContacts}
+function pageBlocksV87(raw){
+  const lines=String(raw??'').replace(/\r\n?/g,'\n').split('\n'),pages=[];let page={page:1,lines:[]};
+  for(const source of lines){const line=cleanV87(source,4000),mark=line.match(PAGE_V87);if(mark){if(page.lines.length)pages.push(page);page={page:Number(mark[1])||pages.length+1,lines:[]};continue}page.lines.push(line)}
+  if(page.lines.length)pages.push(page);return pages.length?pages:[{page:1,lines:[]}];
+}
+function candidateScoreV87(text,headed){
+  const words=text.split(/\s+/).filter(Boolean),sentences=(text.match(/[.!?](?:\s|$)/g)||[]).length,labels=(text.match(/\b(?:площадь|цена|стоимость|этаж|метро|парковка|мощность|адрес)\s*:/giu)||[]).length;
+  return(headed?90:0)+Math.min(34,words.length/3)+Math.min(14,sentences*3)-labels*14-(text.length>2600?24:0);
+}
+function variantParagraphsV87(lines){
+  const blocks=[];let current=[],markerSeen=false;
+  const flush=()=>{const text=cleanV87(current.map(safeDescriptionLineV87).filter(Boolean).join(' '));if(text.length>=80&&text.length<=3200)blocks.push(text);current=[]};
+  for(const line of lines){const marker=line.match(DESCRIPTION_VARIANT_V87);if(marker){if(markerSeen)flush();else current=[];markerSeen=true;const inline=safeDescriptionLineV87(marker[1]);if(inline)current.push(inline);continue}if(markerSeen)current.push(line)}
+  if(markerSeen)flush();return blocks.length>=2?blocks:[];
+}
+function classifyDescriptionV87(raw){
+  const found=[];
+  for(const page of pageBlocksV87(raw)){
+    const lines=page.lines;
+    for(let index=0;index<lines.length;index++){
+      const head=lines[index].match(DESCRIPTION_HEAD_V87);if(!head)continue;const selected=[];
+      const inline=safeDescriptionLineV87(head[1]);if(inline)selected.push(inline);
+      for(let cursor=index+1;cursor<lines.length;cursor++){const line=lines[cursor];if(!line){if(selected.length&&selected.join(' ').length>120)break;continue}if(DESCRIPTION_HEAD_V87.test(line)||DESCRIPTION_STOP_V87.test(line))break;const safe=safeDescriptionLineV87(line);if(safe)selected.push(safe)}
+      const text=cleanV87(selected.join(' '));if(text.length>=38)found.push({text,page:page.page,reason:'секция «Описание»',headed:true,score:candidateScoreV87(text,true)});
+    }
+    const variants=variantParagraphsV87(lines),paragraphs=variants.length?variants:lines.join('\n').split(/\n\s*\n+/).map(value=>cleanV87(value.split('\n').map(safeDescriptionLineV87).filter(Boolean).join(' '))).filter(value=>value.length>=80&&value.length<=3200);
+    paragraphs.forEach(text=>found.push({text,page:page.page,reason:'связный текстовый блок',headed:false,score:candidateScoreV87(text,false)}));
+  }
+  const unique=[];for(const item of found.sort((a,b)=>b.score-a.score||b.text.length-a.text.length)){const key=item.text.toLocaleLowerCase('ru-RU').replace(/[^\p{L}\p{N}]+/gu,' ').trim();if(!key||unique.some(value=>value.key===key||value.key.includes(key)||key.includes(value.key)))continue;unique.push({...item,key})}
+  const candidates=unique.slice(0,5).map(({key,...item})=>item),headed=candidates.filter(item=>item.headed),top=candidates[0],second=candidates[1];
+  const confident=!!top&&((headed.length===1&&top===headed[0]&&top.score>=104)||(top.score>=118&&(!second||top.score-second.score>=22)));
+  return{confident,candidate:confident?top:null,candidates};
+}
+function generatedContextV87(){return window.NE80_TEXT_IMPORT_CONTEXT!=='user-authored'}
+function setDescriptionV87(value,source='manual'){
+  const text=cleanV87(value),field=byId('studioDescription');
+  if(field){field.value=text;field.dataset.ne62LastValid=text;field.dataset.ne87DescriptionSource=source}
+  if(currentRecord?.data){currentRecord.data.draft=text;currentRecord.data.descriptionSource=source;currentRecord.data.descriptionUpdatedAt=new Date().toISOString()}
+  const pdf=window.NE53_STATE?.pdf;if(pdf){pdf.fieldSources=pdf.fieldSources||{};pdf.fieldSources.draft={...(pdf.fieldSources.draft||{}),source,manual:source==='manual',autoValue:source==='automatic'?text:pdf.fieldSources.draft?.autoValue||'',value:text,updatedAt:new Date().toISOString()}}
+  scheduleSave?.();scheduleRender?.();window.ne53QueuePreview?.();return text;
+}
+function choiceHostV87(){return byId('ne58PdfProgress')?.parentElement||byId('studioPdfStatus')?.parentElement||document.querySelector('#presentationStudio [data-panel="pdf"]')}
+function renderDescriptionChoiceV87(){
+  let panel=byId('ne87DescriptionChoice');const host=choiceHostV87();if(!host)return null;
+  if(!panel){panel=document.createElement('section');panel.id='ne87DescriptionChoice';panel.className='ne87-description-choice';panel.setAttribute('aria-live','polite');host.appendChild(panel)}
+  if(!pendingDescriptionV87?.candidates?.length){delete panel.dataset.candidateSignature;if(!panel.hidden)panel.hidden=true;if(panel.childNodes.length)panel.replaceChildren();return panel}
+  const signature=pendingDescriptionV87.candidates.map(item=>`${item.page}:${item.text}`).join('\n');if(!panel.hidden&&panel.dataset.candidateSignature===signature)return panel;panel.dataset.candidateSignature=signature;
+  panel.hidden=false;panel.replaceChildren();const title=document.createElement('h4');title.textContent='Выберите описание объекта';const note=document.createElement('p');note.textContent='Найдено несколько подходящих фрагментов. Ничего не будет записано без вашего выбора.';const list=document.createElement('div');list.className='ne87-description-candidates';
+  pendingDescriptionV87.candidates.forEach((item,index)=>{const card=document.createElement('article');card.className='ne87-description-candidate';const meta=document.createElement('small');meta.textContent=`Страница ${item.page} · ${item.reason}`;const text=document.createElement('p');text.textContent=item.text;const actions=document.createElement('div');actions.className='ne87-description-actions';const use=document.createElement('button');use.type='button';use.textContent='Использовать этот вариант';use.onclick=()=>{setDescriptionV87(item.text,'selected-candidate');pendingDescriptionV87=null;renderDescriptionChoiceV87()};actions.appendChild(use);card.append(meta,text,actions);list.appendChild(card)});
+  const globalActions=document.createElement('div');globalActions.className='ne87-description-actions';const none=document.createElement('button');none.type='button';none.textContent='Оставить пустым';none.onclick=()=>{setDescriptionV87('','none');pendingDescriptionV87=null;renderDescriptionChoiceV87()};const manual=document.createElement('button');manual.type='button';manual.textContent='Ввести вручную';const manualBox=document.createElement('div');manualBox.className='ne87-description-manual';manualBox.hidden=true;const area=document.createElement('textarea');area.placeholder='Введите описание объекта';const apply=document.createElement('button');apply.type='button';apply.textContent='Применить ручное описание';apply.onclick=()=>{if(!area.value.trim())return;setDescriptionV87(area.value,'manual');pendingDescriptionV87=null;renderDescriptionChoiceV87()};manual.onclick=()=>{manualBox.hidden=false;area.focus()};manualBox.append(area,apply);globalActions.append(none,manual);panel.append(title,note,list,globalActions,manualBox);return panel;
+}
+function applyDescriptionClassificationV87(raw,result,api){
+  if(!generatedContextV87())return result;const classified=classifyDescriptionV87(raw),meta=api?.getMeta?.();
+  if(classified.confident){result.draft=classified.candidate.text;pendingDescriptionV87=null;if(meta)meta.draft={confidence:1,reason:`${classified.candidate.reason}, страница ${classified.candidate.page}`}}
+  else{delete result.draft;if(meta)delete meta.draft;const candidates=classified.candidates.slice(0,5);pendingDescriptionV87=candidates.length>=2?{candidates}:null;queueMicrotask(renderDescriptionChoiceV87)}
+  api?.publishMeta?.();return result;
+}
+const qdBeforeV87=window.qdParseText;
+if(typeof qdBeforeV87==='function')window.qdParseText=function(raw){return applyDescriptionClassificationV87(raw,{...(qdBeforeV87.apply(this,arguments)||{})})};
+const bridgeV87=window.NEXESTATE_STAGE1_BRIDGE;
+if(!bridgeV87?.wrapParser?.((previous,raw,fileName,api)=>applyDescriptionClassificationV87(raw,{...(previous(raw,fileName)||{})},api)))throw new Error('NexEstate Stage 1 parser bridge unavailable for V87');
+
+function formatV87(){const preferred=currentSettings?.exportFormat,fallback=currentSettings?.exportType;return EXPORTS_V87.has(preferred)?preferred:EXPORTS_V87.has(fallback)?fallback:'pdf'}
+function syncExportV87(save=false){if(!currentSettings)return'pdf';currentSettings.exportFormat=formatV87();currentSettings.exportType=currentSettings.exportFormat;if(save)scheduleSave?.();return currentSettings.exportFormat}
+function exportInfoV87(type){return{pdf:{label:'Скачать PDF',title:'Скачать презентацию PDF',mime:'application/pdf',extension:'.pdf'},web:{label:'Открыть WEB',title:'Открыть интерактивную WEB-презентацию',mime:'text/html',extension:'новая вкладка'},html:{label:'Скачать HTML',title:'Скачать автономную HTML-презентацию',mime:'text/html',extension:'.html'}}[type]}
+const exportBridgeV87=window.NEXESTATE_V62_BRIDGE;
+if(!exportBridgeV87)throw new Error('NexEstate V62 export bridge unavailable for V87');
+function selectExportV87(type){if(!currentSettings||!EXPORTS_V87.has(type))return;currentSettings.exportFormat=type;currentSettings.exportType=type;exportBridgeV87.refreshBottomBar();scheduleSave?.()}
+const buildFormatBeforeV87=exportBridgeV87.buildFormatPopover;
+function buildFormatPopoverV87(){const popover=buildFormatBeforeV87();const options=popover?.querySelector('.ne62-format-options');if(options&&options.dataset.ne87!=='1'){options.dataset.ne87='1';options.replaceChildren();[['pdf','PDF'],['web','WEB'],['html','HTML']].forEach(([value,label])=>{const button=exportBridgeV87.button(label,()=>{selectExportV87(value);exportBridgeV87.closePopover(popover,true)});button.dataset.exportType=value;button.setAttribute('role','radio');options.appendChild(button)})}return popover}
+exportBridgeV87.buildFormatPopover=buildFormatPopoverV87;
+function refreshFormatPopoverV87(){const type=syncExportV87();document.querySelectorAll('#ne62FormatPopover [data-export-type]').forEach(button=>button.setAttribute('aria-checked',String(button.dataset.exportType===type)))}
+exportBridgeV87.refreshFormatPopover=refreshFormatPopoverV87;
+const refreshBottomBeforeV87=exportBridgeV87.refreshBottomBar;
+function refreshBottomBarV87(){syncExportV87();refreshBottomBeforeV87();const type=formatV87(),info=exportInfoV87(type),main=byId('ne62DownloadMain');if(main){main.hidden=false;main.removeAttribute('aria-hidden');main.tabIndex=0;main.textContent=info.label;main.title=`${info.title} · ${info.mime} · ${info.extension}`;main.dataset.exportFormat=type}const pdf=byId('ne78DownloadPdf');if(pdf){pdf.hidden=true;pdf.setAttribute('aria-hidden','true');pdf.tabIndex=-1}refreshFormatPopoverV87()}
+exportBridgeV87.refreshBottomBar=refreshBottomBarV87;
+async function runSelectedExportV87(){
+  if(exportBusyV87){toastSafe?.('Экспорт уже выполняется. Дождитесь завершения.','warn');return false}const type=syncExportV87(),main=byId('ne62DownloadMain'),info=exportInfoV87(type);exportBusyV87=true;
+  if(main){main.disabled=true;main.setAttribute('aria-busy','true');main.textContent='Подготовка…'}let status=byId('ne87ExportStatus');if(!status){status=document.createElement('span');status.id='ne87ExportStatus';status.className='ne87-export-status';main?.parentElement?.insertBefore(status,main)}status.textContent='Подготовка экспорта…';
+  try{await new Promise(requestAnimationFrame);status.textContent=type==='pdf'?'Формирование PDF…':type==='web'?'Открытие WEB…':'Формирование HTML…';const action=type==='pdf'?window.dsExportPDF:type==='web'?window.dsOpenNewTab:window.dsDownloadHTML;if(typeof action!=='function')throw new Error(`Экспорт ${type.toUpperCase()} недоступен`);await Promise.resolve(action());status.textContent=`${info.label}: готово`;return true}catch(error){status.textContent=`Ошибка: ${error?.message||error}`;toastSafe?.(status.textContent,'err');return false}finally{exportBusyV87=false;if(main){main.disabled=false;main.removeAttribute('aria-busy');main.textContent=info.label}}
+}
+exportBridgeV87.runSelectedExport=runSelectedExportV87;
+
+function moveMediaV87(from,to){if(!Number.isInteger(from)||!Number.isInteger(to)||from===to)return false;const api=window.NEXESTATE_STANDALONE_TEST;if(typeof api?.moveMedia!=='function')return false;const direction=from<to?1:-1;for(let index=from;index!==to;index+=direction)api.moveMedia(index,direction);scheduleSave?.();return true}
+let pointerDragV87=null;
+function enhanceMediaCardsV87(){
+  const cards=[...document.querySelectorAll('#presentationStudio #ne53MediaGrid .ns-media-source')];cards.forEach((card,index)=>{card.draggable=false;card.removeAttribute('draggable');card.querySelectorAll(':scope>.ns-media-quality').forEach(node=>node.remove());const legacy=card.querySelector(':scope>.ns-media-delete');if(legacy)legacy.hidden=true;const actions=card.querySelector('.ns-media-actions');if(!actions)return;let handle=actions.querySelector('.ne87-media-drag');if(!handle){handle=document.createElement('button');handle.type='button';handle.className='ne55-icon-button ne87-media-drag';handle.textContent='↕ Переместить';handle.draggable=true;handle.setAttribute('aria-label',`Переместить фото ${index+1}`);actions.prepend(handle)}let remove=actions.querySelector('.ne87-media-remove');if(!remove){remove=document.createElement('button');remove.type='button';remove.className='ne55-icon-button ne87-media-remove';remove.textContent='Удалить';remove.setAttribute('aria-label',`Удалить фото ${index+1} из Media`);remove.onclick=event=>{event.stopPropagation();removeAssetById(card.dataset.assetId)};actions.appendChild(remove)}
+    handle.ondragstart=event=>{event.stopPropagation();event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/x-nexestate-media-index',String(index));event.dataTransfer.setData('text/plain',String(index))};card.ondragover=event=>{if(event.dataTransfer?.types?.includes('text/x-nexestate-media-index')){event.preventDefault();event.dataTransfer.dropEffect='move';card.classList.add('ne87-drag-over')}};card.ondragleave=()=>card.classList.remove('ne87-drag-over');card.ondrop=event=>{const raw=event.dataTransfer?.getData('text/x-nexestate-media-index');if(raw==='')return;event.preventDefault();card.classList.remove('ne87-drag-over');moveMediaV87(Number(raw),index)};
+    handle.onpointerdown=event=>{if(event.pointerType==='mouse'&&event.button!==0)return;event.preventDefault();pointerDragV87={from:index,pointerId:event.pointerId,handle};handle.setPointerCapture?.(event.pointerId)};handle.onpointermove=event=>{if(pointerDragV87?.pointerId!==event.pointerId)return;document.querySelectorAll('.ne87-drag-over').forEach(node=>node.classList.remove('ne87-drag-over'));document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.ns-media-source')?.classList.add('ne87-drag-over')};handle.onpointerup=event=>{if(pointerDragV87?.pointerId!==event.pointerId)return;const target=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.ns-media-source'),to=Number(target?.dataset.mediaIndex);document.querySelectorAll('.ne87-drag-over').forEach(node=>node.classList.remove('ne87-drag-over'));const from=pointerDragV87.from;pointerDragV87=null;if(Number.isInteger(to))moveMediaV87(from,to)};handle.onpointercancel=()=>{pointerDragV87=null;document.querySelectorAll('.ne87-drag-over').forEach(node=>node.classList.remove('ne87-drag-over'))};handle.onkeydown=event=>{if(!['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(event.key))return;event.preventDefault();const delta=/Up|Left/.test(event.key)?-1:1;moveMediaV87(index,Math.max(0,Math.min(cards.length-1,index+delta)))};
+  });
+}
+const renderMediaBeforeV87=renderExtendedMedia;
+renderExtendedMedia=function(){const result=renderMediaBeforeV87.apply(this,arguments);enhanceMediaCardsV87();return result};
+const enhanceMediaBeforeV87=typeof enhanceMedia==='function'?enhanceMedia:null;
+if(enhanceMediaBeforeV87)enhanceMedia=function(){const result=enhanceMediaBeforeV87.apply(this,arguments);enhanceMediaCardsV87();return result};
+
+const focusBridgeV87=window.NEXESTATE_V78_FOCUS_BRIDGE;
+if(!focusBridgeV87)throw new Error('NexEstate V78 focus bridge unavailable for V87');
+const mappingBeforeV87=focusBridgeV87.mapping,updateSyncBeforeV87=focusBridgeV87.updateSync;
+function splitRectV87(rect,index,count,field='value'){const safe=rect||[5,5,90,90],gap=.7,width=(safe[2]-gap*Math.max(0,count-1))/Math.max(1,count),x=safe[0]+index*(width+gap),top=field==='label'?safe[1]+safe[3]*.60:safe[1],height=field==='label'?safe[3]*.40:safe[3]*.62;return[x,top,width,height]}
+function contactRectV87(base,id){const rect=base?.rect||[7,49,86,34],company=['ne73CompanyTelegram','ne73ShowCompanyTelegram','ne73CompanyInstagram','ne73ShowCompanyInstagram','studioSite','ne73ShowSite'];if(id==='studioBrokerPhoto')return[rect[0]+1,rect[1]+2,rect[2]*.28,rect[3]*.62];if(company.includes(id))return[rect[0]+rect[2]*.33,rect[1]+rect[3]*.67,rect[2]*.64,rect[3]*.28];const order=['studioMgr','studioMgrRole','studioPhone','studioWa','studioTg','studioEmail'],index=Math.max(0,order.indexOf(id)),height=rect[3]*.60/order.length;return[rect[0]+rect[2]*.33,rect[1]+index*height,rect[2]*.64,height]}
+function mappingV87(source){
+  if(!source)return null;const registry=focusBridgeV87.registry(),featureField=source.dataset?.featureField,row=source.closest?.('[data-feature-type]');
+  let mapping=null,stableId=source.id||'';
+  if(row&&registry?.feature){const enabled=(currentSettings?.features||[]).filter(item=>item.enabled),type=row.dataset.featureType,index=Math.max(0,enabled.findIndex(item=>item.type===type)),count=Math.max(1,enabled.length);mapping={...registry.feature,previewTargetId:`${registry.feature.previewTargetId}-${type}-${featureField||'row'}`,rect:splitRectV87(registry.feature.rect,index,count,featureField==='label'?'label':'value')};stableId=`feature:${type}:${featureField||'row'}`}
+  else if(source.closest?.('[data-advantage-id]')&&registry?.studioExtra){const rows=[...source.closest('[data-advantage-id]').parentElement.querySelectorAll('[data-advantage-id]')],index=Math.max(0,rows.indexOf(source.closest('[data-advantage-id]')));mapping={...registry.studioExtra,previewTargetId:`${registry.studioExtra.previewTargetId}-${index}`,rect:splitRectV87(registry.studioExtra.rect,index,Math.max(1,rows.length),'value')};stableId=`advantage:${source.closest('[data-advantage-id]').dataset.advantageId||index}`}
+  else if(source.id==='studioBrokerPhoto'){const base=registry?.brokerPhoto||registry?.broker;mapping=base?{...base,previewTargetId:`${base.previewTargetId}-photo`,rect:contactRectV87(registry?.broker,'studioBrokerPhoto')}:null}
+  else if(['studioMgr','studioMgrRole','studioPhone','studioWa','studioTg','studioEmail','studioSite','ne73CompanyTelegram','ne73ShowCompanyTelegram','ne73CompanyInstagram','ne73ShowCompanyInstagram','ne73ShowSite'].includes(source.id)){const base=registry?.broker;mapping=base?{...base,previewTargetId:`${base.previewTargetId}-${source.id}`,rect:contactRectV87(base,source.id)}:null}
+  else mapping=mappingBeforeV87(source);
+  if(stableId){source.dataset.previewSourceId=stableId;focusBridgeV87.sourceHost(source)?.setAttribute('data-preview-source-id',stableId)}if(mapping)source.dataset.previewTargetId=mapping.previewTargetId;return mapping;
+}
+focusBridgeV87.mapping=mappingV87;
+function updateSyncV87(){updateSyncBeforeV87();requestAnimationFrame(()=>{const active=focusBridgeV87.active(),studio=focusBridgeV87.studio();if(!active)return;const target=studio?.querySelector('.ne78-preview-target');if(target){lastFocusDiagnosticV87='';studio?.removeAttribute('data-focus-diagnostic')}else{const id=active.source?.dataset?.previewSourceId||active.source?.id||'unknown',map=mappingV87(active.source);lastFocusDiagnosticV87=`${id}: ${map?'целевая страница скрыта или не отрисована':'сопоставление отсутствует'}`;studio?.setAttribute('data-focus-diagnostic',lastFocusDiagnosticV87);studio?.dispatchEvent(new CustomEvent('nexestate:focus-diagnostic',{detail:{source:id,message:lastFocusDiagnosticV87}}))}})}
+focusBridgeV87.updateSync=updateSyncV87;
+document.addEventListener('change',event=>{if(event.target?.matches?.('#ne62LayoutBy,#ne62LayoutSingle,#ne65BrandMode'))focusBridgeV87.clear()},true);
+document.addEventListener('keydown',event=>{if(event.key==='Tab'&&focusBridgeV87.active())requestAnimationFrame(focusBridgeV87.queue)},true);
+
+function ensureV87(){syncExportV87();renderDescriptionChoiceV87();enhanceMediaCardsV87();exportBridgeV87.refreshBottomBar()}
+let ensureFrameV87=0;
+function queueEnsureV87(){if(!ensureFrameV87)ensureFrameV87=requestAnimationFrame(()=>{ensureFrameV87=0;ensureV87()})}
+const observerV87=new MutationObserver(records=>{if(records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1)))queueEnsureV87()});observerV87.observe(document.documentElement,{childList:true,subtree:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureV87,{once:true});else ensureV87();
+window.NEXESTATE_PRESENTATION_MEDIA_FIX_TEST={version:VERSION_V87,classifyDescription:classifyDescriptionV87,applyDescription:setDescriptionV87,getPendingDescription:()=>pendingDescriptionV87?structuredClone(pendingDescriptionV87):null,getExport:()=>({format:formatV87(),busy:exportBusyV87,info:exportInfoV87(formatV87())}),setExport:type=>{selectExportV87(type);return formatV87()},runExport:runSelectedExportV87,enhanceMedia:enhanceMediaCardsV87,moveMedia:moveMediaV87,mapField:source=>mappingV87(typeof source==='string'?byId(source):source),focusDiagnostic:()=>lastFocusDiagnosticV87,contacts:()=>({telegram:currentSettings?.showCompanyTelegram!==false,instagram:currentSettings?.showCompanyInstagram!==false,site:currentSettings?.showSite!==false})};
+window.NEXESTATE_PRESENTATION_MEDIA_FIX_LOADED=true;
+})();
+</script>
+<script id="nexestate-presentation-media-fix-v87-loader">
+(()=>{const source=document.getElementById('nexestate-presentation-media-fix-v87-runtime')?.textContent||'';if(typeof window.NEXESTATE_RUN_INTERNAL_EXTENSION!=='function')throw new Error('Внутреннее пространство NexEstate Studio недоступно');try{window.NEXESTATE_RUN_INTERNAL_EXTENSION(source);delete window.NEXESTATE_PRESENTATION_MEDIA_FIX_ERROR}catch(error){window.NEXESTATE_PRESENTATION_MEDIA_FIX_LOADED=false;window.NEXESTATE_PRESENTATION_MEDIA_FIX_ERROR=String(error?.stack||error);throw error}})();
 </script>
 <script src="../../pwa-shell.js"></script>
 </body>
