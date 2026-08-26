@@ -2,12 +2,12 @@
   "status": "passed",
   "baseUrl": "http://127.0.0.1:8765/",
   "presentationUrl": "http://127.0.0.1:8765/apps/presentation/",
-  "expectedCache": "nex-estate-media-studio-unified-v52-final-regression-fix-20260826",
+  "expectedCache": "nex-estate-media-studio-unified-v53-final-regression-acceptance-20260826",
   "state": {
     "active": true,
     "controlled": true,
     "cacheNames": [
-      "nex-estate-media-studio-unified-v52-final-regression-fix-20260826"
+      "nex-estate-media-studio-unified-v53-final-regression-acceptance-20260826"
     ],
     "cached": [
       "http://127.0.0.1:8765/",

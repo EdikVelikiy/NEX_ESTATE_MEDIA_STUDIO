@@ -6,7 +6,7 @@ const BASE_URL = process.env.NEX_STUDIO_URL || 'http://127.0.0.1:8765/';
 const PRESENTATION_URL = new URL('apps/presentation/', BASE_URL).href;
 const EDGE = process.env.NEX_EDGE_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const REPORT = path.join(__dirname, 'results', 'service-worker-report.json');
-const EXPECTED_CACHE = process.env.NEX_EXPECTED_CACHE || 'nex-estate-media-studio-unified-v52-final-regression-fix-20260826';
+const EXPECTED_CACHE = process.env.NEX_EXPECTED_CACHE || 'nex-estate-media-studio-unified-v53-final-regression-acceptance-20260826';
 
 async function main() {
   const browser = await chromium.launch({ executablePath: EDGE, headless: true });

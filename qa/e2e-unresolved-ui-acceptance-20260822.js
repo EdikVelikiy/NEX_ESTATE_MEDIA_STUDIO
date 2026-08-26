@@ -484,28 +484,80 @@ function performanceEvidence() {
 }
 
 async function titleFitMatrix(page) {
-  const cases = [
-    { name: 'short', value: 'Офис' },
-    { name: 'medium', value: 'Аренда офиса у метро Красносельская' },
-    { name: 'long', value: LONG_TITLE },
-    { name: 'extreme', value: 'Аренда многофункционального коммерческого помещения свободного назначения с отдельным входом в центре Москвы' }
+  const exactTitle = length => {
+    const seed = 'Аренда коммерческого помещения у метро в центре Москвы ';
+    let value = seed.repeat(Math.ceil(length / seed.length) + 1).slice(0, length);
+    if (value.endsWith(' ')) value = value.slice(0, -1) + 'я';
+    return value;
+  };
+  const cases = [20, 50, 90, 140].map(length => ({ name: `length-${length}`, length, value: exactTitle(length) }));
+  const viewports = [
+    { name: 'desktop', width: 1920, height: 1080 },
+    { name: 'mobile', width: 390, height: 844 }
   ];
   const evidence = [];
-  for (const item of cases) {
-    await page.locator('#studioName').fill(item.value);
-    await page.locator('#studioName').press('Tab');
-    await waitAcceptedPreview(page);
-    const cover = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover());
-    const constraints = validateCover(cover);
-    const canonical = await page.evaluate(() => window.NEXESTATE_STANDALONE_TEST?.getState?.()?.data?.objName || '');
-    insist(canonical === item.value, 'Fit-to-box изменил канонический заголовок', { item, canonical });
-    evidence.push({ name: item.name, value: item.value, lines: cover.title.lines, title: cover.geometry.titleRect, constraints });
-    if (item.name === 'long' || item.name === 'extreme') await saveAcceptedCoverShot(page, 'title-' + item.name);
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    for (const item of cases) {
+      insist(item.value.length === item.length, 'QA-заголовок имеет неверную длину', item);
+      await page.locator('#studioName').fill(item.value);
+      await page.locator('#studioName').press('Tab');
+      await waitAcceptedPreview(page);
+      const cover = await page.evaluate(() => window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover());
+      const constraints = validateCover(cover);
+      const canonical = await page.evaluate(() => window.NEXESTATE_STANDALONE_TEST?.getState?.()?.data?.objName || '');
+      insist(canonical === item.value, 'Fit-to-box изменил канонический заголовок', { item, viewport, canonical });
+      evidence.push({ viewport: viewport.name, name: item.name, length: item.length, value: item.value, lines: cover.title.lines, truncated: cover.title.truncated, title: cover.geometry.titleRect, constraints });
+      if (item.length === 140) await saveAcceptedCoverShot(page, `title-140-${viewport.name}`);
+    }
   }
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await page.locator('#studioName').fill(LONG_TITLE);
   await page.locator('#studioName').press('Tab');
   await waitAcceptedPreview(page);
   return evidence;
+}
+
+async function blankFieldsAndDescriptionEvidence(page) {
+  const original = await page.evaluate(() => window.NEXESTATE_STANDALONE_TEST?.getState?.()?.data || {});
+  const generatedDescription = 'Состояние помещения хорошее. Отдельный вход расположен со стороны улицы.\nОписание';
+  await page.evaluate(({ original, generatedDescription }) => window.NEXESTATE_STANDALONE_TEST.replaceData({
+    ...original,
+    objName: '',
+    addr: '',
+    scenario: '',
+    use: '',
+    metro: '',
+    metroStations: [],
+    draft: generatedDescription,
+    fieldOverrides: {
+      ...(original.fieldOverrides || {}),
+      objName: { manual: true, cleared: true, value: '' },
+      addr: { manual: true, cleared: true, value: '' },
+      scenario: { manual: true, cleared: true, value: '' },
+      draft: { manual: false, source: 'ocr-section', reason: 'generated description' }
+    }
+  }), { original, generatedDescription });
+  await waitAcceptedPreview(page);
+  const blank = await page.evaluate(() => ({
+    cover: window.NEXESTATE_REMAINING_VISUAL_HOTFIX_TEST.inspectCover(),
+    data: window.NEXESTATE_DATA_RENDER_TEST.state().data,
+    form: {
+      title: document.getElementById('studioName')?.value || '',
+      address: document.getElementById('studioAddr')?.value || '',
+      scenario: document.getElementById('studioScenario')?.value || '',
+      purpose: document.getElementById('studioUse')?.value || ''
+    }
+  }));
+  const identity = blank.cover?.identity || {};
+  insist(!identity.title && !identity.address && !identity.scenario && !identity.purpose, 'Пустые поля вывели ложные примеры на обложку', blank);
+  insist(Object.values(blank.form).every(value => value === ''), 'Пустые поля восстановились как placeholders', blank);
+  insist(identity.description === 'Состояние помещения хорошее. Отдельный вход расположен со стороны улицы.' && identity.descriptionHeadingCount === 1, 'Описание не очищено от конечного служебного маркера или заголовок повторён', blank);
+  insist(blank.cover.overviewPages === 0, 'Описание продублировано отдельной страницей в by NexEstate', blank);
+  await saveAcceptedCoverShot(page, 'blank-fields-no-placeholders');
+  await page.evaluate(original => window.NEXESTATE_STANDALONE_TEST.replaceData(original), original);
+  await waitAcceptedPreview(page);
+  return blank;
 }
 
 async function mediaGeometryEvidence(page) {
@@ -634,8 +686,16 @@ async function purposeFontsStorageEvidence(page) {
   const fontDetails = page.locator('#ne78FontSettings');
   if (!(await fontDetails.getAttribute('open'))) await fontDetails.locator(':scope>summary').click();
   const font = page.locator('#dsFontSelect');
-  const options = await font.locator('option').evaluateAll(nodes => nodes.map(node => node.value).filter(Boolean));
+  const optionDetails = await font.locator('option').evaluateAll(nodes => nodes.map(node => ({ value: node.value, label: node.textContent.trim() })).filter(item => item.value));
+  const options = optionDetails.map(item => item.value);
   insist(options.length >= 2, 'Недостаточно вариантов шрифта', { options });
+  const categories = {
+    sans: optionDetails.some(item => /sans|нейтраль|геометр|гуманист/iu.test(item.label)),
+    serif: optionDetails.some(item => /serif|антикв|книжн/iu.test(item.label)),
+    display: optionDetails.some(item => /display|заголов|акцидент/iu.test(item.label)),
+    condensed: optionDetails.some(item => /узк|condensed|компакт/iu.test(item.label))
+  };
+  insist(Object.values(categories).every(Boolean), 'Не представлены различимые кириллические категории шрифтов', { optionDetails, categories });
   const byChoice = options[1] || options[0], singleChoice = options[2] || options[0];
   await font.selectOption(byChoice);
   await page.locator('#ne62LayoutSingle').click();
@@ -654,7 +714,7 @@ async function purposeFontsStorageEvidence(page) {
   insist(state.purpose === 'кофейня, пекарня, салон красоты', 'Назначение не сохранилось в модели данных', state);
   insist(state.data?.fonts?.byNexEstate === byChoice && state.data?.fonts?.singlePage === singleChoice && state.selected === byChoice, 'Шрифты двух режимов не изолированы', { state, byChoice, singleChoice });
   insist(!/ошиб|не сохран/i.test(state.autosave) && state.lifecycle?.projectId, 'Ошибка автосохранения или отсутствует активный проект', state);
-  return { state, byChoice, singleChoice };
+  return { state, byChoice, singleChoice, optionDetails, categories };
 }
 
 async function floorPlanAndFirstFrameEvidence(page) {
@@ -732,6 +792,16 @@ async function cancelFileChooserAction(page, selector, action, actions) {
 }
 
 async function homeActionPrelude(page, actions) {
+  const theme = page.locator('#nsUiTheme');
+  const initialTheme = await theme.inputValue();
+  const themes = await theme.locator('option').evaluateAll(nodes => nodes.map(node => node.value).filter(Boolean));
+  const nextTheme = themes.find(value => value !== initialTheme);
+  insist(nextTheme, 'Нет второго оформления Studio для реального переключения', { initialTheme, themes });
+  await theme.selectOption(nextTheme);
+  const appliedTheme = await page.evaluate(() => ({ body: document.body.dataset.nsTheme || '', stored: localStorage.getItem('nexestate-ui-theme') || localStorage.getItem('neStudioUiTheme') || '' }));
+  insist(appliedTheme.body === nextTheme, 'Оформление Studio не применилось', { initialTheme, nextTheme, appliedTheme });
+  await theme.selectOption(initialTheme);
+  actions.push({ action: 'Оформление Studio', result: `${initialTheme} -> ${nextTheme} -> ${initialTheme}` });
   await cancelFileChooserAction(page, 'button[data-ne79-file-target="nsBulkPdf"]', 'Загрузить PDF', actions);
   await page.locator('button[data-ne79-file-target="ne79TextImport"]').click();
   const textModal = page.locator('#ne80TextModal:not([hidden])');
@@ -772,6 +842,16 @@ async function catalogImportAndCardMenuEvidence(page) {
   tooltip.mouseleave = await tooltipHidden();
   await importButton.focus();
   await page.waitForFunction(() => document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  await page.locator('#nsUiTheme').focus();
+  await page.waitForFunction(() => !document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  tooltip.blur = await tooltipHidden();
+  await importButton.focus();
+  await page.waitForFunction(() => document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  await page.locator('.ns-home-hero h1').click();
+  await page.waitForFunction(() => !document.getElementById('ne54Tooltip')?.classList.contains('show'));
+  tooltip.outside = await tooltipHidden();
+  await importButton.focus();
+  await page.waitForFunction(() => document.getElementById('ne54Tooltip')?.classList.contains('show'));
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.getElementById('ne54Tooltip')?.classList.contains('show'));
   tooltip.escape = await tooltipHidden();
@@ -780,7 +860,7 @@ async function catalogImportAndCardMenuEvidence(page) {
   await (await cancelChooser).setFiles([]);
   tooltip.dialogClose = await tooltipHidden();
   insist(Object.values(tooltip).every(Boolean), 'Подсказка импорта осталась приклеенной', tooltip);
-  actions.push({ action: 'Подсказка импорта', result: 'mouseleave, Escape and file-dialog close all dismiss it', tooltip });
+  actions.push({ action: 'Подсказка импорта', result: 'mouseleave, blur, outside click, Escape and file-dialog close all dismiss it', tooltip });
 
   const inspectImported = () => page.evaluate(() => ({
     data: window.NEXESTATE_STANDALONE_TEST?.getState?.()?.data || {},
@@ -1201,9 +1281,15 @@ async function primaryScenario(page, errors) {
     return evidence;
   });
 
-  await check(env, 'Title fit matrix for short medium long extreme cases', async () => {
+  await check(env, 'Title fit matrix for exact 20 50 90 140 characters on desktop and mobile', async () => {
     const evidence = await titleFitMatrix(page);
     report.geometry.titleFit = evidence;
+    return evidence;
+  });
+
+  await check(env, 'Blank fields no placeholders and description no duplicate', async () => {
+    const evidence = await blankFieldsAndDescriptionEvidence(page);
+    report.geometry.blankFieldsDescription = evidence;
     return evidence;
   });
 
@@ -1623,7 +1709,7 @@ async function basicMatrix(label, browserType, executablePath, privateMode) {
 
     report.browserActions[label] = actions;
     const requiredActions = [
-      'Загрузить PDF', 'Загрузить текст', 'Загрузить фото', 'Импортировать файл проекта',
+      'Оформление Studio', 'Загрузить PDF', 'Загрузить текст', 'Загрузить фото', 'Импортировать файл проекта',
       'К приложениям', 'Редактор презентаций на Hub', 'Новая презентация',
       'Вкладка PDF', 'Вкладка DATA', 'Вкладка MEDIA', 'Загрузить PDF в editor',
       'Перенести всё в Медиа', 'Загрузить фото в editor', 'Одностраничная презентация',
@@ -1666,7 +1752,8 @@ function acceptance() {
     '14-purpose-fonts-storage': pass(/Purpose fonts and storage/),
     '15-real-browser-click-matrix': pass(/Required real-click matrix/) && report.environments.length >= 16,
     '16-preview-export-2x4-consistent': pass(/Preview and 2 modes x 4 export formats/) && Object.keys(report.screenshots).length >= 6,
-    '17-catalog-imports-and-project-menu': pass(/Catalog imports and all project-card actions/)
+    '17-catalog-imports-and-project-menu': pass(/Catalog imports and all project-card actions/),
+    '18-blank-fields-description-no-duplicates': pass(/Blank fields no placeholders/)
   };
   for (const [id, value] of Object.entries(rows)) report.acceptance[id] = { status: value ? 'PASS' : 'FAIL' };
 }
@@ -1676,6 +1763,12 @@ async function main() {
     const { execFileSync } = require('child_process');
     report.branch = execFileSync('git', ['-c', `safe.directory=${ROOT.replace(/\\/g,'/')}`, 'branch', '--show-current'], { cwd: ROOT, encoding: 'utf8' }).trim();
     insist(report.branch === EXPECTED_BRANCH, 'Unexpected branch', { branch: report.branch, expected: EXPECTED_BRANCH });
+
+    if (process.env.NEX_QA_FIREFOX_WEBDRIVER_ONLY === '1') {
+      await firefoxWebDriverMatrix('Firefox normal', false);
+      await firefoxWebDriverMatrix('Firefox private', true);
+      return;
+    }
 
     const browser = await chromium.launch({ headless: true, executablePath: fs.existsSync(CHROME) ? CHROME : undefined });
     const context = await browser.newContext({ viewport: VIEWPORTS[0], acceptDownloads: true, serviceWorkers: 'allow' });
@@ -1717,6 +1810,10 @@ async function main() {
     const runMatrix = async (label, browserType, executablePath, privateMode) => {
       try {
         insist(fs.existsSync(executablePath), `${label} executable unavailable`, { executablePath });
+        if (label.startsWith('Firefox')) {
+          await firefoxWebDriverMatrix(label, privateMode);
+          return;
+        }
         await basicMatrix(label, browserType, executablePath, privateMode);
       } catch (error) {
         add(label, 'Required real-click matrix', 'FAIL', error.evidence || { executablePath, privateMode }, String(error.message || error));
