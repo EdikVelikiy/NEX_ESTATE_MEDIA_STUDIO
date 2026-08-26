@@ -3,8 +3,10 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const BASE_URL = process.env.NEX_STUDIO_URL || 'http://127.0.0.1:8765/';
+const PRESENTATION_URL = new URL('apps/presentation/', BASE_URL).href;
 const EDGE = process.env.NEX_EDGE_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const REPORT = path.join(__dirname, 'results', 'service-worker-report.json');
+const EXPECTED_CACHE = process.env.NEX_EXPECTED_CACHE || 'nex-estate-media-studio-unified-v53-final-regression-acceptance-20260826';
 
 async function main() {
   const browser = await chromium.launch({ executablePath: EDGE, headless: true });
@@ -46,19 +48,30 @@ async function main() {
       };
     });
     if (!state.active || !state.controlled) throw new Error('Service worker не управляет страницей');
-    if (!state.cacheNames.includes('nex-estate-media-studio-v2-2-media-fixes')) throw new Error('Кэш v2.2 не найден');
-    for (const asset of ['index.html', 'photo-engine.js', 'studio-upgrade.js', 'studio-upgrade.css']) {
+    if (!state.cacheNames.includes(EXPECTED_CACHE)) throw new Error(`Текущий кэш ${EXPECTED_CACHE} не найден`);
+    for (const asset of ['index.html', 'pwa-shell.js', 'apps/presentation/index.html', 'nexestate-logo-reference-clean.png', 'pdf.min.js', 'pdf.worker.min.js']) {
       if (!state.cached.some(url => url.endsWith(asset))) throw new Error(`В кэше нет ${asset}`);
     }
 
+    const presentationResponse = await page.goto(PRESENTATION_URL, { waitUntil: 'domcontentloaded' });
+    if (!presentationResponse?.ok()) throw new Error(`Presentation HTTP ${presentationResponse?.status()}`);
+    await page.locator('#studioHome').waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => window.NEXESTATE_PRESENTATION_MEDIA_FIX_LOADED === true);
+
     await context.setOffline(true);
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForFunction(() => document.documentElement.classList.contains('studio-upgrade-ready'));
-    if (await page.getByRole('button', { name: 'Фото', exact: true }).count() !== 1) throw new Error('Офлайн-оболочка не отрисована');
+    await page.locator('#studioHome').waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => window.NEXESTATE_PRESENTATION_MEDIA_FIX_LOADED === true);
+    if (await page.getByRole('button', { name: 'Новая презентация', exact: true }).count() !== 1) throw new Error('Офлайн-каталог Presentation Studio не отрисован');
+    if ((await page.locator('#ne80HomeSignature').innerText()).replace(/\s+/g, ' ').trim() !== 'NexEstate Presentation Studio by Эдик Великий') throw new Error('Офлайн-footer Presentation Studio неверен');
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.locator('.app-hub-shell').waitFor({ state: 'visible', timeout: 30000 });
+    await page.locator('[data-app-route="presentation"]').click();
+    await page.locator('#studioHome').waitFor({ state: 'visible', timeout: 30000 });
     await page.waitForTimeout(400);
     if (errors.length) throw new Error(`Ошибки офлайн-запуска: ${errors.join(' | ')}`);
 
-    const report = { status: 'passed', baseUrl: BASE_URL, state, errors };
+    const report = { status: 'passed', baseUrl: BASE_URL, presentationUrl: PRESENTATION_URL, expectedCache: EXPECTED_CACHE, state, offline: { presentationReload: true, hubNavigation: true }, errors };
     fs.writeFileSync(REPORT, JSON.stringify(report, null, 2));
     process.stdout.write(`${JSON.stringify(report, null, 2)}\nPASS\n`);
   } finally {

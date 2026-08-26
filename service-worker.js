@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'nex-estate-media-studio-';
-const CACHE_NAME = `${CACHE_PREFIX}unified-v50-final-fix-20260823`;
+const CACHE_NAME = `${CACHE_PREFIX}unified-v53-final-regression-acceptance-20260826`;
 const OCR_RUNTIME_CACHE = `${CACHE_PREFIX}ocr-runtime-v1`;
 const OCR_RUNTIME_HOSTS = new Set([
   'cdn.jsdelivr.net',
