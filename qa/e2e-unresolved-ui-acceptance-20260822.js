@@ -405,7 +405,7 @@ function validateCover(cover) {
   insist(logo.x >= brand.x && logo.y >= brand.y && logo.x + logo.w <= brand.x + brand.w && logo.y + logo.h <= brand.y + brand.h, 'Логотип не внутри brandColumnRect', g);
   const leftGap = logo.x - brand.x, leftRatio = leftGap / brand.w, topGap = logo.y - brand.y, topRatio = topGap / brand.h;
   insist(leftRatio >= 0.04 && leftRatio <= 0.15 && topRatio >= 0.02 && topRatio <= 0.06, 'Неверные safe-margin сверху/слева логотипа', { leftGap, leftRatio, topGap, topRatio, g });
-  insist(logo.x > 48 && logo.y < 48 && logo.w <= 92, 'Блок логотипа не сдвинут вправо/вверх или не уменьшен на 10–15%', { logo, baseline: { x: 48, y: 48, w: 103 } });
+  insist(logo.x === 30 && logo.y === 30 && logo.w === 90, 'R14: логотип должен сохранять ширину 90 px и иметь отступы 30 px (5,08 мм) сверху/слева', { logo, expected: { x: 30, y: 30, w: 90 } });
   insist(logo.x + logo.w <= brand.x + brand.w / 2 && logo.w <= brand.w * 0.45, 'Полный знак находится не в левом верхнем углу зелёной колонки', g);
   insist(title.y >= logo.y + logo.h + g.slideRect.h * 0.03 && title.y >= g.slideRect.y + g.slideRect.h * 0.14, 'Заголовок не ниже логотипа', g);
   insist(cover.title.lines <= 4 && title.h <= g.slideRect.h * 0.26, 'Заголовок не fit-to-box', { title: cover.title, geometry: g });
@@ -916,7 +916,17 @@ async function catalogImportAndCardMenuEvidence(page) {
 
   const photoOcrText = 'АРЕНДА\nОфис из фото\nАдрес: г. Москва, ул. Фото, д. 3\nНазначение: офис\nОписание: PHOTO-QA';
   await page.evaluate(text => {
-    window.Tesseract = { recognize: async () => ({ data: { text } }), PSM: { SPARSE_TEXT: 11 } };
+    // Mirror the pinned Tesseract 5.1.1 worker API; keep identical OCR fixture text.
+    const recognize = async () => ({ data: { text } });
+    window.Tesseract = {
+      recognize,
+      PSM: { SPARSE_TEXT: 11 },
+      createWorker: async () => ({
+        setParameters: async () => {},
+        recognize,
+        terminate: async () => {}
+      })
+    };
     window.neEnsureTesseract = async () => window.Tesseract;
   }, photoOcrText);
   const photoChooser = page.waitForEvent('filechooser', { timeout: 30000 });
