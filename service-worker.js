@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'nex-estate-media-studio-';
-const CACHE_NAME = `${CACHE_PREFIX}unified-v54-presentation-r01-r18-20260909`;
+const CACHE_NAME = `${CACHE_PREFIX}unified-v55-presentation-targeted-20260918`;
 const OCR_RUNTIME_CACHE = `${CACHE_PREFIX}ocr-runtime-v1`;
 const OCR_RUNTIME_HOSTS = new Set([
   'cdn.jsdelivr.net',
@@ -36,6 +36,7 @@ const APP_SHELL = [
   './apps/media/assets/marks/F_light.svg',
   './apps/presentation/',
   './apps/presentation/index.html',
+  './apps/presentation/targeted-fixes.js',
   './apps/presentation/assets/nexestate-buildings.svg',
   './apps/presentation/assets/nexestate-logo-reference-clean.png',
   './apps/presentation/vendor/pdfjs/pdf.min.js',
