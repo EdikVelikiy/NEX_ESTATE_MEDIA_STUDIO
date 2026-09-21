@@ -2046,7 +2046,8 @@ html[data-theme="blue"] .mobile-workbar button{color:#CEDFE8}
 #presentationStudio .ne-page-move:hover{border-color:#58839A;background:#1B2A31}
 #presentationStudio .studio-photo-move:disabled,
 #presentationStudio .ne-page-move:disabled{opacity:.38}
-[data-ds-validation-error="true"]{
+[data-ds-validation-error="true"],
+#presentationStudio.ne78-redesign.ne79-corrections :is(#ne53DataForm,.ne52-sidebar) :is(input,select,textarea):is([data-ds-validation-error="true"],[data-ne-export-error="true"]){
   border-color:#B73A3A!important;
   box-shadow:0 0 0 3px rgba(183,58,58,.12)!important;
 }
@@ -14791,12 +14792,13 @@ function validationStateV77(options){
   return{feature,description,plan:{required:planRequired,id:planId||legacyPlan?.neId||legacyPlan?.id||'',exists:planExists,legacy:!!legacyPlan&&!planId},valid:!feature.invalid&&!description.pending&&description.fits&&planExists};
 }
 function assertFunctionalStateV77(){
-  const state=validationStateV77();if(state.feature.invalid)throw new Error(FEATURE_ERROR_PREFIX_V77+state.feature.count+' из '+state.feature.limit+'.');
+  const state=validationStateV77();window.NEXESTATE_R88?.highlightErrors?.(state,true);if(state.feature.invalid)throw new Error(FEATURE_ERROR_PREFIX_V77+state.feature.count+' из '+state.feature.limit+'.');
   if(state.description.pending)throw new Error('Дождитесь загрузки шрифтов и завершения проверки описания.');if(!state.description.fits){window.NEXESTATE_R88?.focusDescription?.();throw new Error(DESCRIPTION_ERROR_V77);}
   if(state.description.titleFits===false)throw new Error('Заголовок превышает вместимость одностраничного макета — сократите текст.');
   if(!state.plan.exists)throw new Error('Загрузите планировку или включите «Без планировки»');window.NEXESTATE_R88?.preflight();return state;
 }
 window.NEXESTATE_FUNCTIONAL_VALIDATE=assertFunctionalStateV77;
+window.NEXESTATE_FUNCTIONAL_VALIDATE.fieldState=validationStateV77;
 let validationFrameV77=0;
 function queueValidationV77(){if(validationFrameV77)return;validationFrameV77=requestAnimationFrame(()=>{validationFrameV77=0;if(!editorOpenV77())return;syncFeatureValidationV77();syncDescriptionUiV77()})}
 const renderFeatureEditorBeforeV77=renderFeatureEditor;
@@ -20307,9 +20309,9 @@ return{wrap,fit,sentences,variants};
     const options = el('div', null, 'ne-r06-options'); options.id = 'ne-r06-options-' + uniqueId(); options.setAttribute('role', 'listbox'); options.setAttribute('aria-label', 'Станции и линии'); search.setAttribute('aria-controls', options.id);
     searchLabel.append(search); const close = el('button', 'Закрыть список'); close.type = 'button'; picker.append(searchLabel, close, options);
     const lineNote = el('p', stationDescription(row));
-    const nameLabel = el('label', 'Название станции / ручное уточнение'), nameInput = el('input'); nameInput.type = 'text'; nameInput.value = row.name; nameInput.setAttribute('aria-label', 'Название станции ' + (index + 1)); nameLabel.append(nameInput);
+    const nameLabel = el('label', 'Название станции / ручное уточнение'), nameInput = el('input'); nameInput.type = 'text'; nameInput.dataset.neValidationField = 'name'; nameInput.value = row.name; nameInput.setAttribute('aria-label', 'Название станции ' + (index + 1)); nameLabel.append(nameInput);
     const fields = el('div', null, 'ne-r06-fields');
-    const timeLabel = el('label', 'Минуты'), timeInput = el('input'); timeInput.type = 'text'; timeInput.inputMode = 'numeric'; timeInput.autocomplete = 'off'; timeInput.value = row.minutesInvalid ? String(row.minutesInput || '') : row.minutes == null ? '' : String(row.minutes); timeInput.placeholder = 'Не указано'; timeInput.setAttribute('aria-label', 'Минуты до станции ' + (index + 1)); timeLabel.append(timeInput);
+    const timeLabel = el('label', 'Минуты'), timeInput = el('input'); timeInput.type = 'text'; timeInput.dataset.neValidationField = 'minutes'; timeInput.inputMode = 'numeric'; timeInput.autocomplete = 'off'; timeInput.value = row.minutesInvalid ? String(row.minutesInput || '') : row.minutes == null ? '' : String(row.minutes); timeInput.placeholder = 'Не указано'; timeInput.setAttribute('aria-label', 'Минуты до станции ' + (index + 1)); timeLabel.append(timeInput);
     const modeLabel = el('label', 'Способ доступа'), mode = el('select'); [['walk', 'Пешком'], ['car', 'На авто']].forEach(([value, label]) => { const option = el('option', label); option.value = value; mode.append(option); }); mode.value = row.mode; mode.setAttribute('aria-label', 'Способ доступа до станции ' + (index + 1)); modeLabel.append(mode); fields.append(timeLabel, modeLabel);
     const legacyMode = el('p', row.modeUnverified ? 'Способ доступа в исходнике не подтверждён' + (row.legacyMode === 'transit' ? ' (общественный транспорт)' : '') + '. Уточните «Пешком» или «На авто».' : ''); legacyMode.hidden = !row.modeUnverified;
     const error = el('p', '', 'ne-r06-error'); error.setAttribute('aria-live', 'polite');
@@ -20475,24 +20477,53 @@ function syncDescriptionR88(){
   const details=section.querySelector('details');if(!result.pending&&!result.fits)details.open=true;
   return result;
 }
-function queueR88(){if(frameR88)return;frameR88=requestAnimationFrame(()=>{frameR88=0;syncDescriptionR88();});}
+function queueR88(){if(frameR88)return;frameR88=requestAnimationFrame(()=>{frameR88=0;syncDescriptionR88();if(exportErrorOwnerR88)highlightExportErrorsR88();});}
 function inputR88(){const field=byId('studioDescription'),state=descriptionStateR88();if(state&&field){state.drafts[state.selected]=field.value;updateManualOriginalR88(state,field.value);}queueR88();}
-function validateSlidesR88(slides){
+let exportErrorOwnerR88=null;
+function highlightExportErrorsR88(state,activate=false){
+  const selector='#presentationStudio [data-ne-export-error="true"]';
+  if(!currentRecord||(!activate&&exportErrorOwnerR88!==currentRecord.id)){
+    document.querySelectorAll(selector).forEach(field=>field.removeAttribute('data-ne-export-error'));
+    exportErrorOwnerR88=null;return;
+  }
+  let slides=[];
+  try{
+    state=state||window.NEXESTATE_FUNCTIONAL_VALIDATE.fieldState();
+    if(state.description.pending)return;
+    const fields=new Set(),add=(message,selectors=[])=>selectors.forEach(query=>document.querySelectorAll(query).forEach(field=>fields.add(field)));
+    if(!state.description.fits)add('', ['#studioDescription']);
+    if(state.description.titleFits===false)add('', ['#studioName']);
+    slides=buildCanonicalSlides({forExport:false});
+    validateSlidesR88(slides,add);
+    document.querySelectorAll(selector).forEach(field=>{if(!fields.has(field))field.removeAttribute('data-ne-export-error');});
+    fields.forEach(field=>{if(field.dataset.neExportError!=='true')field.dataset.neExportError='true';});
+    exportErrorOwnerR88=fields.size?currentRecord.id:null;
+  }catch(_){
+    // Visual feedback must never change the existing export decision.
+  }finally{slides.forEach(c=>{if(!c.neOriginalPdfPage){c.width=1;c.height=1;}});}
+}
+function exportTitleFieldR88(canvas){
+  if(canvas.ne88PlanId)return '.neR18-plan-card[data-plan-id="'+CSS.escape(canvas.ne88PlanId)+'"] .neR18-page-title input';
+  if(canvas.neGalleryPageKey)return '.ns-page-card[data-page-key="'+CSS.escape(canvas.neGalleryPageKey)+'"] :is(.ns-page-title,.neR18-page-title input)';
+  return '#studioName';
+}
+function validateSlidesR88(slides,onError){
+  const reject=onError||((message)=>{throw new Error(message);});
   const items=window.ne53UnifiedMedia?.snapshot?.().items||[];
   const missing=(currentSettings?.planPages||[]).find(plan=>!items.some(item=>item.neId===plan.assetId&&item.image));
-  if(missing)throw new Error('Планировка «'+(missing.title??'Планировка')+'»: изображение недоступно. Откройте МЕДИА и замените источник.');
+  if(missing)reject('Планировка «'+(missing.title??'Планировка')+'»: изображение недоступно. Откройте МЕДИА и замените источник.');
   for(let i=0;i<slides.length;i++){const c=slides[i],label='Страница '+(i+1)+': ';
-    if(c.neTargetedContact&&(c.neTargetedContact.headlineFits===false||c.neTargetedContact.addressFits===false))throw new Error(label+'текст страницы контактов не помещается. Откройте ДАННЫЕ → Контакт брокера.');
-    if(c.ne88DescriptionMetrics?.fits===false||c.neStage5DescriptionOverflow)throw new Error(label+'описание не помещается. Откройте ДАННЫЕ → Описание объекта.');
-    if(c.neTitleMetrics?.fits===false||c.ne88TitleFits===false)throw new Error(label+'заголовок не помещается. Откройте поле заголовка этой страницы.');
-    if(c.ne88MetroFits===false||c.neStage5MetroFits===false)throw new Error(label+'список метро не помещается. Откройте ДАННЫЕ → Метро. Все записи сохранены.');
+    if(c.neTargetedContact&&(c.neTargetedContact.headlineFits===false||c.neTargetedContact.addressFits===false))reject(label+'текст страницы контактов не помещается. Откройте ДАННЫЕ → Контакт брокера.',[c.neTargetedContact.headlineFits===false?'#neTargetedcontactHeadline':'',c.neTargetedContact.addressFits===false?'#neTargetedcontactAddress':''].filter(Boolean));
+    if(c.ne88DescriptionMetrics?.fits===false||c.neStage5DescriptionOverflow)reject(label+'описание не помещается. Откройте ДАННЫЕ → Описание объекта.',['#studioDescription']);
+    if(c.neTitleMetrics?.fits===false||c.ne88TitleFits===false)reject(label+'заголовок не помещается. Откройте поле заголовка этой страницы.',[exportTitleFieldR88(c)]);
+    if(c.ne88MetroFits===false||c.neStage5MetroFits===false)reject(label+'список метро не помещается. Откройте ДАННЫЕ → Метро. Все записи сохранены.',['#neR06MetroPanel [data-ne-validation-field="name"]']);
   }
-  const metro=window.NEXESTATE_METRO_R06?.validation?.();if(metro?.length)throw new Error(metro.map(item=>item.message).join(' '));
+  const metro=window.NEXESTATE_METRO_R06?.validation?.();if(metro?.length)reject(metro.map(item=>item.message).join(' '),metro.map(item=>'#neR06MetroPanel [data-metro-id="'+CSS.escape(item.id)+'"] [data-ne-validation-field="'+CSS.escape(item.field)+'"]'));
   return true;
 }
 function focusDescriptionR88(){window.NexCompactStudio?.setStep?.('data');const field=byId('studioDescription');for(let details=field?.closest?.('details');details;details=details.parentElement?.closest?.('details'))details.open=true;field?.focus?.({preventScroll:true});field?.scrollIntoView?.({block:'center',behavior:'smooth'});queueR88();}
 function preflightR88(){const slides=buildCanonicalSlides({forExport:false});try{validateSlidesR88(slides);return true;}catch(error){if(/описани/iu.test(error.message))focusDescriptionR88();else{window.NexCompactStudio?.setStep?.('data');queueR88();}throw error;}finally{slides.forEach(c=>{if(!c.neOriginalPdfPage){c.width=1;c.height=1;}});}}
-window.NEXESTATE_R88={measure:measureR88,syncDescription:syncDescriptionR88,queue:queueR88,input:inputR88,captureDescription:captureDescriptionR88,descriptionState:descriptionStateR88,validateSlides:validateSlidesR88,preflight:preflightR88,focusDescription:focusDescriptionR88};
+window.NEXESTATE_R88={measure:measureR88,syncDescription:syncDescriptionR88,queue:queueR88,input:inputR88,captureDescription:captureDescriptionR88,descriptionState:descriptionStateR88,validateSlides:validateSlidesR88,preflight:preflightR88,focusDescription:focusDescriptionR88,highlightErrors:highlightExportErrorsR88};
 document.addEventListener('input',event=>{if(event.target?.closest?.('#presentationStudio')&&event.target.id!=='studioDescription')queueR88();},true);
 document.addEventListener('change',event=>{if(event.target?.closest?.('#presentationStudio'))queueR88();},true);
 new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.id==='studioDescription'||n.querySelector?.('#studioDescription')))))queueR88();}).observe(document.documentElement,{childList:true,subtree:true});
